@@ -538,7 +538,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       const countryName = countries.find(c => c.id === countryId)?.name;
       const stateName = states.find(s => s.id === stateId)?.name;
       const cityName = cities.find(c => c.id === cityId)?.name;
-      const publishFee = settings?.publish_ad_fees ? `${settings.publish_ad_fees} د.ك` : '5 د.ك';
+      const publishFee = '١٥٠ فلس';
 
       return (
         <div dir="rtl">
@@ -582,7 +582,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             {/* Publish fee */}
             <div className="mt-2 pt-4 border-t border-dashed border-pale dark:border-slate-700">
               <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-pale dark:border-slate-700">
-                <span className="font-bold text-navy dark:text-slate-200">قيمة النشر</span>
+                <span className="font-bold text-navy dark:text-slate-200">سعر اضافه اعلان</span>
                 <span className="text-2xl font-black text-blue">{publishFee}</span>
               </div>
             </div>

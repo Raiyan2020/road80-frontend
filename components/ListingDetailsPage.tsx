@@ -14,7 +14,7 @@ interface ListingDetailsPageProps {
 }
 
 const FALLBACK_IMAGE = 'https://raiyansoft.com/wp-content/uploads/2026/01/1.png';
-const UNLOCK_FEE = '1 د.ك';
+const UNLOCK_FEE = '١٥٠ فلس';
 const KNET_LOGO = "https://media.licdn.com/dms/image/v2/D4D0BAQFazp_I3lLeQg/company-logo_200_200/company-logo_200_200/0/1715599858189/the_shared_electronic_banking_services_co_knet_logo?e=2147483647&v=beta&t=FfjCLbNIUGrTCTi-tI5nXSNP9B4AcOJbWsFqV0bSWcM";
 
 interface MediaItem {
@@ -448,7 +448,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
                     {paymentStatus === 'IDLE' && (
                         <>
                             <div className="bg-bg dark:bg-slate-800 px-6 py-3 rounded-2xl border border-pale/50 dark:border-slate-700 flex items-center gap-3 animate-fade-in transition-colors duration-300">
-                                <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">رسوم الفتح:</span>
+                                <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">سعر فتح الاعلان:</span>
                                 <span className="text-lg font-bold text-navy dark:text-slate-200">{UNLOCK_FEE}</span>
                             </div>
                             <div className="w-full flex flex-col gap-3 mt-4 animate-fade-in">

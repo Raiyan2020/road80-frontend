@@ -14,19 +14,32 @@ interface QuickWizardProps {
 
 const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
   const searchParams = new URLSearchParams(window.location.search);
-  const mode = searchParams.get('mode'); // 'edit' | 'location' | null
+  const mode = searchParams.get('mode');
+  let initialStep = 1;
+  if (mode === 'edit') initialStep = 3;
+  else if (mode === 'location') initialStep = 2;
+
   const isEditMode = mode === 'edit' || mode === 'location';
   
-  const [step, setStep] = useState(isEditMode ? 2 : 1);
-  const [data, setData] = useState({
-    name: '',
-    countryId: null as number | null,
-    countryName: '',
-    governorateId: null as number | null,
-    governorateName: '',
-    areaId: null as number | null,
-    areaName: '',
-    categoryValues: [] as number[],
+  const [step, setStep] = useState(initialStep);
+  const [data, setData] = useState(() => {
+    const defaultData = {
+      name: '',
+      countryId: null as number | null,
+      countryName: '',
+      governorateId: null as number | null,
+      governorateName: '',
+      areaId: null as number | null,
+      areaName: '',
+      categoryValues: [] as number[],
+    };
+    try {
+      const saved = localStorage.getItem('road80_preferences');
+      if (saved) {
+        return { ...defaultData, ...JSON.parse(saved) };
+      }
+    } catch {}
+    return defaultData;
   });
 
   const queryClient = useQueryClient();
@@ -35,15 +48,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
   const { data: cities = [], isLoading: loadingCities } = useExploreCities(data.governorateId || undefined);
   const { data: filters = [], isLoading: loadingFilters } = useCategoriesAppearInFilter();
 
-  useEffect(() => {
-    const saved = localStorage.getItem('road80_preferences');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setData(prev => ({ ...prev, ...parsed }));
-      } catch (e) {}
-    }
-  }, []);
+
 
   const totalSteps = Math.max(5, 4 + filters.length);
 
@@ -53,7 +58,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
   };
 
   const handleBack = () => {
-    if (isEditMode && step === 2) {
+    if (step === initialStep) {
        onComplete();
        return;
     }

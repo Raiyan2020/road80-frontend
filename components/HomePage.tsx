@@ -171,7 +171,7 @@ const HomePage: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () => void }>
   const { data: homeData, isLoading: isHomeDataLoading } = useHomeData();
   const displayAds = homeListings.slice(0, 6);
 
-  const [searchText, setSearchText] = useState('بيت / بيان');
+  const [searchText, setSearchText] = useState('بيت / بيع / الكويت');
   const [currentCountryName, setCurrentCountryName] = useState('الكويت');
 
   useEffect(() => {

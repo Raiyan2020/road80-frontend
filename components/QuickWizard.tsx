@@ -45,8 +45,10 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     }
   }, []);
 
+  const totalSteps = Math.max(5, 4 + filters.length);
+
   const handleNext = () => {
-    if (step < 5) setStep(step + 1);
+    if (step < totalSteps) setStep(step + 1);
     else handleFinish();
   };
 
@@ -115,7 +117,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
             <div className="w-full h-1.5 bg-pale rounded-full overflow-hidden mb-8">
                 <div 
                     className="h-full bg-navy transition-all duration-500 rounded-full"
-                    style={{ width: `${(step / 5) * 100}%` }}
+                    style={{ width: `${(step / totalSteps) * 100}%` }}
                 />
             </div>
         </div>
@@ -218,18 +220,18 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                 </div>
             )}
 
-            {step === 5 && (
+            {step >= 5 && step <= totalSteps && (
                 <div className="animate-fade-in">
                     {renderHeader('تفضيلات البحث', 'ساعدنا في عرض ما يهمك أولاً')}
                     {loadingFilters ? (
                          <div className="flex justify-center p-10"><SpinnerIcon className="w-8 h-8 text-navy animate-spin" /></div>
                     ) : (
                         <div className="flex flex-col gap-6">
-                            {filters.map(group => (
-                                <div key={group.id} className="flex flex-col gap-3">
-                                    <h3 className="font-bold text-navy">{group.name}</h3>
+                            {filters[step - 5] && (
+                                <div className="flex flex-col gap-3">
+                                    <h3 className="font-bold text-navy">{filters[step - 5].name}</h3>
                                     <div className="flex flex-wrap gap-2">
-                                        {group.values.map(v => {
+                                        {filters[step - 5].values.map(v => {
                                             const isSelected = (data.categoryValues || []).includes(v.id);
                                             return (
                                                 <button
@@ -247,7 +249,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                         })}
                                     </div>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     )}
                 </div>
@@ -255,17 +257,17 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-bg via-bg to-transparent z-10 flex gap-3">
-            {step === 1 && !isEditMode ? (
+            {(step === 1 && !isEditMode) || (step >= 5 && step < totalSteps) ? (
                 <button 
                     onClick={handleNext}
-                    disabled={!data.name.trim()}
+                    disabled={step === 1 && !data.name.trim()}
                     className={`flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-all ${
-                        data.name.trim() ? 'bg-navy shadow-navy/20 active:scale-95 hover:bg-blue' : 'bg-gray-300 cursor-not-allowed'
+                        (step > 1 || (step === 1 && data.name.trim())) ? 'bg-navy shadow-navy/20 active:scale-95 hover:bg-blue' : 'bg-gray-300 cursor-not-allowed'
                     }`}
                 >
                     التالي
                 </button>
-            ) : step === 5 ? (
+            ) : step === totalSteps ? (
                 <button 
                     onClick={handleFinish}
                     className="flex-1 py-4 rounded-xl font-bold text-white bg-navy shadow-lg shadow-navy/20 active:scale-95 hover:bg-blue transition-all"

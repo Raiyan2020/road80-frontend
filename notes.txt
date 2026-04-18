@@ -1,0 +1,3 @@
+في تسجيل الشركه خليه يضيف الايميل 
+create an ad range dont work!!!!
+firebase in auth 

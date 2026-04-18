@@ -13,6 +13,8 @@ import QuickWizard from './components/QuickWizard';
 import Header from './components/Header';
 import { Tab, Listing } from './types';
 import { initializePushNotifications } from './shared/utils/notifications';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 
 // Duplicate category map for Title resolution
 const CATEGORY_NAMES: Record<string, string> = {
@@ -73,6 +75,38 @@ const App: React.FC = () => {
   // Initialize Native Push Notifications
   useEffect(() => {
     initializePushNotifications();
+  }, []);
+
+  // Handle Deep Links (Payment Callbacks)
+  useEffect(() => {
+    const setupDeepLinkListener = async () => {
+      CapacitorApp.addListener('appUrlOpen', (event: any) => {
+        // Example URL: road80://payment-callback?status=success&paymentId=...
+        const url = new URL(event.url);
+        
+        if (url.host === 'payment-callback') {
+            const status = url.searchParams.get('status');
+            const paymentId = url.searchParams.get('paymentId');
+
+            // 1. Close the 3DS browser if open
+            Browser.close();
+
+            // 2. Navigate based on status using the hash router
+            if (status === 'success') {
+                window.location.hash = `#/profile?payment=success&id=${paymentId}`;
+            } else {
+                window.location.hash = '#/profile?payment=failed';
+            }
+        }
+      });
+    };
+
+    setupDeepLinkListener();
+
+    return () => {
+      // Net-safe cleanup
+      CapacitorApp.removeAllListeners();
+    };
   }, []);
 
   // Parse Route

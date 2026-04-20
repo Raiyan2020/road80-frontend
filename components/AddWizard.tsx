@@ -327,11 +327,11 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         return;
       }
 
-      // Always use the original full session_id (e.g. "KWT-f411d7b7-...")
-      // The callback's sessionId can sometimes be corrupted (e.g. "KWT-undefined")
-      const finalPaymentId = sessionInfo?.originalId || sessionInfo?.id || _callbackId;
+      // _callbackId is now the MF paymentId (e.g. "07076389179322432673") from the v3 callback
+      // The backend's /payments/verify needs this MF paymentId, not the session ID
+      const finalPaymentId = _callbackId;
 
-      console.log('[Verify] transaction_id:', transactionId, '| payment_id:', finalPaymentId);
+      console.log('[Verify] transaction_id:', transactionId, '| payment_id (MF):', finalPaymentId);
 
       // POST /payments/verify
       const res = await paymentService.verifyPayment({ 

@@ -44,6 +44,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
   const [mfTransactionId, setMfTransactionId] = useState<number | null>(null);
   const [mfEncryptionKey, setMfEncryptionKey] = useState<string | null>(null);
   const [pendingContactType, setPendingContactType] = useState<'WHATSAPP' | 'CALL' | null>(null);
+  const [unlockedContact, setUnlockedContact] = useState<{phone?: string, whatsapp?: string | null} | null>(null);
   const isFavorite = useFavoritesStore((state) => state.isFavorite(listingId));
   const { mutate: toggleFavoriteMutation } = useFavoriteToggle();
   const callMutation = useCallAd();
@@ -60,7 +61,15 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
       const unlockKey = `unlock_contact_${userId}_${listing.id}`;
       const isOwner = listing.publisherId === 'current_user';
       const isStoredUnlocked = localStorage.getItem(unlockKey) === 'true';
-      setIsUnlocked(isOwner || isStoredUnlocked);
+      if (isStoredUnlocked) {
+        setIsUnlocked(true);
+        const savedContact = localStorage.getItem(`unlock_contact_phone_${userId}_${listing.id}`);
+        if (savedContact) {
+            try { setUnlockedContact(JSON.parse(savedContact)); } catch (e) {}
+        }
+      } else {
+        setIsUnlocked(isOwner);
+      }
     } else if (!loading) {
       setTimeout(onBack, 100);
     }
@@ -216,22 +225,51 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
             const user = JSON.parse(localStorage.getItem('road80_user') || '{}');
             const userId = user.phone || 'guest';
             localStorage.setItem(`unlock_contact_${userId}_${listing.id}`, 'true');
+
+            // Extract contact from API response (supports data.contact_info.phone or data.phone)
+            const contactData = verifyRes.data?.contact_info || verifyRes.contact_info || {
+                phone: verifyRes.data?.phone || verifyRes.phone,
+                whatsapp: verifyRes.data?.whatsapp || verifyRes.whatsapp
+            };
+
+            if (contactData && contactData.phone) {
+                setUnlockedContact(contactData);
+                localStorage.setItem(`unlock_contact_phone_${userId}_${listing.id}`, JSON.stringify(contactData));
+            }
+            
             console.log('[Contact Unlock] ✅ Payment verified. Contact unlocked for ad:', listing.id);
             
             // If user originally wanted to contact via whatsapp/call, do it now
-            if (pendingContactType && verifyRes.data?.phone) {
-                const phone = verifyRes.data.phone.replace(/\D/g, '');
+            if (pendingContactType && contactData?.phone) {
+                const phone = contactData.phone.replace(/\D/g, '');
                 if (pendingContactType === 'WHATSAPP') window.open(`https://wa.me/${phone}`, '_blank');
                 else window.location.href = `tel:${phone}`;
             }
-            
+            // Close it immediately and show toast with copy action
             setTimeout(() => {
                 setShowUnlockPopup(false);
                 setMfSessionId(null);
                 setMfTransactionId(null);
                 setPendingContactType(null);
                 setPaymentStatus('IDLE');
-            }, 1500);
+                
+                if (contactData && contactData.phone) {
+                    const fullPhone = `${contactData.phone_code || ''}${contactData.phone}`;
+                    toast.success('تم الدفع بنجاح!', {
+                        description: `رقم التواصل: ${fullPhone}`,
+                        duration: 10000,
+                        action: {
+                            label: 'نسخ الرقم',
+                            onClick: () => {
+                                navigator.clipboard.writeText(fullPhone);
+                                toast.success('تم النسخ للحافظة');
+                            }
+                        }
+                    });
+                } else {
+                    toast.success('تم الدفع بنجاح وتحرير رقم التواصل!');
+                }
+            }, 500);
         } else {
             console.error('[Contact Unlock] /payments/verify returned status=false:', verifyRes);
             setPaymentStatus('IDLE');
@@ -608,13 +646,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
                                 </button>
                             </div>
                         </>
-                    )}
-                    {paymentStatus === 'SUCCESS' && (
-                         <div className="w-full mt-4 animate-fade-in">
-                             <button onClick={() => setShowUnlockPopup(false)} className="w-full h-14 bg-navy dark:bg-blue text-white rounded-2xl font-bold active:scale-95 transition-all shadow-lg shadow-navy/20">
-                                 متابعة
-                             </button>
-                         </div>
                     )}
                 </div>
                 <div className="h-[env(safe-area-inset-bottom)] sm:hidden" />

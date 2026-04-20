@@ -95,38 +95,41 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
       }
 
       console.log('[MF] SDK methods:', Object.keys(sdk));
-      console.log('[MF] raw sessionId from props:', sessionId);
-      console.log('[MF] countryCode:', countryCode);
+      console.log('[MF] sessionId:', sessionId);
       console.log('[MF] encryptionKey:', encryptionKey ?? '(none)');
 
-      // MyFatoorah's InitiateSession returns a plain UUID (e.g. "601d963a-2f28-ec11-bae9-000d3aaca798")
-      // But our backend prepends the country code (e.g. "KWT-601d963a-...")
-      // The SDK expects JUST the UUID — countryCode is already a separate config field
-      let cleanSessionId = sessionId;
-      if (sessionId.includes('-') && sessionId.split('-')[0].length === 3) {
-        cleanSessionId = sessionId.substring(4); // Strip "KWT-" prefix
-        console.log('[MF] Stripped country prefix. Clean sessionId:', cleanSessionId);
-      }
+      // v3 API: SessionId includes country prefix (e.g. "KWT-68814db6-...") — pass it as-is
+      // v3 config uses 'containerId' (not 'cardViewId'), and no separate 'countryCode' needed
 
       try {
         const config: Record<string, any> = {
-          countryCode,
-          sessionId: cleanSessionId,
-          cardViewId: containerId,
+          sessionId,
+          containerId: containerId,
           callback: (response: any) => {
-            console.log('[MF] Callback Response:', response);
+            console.log('[MF] Callback Response (full):', JSON.stringify(response));
             setIsSubmitting(false);
 
-            // MF callback can use either SessionId (camelCase) or sessionId (lowercase)
-            // It also sets isSuccess: true on successful payment
-            const returnedSessionId = response?.SessionId || response?.sessionId;
-            const isSuccess = response?.isSuccess === true || response?.paymentCompleted === true || !!returnedSessionId;
+            // v3 callback structure:
+            // { isSuccess, sessionId, paymentCompleted, paymentId, paymentData, paymentType, redirectionUrl }
+            const isSuccess = response?.isSuccess === true;
+            const paymentCompleted = response?.paymentCompleted === true;
+            
+            // paymentId is the MF numeric ID needed for /payments/verify
+            const mfPaymentId = response?.paymentId;
+            
+            // Also try extracting from redirectionUrl as fallback
+            // e.g. https://demo.MyFatoorah.com/...?paymentId=07076389179322432673
+            let fallbackPaymentId = mfPaymentId;
+            if (!fallbackPaymentId && response?.redirectionUrl) {
+              const match = response.redirectionUrl.match(/[?&]paymentId=([^&]+)/);
+              if (match) fallbackPaymentId = match[1];
+            }
 
-            if (isSuccess && returnedSessionId) {
-              onSuccess(returnedSessionId);
-            } else if (isSuccess && !returnedSessionId) {
-              // payment succeeded but no sessionId in callback — use the original one passed as prop
-              onSuccess(sessionId);
+            console.log('[MF] isSuccess:', isSuccess, '| paymentCompleted:', paymentCompleted, '| paymentId:', fallbackPaymentId);
+
+            if (isSuccess && (paymentCompleted || fallbackPaymentId)) {
+              // Pass the MF paymentId to parent — backend needs this for /payments/verify
+              onSuccess(fallbackPaymentId || sessionId);
             } else if (response?.Error || response?.error) {
               const msg = response.Error || response.error || 'فشل الدفع';
               setError(msg);
@@ -154,11 +157,9 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
 
         // Log the exact config being sent to MF
         console.log('[MF] Config being sent to init:', JSON.stringify({
-          countryCode: config.countryCode,
           sessionId: config.sessionId,
-          cardViewId: config.cardViewId,
+          containerId: config.containerId,
           hasCallback: typeof config.callback === 'function',
-          hasEncryptionKey: !!config.encryptionKey,
         }));
         console.log('[MF] DOM element check:', document.getElementById(containerId));
 

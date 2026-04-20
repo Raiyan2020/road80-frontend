@@ -7,6 +7,9 @@ import { useListing } from '../features/listing-detail/hooks/useListing';
 import { useCallAd } from '../features/listing-detail/hooks/useCallAd';
 import { useFavoriteToggle } from '../features/favorites/hooks/useFavoriteToggle';
 import { useFavoritesStore } from '../stores/favorites.store';
+import MyFatoorahPayment from './MyFatoorahPayment';
+import { paymentService } from '../shared/services/payment.service';
+import { toast } from 'sonner';
 
 interface ListingDetailsPageProps {
   listingId: number;
@@ -36,6 +39,11 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showUnlockPopup, setShowUnlockPopup] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('IDLE');
+  const [mfSessionId, setMfSessionId] = useState<string | null>(null);
+  const [mfCountry, setMfCountry] = useState<string>('KWT');
+  const [mfTransactionId, setMfTransactionId] = useState<number | null>(null);
+  const [mfEncryptionKey, setMfEncryptionKey] = useState<string | null>(null);
+  const [pendingContactType, setPendingContactType] = useState<'WHATSAPP' | 'CALL' | null>(null);
   const isFavorite = useFavoritesStore((state) => state.isFavorite(listingId));
   const { mutate: toggleFavoriteMutation } = useFavoriteToggle();
   const callMutation = useCallAd();
@@ -137,51 +145,164 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
 
   const handleUnlockPayment = () => {
     if (paymentStatus !== 'IDLE') return;
+    console.log('[Contact Unlock] handleUnlockPayment triggered for ad:', listing.id);
     setPaymentStatus('STARTING');
     
     callMutation.mutate(listing.id, {
         onSuccess: (response) => {
-            setPaymentStatus('VERIFYING');
-            if (response?.data?.payment_url) {
-                setTimeout(() => setPaymentStatus('CONFIRMING'), 500);
-                setTimeout(() => {
-                    window.location.href = response.data.payment_url;
-                }, 1000);
-            } else if (response.status || response.message === 'success') {
-                // Backend bypass or free listing edgecase
-                setPaymentStatus('SUCCESS');
-                const user = JSON.parse(localStorage.getItem('road80_user') || '{}');
-                const userId = user.phone || 'guest';
-                const unlockKey = `unlock_contact_${userId}_${listing.id}`;
-                localStorage.setItem(unlockKey, 'true');
-                setIsUnlocked(true);
-                setTimeout(() => {
-                    setShowUnlockPopup(false);
-                    setPaymentStatus('IDLE');
-                }, 1500);
-            } else {
+            console.log('[Contact Unlock] /call response:', response);
+            
+            if (response.data?.session_id) {
+                const sessionId = response.data.session_id;
+                const transactionId = response.data.transaction_id;
+                const country = sessionId.split('-')[0] || 'KWT';
+                
+                console.log('[Contact Unlock] Got session_id:', sessionId);
+                console.log('[Contact Unlock] Got transaction_id:', transactionId);
+                console.log('[Contact Unlock] Got encryption_key:', response.data.encryption_key);
+                console.log('[Contact Unlock] Extracted country:', country);
+                
+                setMfSessionId(sessionId);
+                setMfCountry(country);
+                setMfTransactionId(transactionId ?? null);
+                setMfEncryptionKey(response.data.encryption_key ?? null);
                 setPaymentStatus('IDLE');
-                alert(response.message || 'فشل توليد رابط الدفع');
+            } else if (response?.data?.payment_url) {
+                console.log('[Contact Unlock] Redirect flow. payment_url:', response.data.payment_url);
+                setPaymentStatus('VERIFYING');
+                setTimeout(() => setPaymentStatus('CONFIRMING'), 500);
+                setTimeout(() => { window.location.href = response.data.payment_url; }, 1000);
+            } else {
+                console.warn('[Contact Unlock] Unexpected response:', response);
+                setPaymentStatus('IDLE');
             }
         },
         onError: (err) => {
+            console.error('[Contact Unlock] /call error:', err);
             setPaymentStatus('IDLE');
-            console.error(err);
-            alert('حدث خطأ أثناء الدفع');
+            toast.error('حدث خطأ أثناء إنشاء جلسة الدفع');
         }
     });
   };
 
-  const handleContactAction = (type: 'WHATSAPP' | 'CALL') => {
-    if (!isUnlocked) {
-        setShowUnlockPopup(true);
+  /**
+   * Called by MyFatoorahPayment component after the SDK fires its callback.
+   * sessionId here = the SessionId from MyFatoorah's callback response.
+   * We verify it against our backend using the transaction_id from the /call response.
+   */
+  const onEmbeddedPaymentSuccess = async (mfCallbackSessionId: string) => {
+    console.log('[Contact Unlock] MyFatoorah callback fired. SessionId:', mfCallbackSessionId);
+    console.log('[Contact Unlock] Stored transaction_id:', mfTransactionId);
+    
+    if (!mfTransactionId) {
+        console.error('[Contact Unlock] No transaction_id stored — cannot verify payment!');
+        toast.error('خطأ: لا يمكن التحقق من الدفع، يرجى المحاولة مجدداً');
         return;
     }
-    if (type === 'WHATSAPP') {
-        window.open('https://wa.me/96598812020', '_blank');
-    } else {
-        window.location.href = 'tel:+96598812020';
+    
+    setPaymentStatus('VERIFYING');
+    
+    try {
+        console.log('[Contact Unlock] Calling /payments/verify...', { transaction_id: mfTransactionId, payment_id: mfCallbackSessionId });
+        const verifyRes = await paymentService.verifyPayment({
+            transaction_id: mfTransactionId,
+            payment_id: mfCallbackSessionId,
+        });
+        console.log('[Contact Unlock] /payments/verify response:', verifyRes);
+        
+        if (verifyRes.status) {
+            setPaymentStatus('SUCCESS');
+            setIsUnlocked(true);
+            const user = JSON.parse(localStorage.getItem('road80_user') || '{}');
+            const userId = user.phone || 'guest';
+            localStorage.setItem(`unlock_contact_${userId}_${listing.id}`, 'true');
+            console.log('[Contact Unlock] ✅ Payment verified. Contact unlocked for ad:', listing.id);
+            
+            // If user originally wanted to contact via whatsapp/call, do it now
+            if (pendingContactType && verifyRes.data?.phone) {
+                const phone = verifyRes.data.phone.replace(/\D/g, '');
+                if (pendingContactType === 'WHATSAPP') window.open(`https://wa.me/${phone}`, '_blank');
+                else window.location.href = `tel:${phone}`;
+            }
+            
+            setTimeout(() => {
+                setShowUnlockPopup(false);
+                setMfSessionId(null);
+                setMfTransactionId(null);
+                setPendingContactType(null);
+                setPaymentStatus('IDLE');
+            }, 1500);
+        } else {
+            console.error('[Contact Unlock] /payments/verify returned status=false:', verifyRes);
+            setPaymentStatus('IDLE');
+            toast.error(verifyRes.message || 'فشل التحقق من الدفع');
+        }
+    } catch (err) {
+        console.error('[Contact Unlock] /payments/verify threw an error:', err);
+        setPaymentStatus('IDLE');
+        toast.error('حدث خطأ أثناء التحقق من الدفع');
     }
+  };
+
+  const handleContactAction = (type: 'WHATSAPP' | 'CALL') => {
+    console.log('[Contact Action] Triggered. type:', type, '| adId:', listing.id, '| isUnlocked:', isUnlocked);
+    setPendingContactType(type);
+    setPaymentStatus('STARTING');
+    
+    callMutation.mutate(listing.id, {
+        onSuccess: (response) => {
+            console.log('[Contact Action] /call response:', response);
+            
+            if (response.data?.phone) {
+                // Already unlocked — backend gave us the number directly
+                setPaymentStatus('IDLE');
+                const phone = response.data.phone.replace(/\D/g, '');
+                console.log('[Contact Action] Phone number received directly:', phone);
+                
+                setIsUnlocked(true);
+                const user = JSON.parse(localStorage.getItem('road80_user') || '{}');
+                const userId = user.phone || 'guest';
+                localStorage.setItem(`unlock_contact_${userId}_${listing.id}`, 'true');
+
+                if (type === 'WHATSAPP') {
+                    console.log('[Contact Action] Opening WhatsApp:', `https://wa.me/${phone}`);
+                    window.open(`https://wa.me/${phone}`, '_blank');
+                } else {
+                    console.log('[Contact Action] Calling:', `tel:${phone}`);
+                    window.location.href = `tel:${phone}`;
+                }
+            } else if (response.data?.session_id) {
+                // Needs payment — show embedded form
+                const sessionId = response.data.session_id;
+                const transactionId = response.data.transaction_id;
+                const country = sessionId.split('-')[0] || 'KWT';
+                
+                console.log('[Contact Action] Payment required. session_id:', sessionId, '| transaction_id:', transactionId, '| encryption_key:', response.data.encryption_key);
+                
+                setMfSessionId(sessionId);
+                setMfCountry(country);
+                setMfTransactionId(transactionId ?? null);
+                setMfEncryptionKey(response.data.encryption_key ?? null);
+                setPaymentStatus('IDLE');
+                setShowUnlockPopup(true);
+            } else if (response.data?.payment_url) {
+                console.log('[Contact Action] Redirect payment url:', response.data.payment_url);
+                setPaymentStatus('IDLE');
+                setShowUnlockPopup(true);
+            } else {
+                console.warn('[Contact Action] Unexpected response structure:', response);
+                setPaymentStatus('IDLE');
+                if (response.status || response.message === 'success') {
+                    setShowUnlockPopup(true);
+                }
+            }
+        },
+        onError: (err) => {
+            setPaymentStatus('IDLE');
+            console.error('[Contact Action] /call error:', err);
+            toast.error('حدث خطأ أثناء محاولة الاتصال');
+        }
+    });
   };
 
   const AttrBadge: React.FC<{ label: string; value: string | number | undefined }> = ({ label, value }) => {
@@ -374,27 +495,25 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
       <div className="absolute bottom-0 left-0 right-0 p-4 pt-4 bg-white dark:bg-slate-900 border-t border-pale dark:border-slate-800 z-20 transition-colors duration-300" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
           <div className="flex gap-2">
             <div className="flex-1 flex gap-1">
-                <button onClick={() => handleContactAction('WHATSAPP')} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-navy/20 dark:border-slate-700 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-500 font-semibold text-sm active:scale-95 transition-all">
-                    <WhatsappIcon className="w-5 h-5" />
+                <button 
+                  onClick={() => handleContactAction('WHATSAPP')} 
+                  disabled={paymentStatus !== 'IDLE'}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-navy/20 dark:border-slate-700 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-500 font-semibold text-sm active:scale-95 transition-all disabled:opacity-50"
+                >
+                    {paymentStatus === 'STARTING' ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <WhatsappIcon className="w-5 h-5" />}
                     <span>واتساب</span>
                 </button>
-                {!isUnlocked && (
-                    <button onClick={() => setShowUnlockPopup(true)} className="w-12 flex items-center justify-center bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-xl text-navy dark:text-slate-400 shadow-sm active:scale-95 transition-all">
-                        <LockIcon className="w-5 h-5 opacity-60" />
-                    </button>
-                )}
             </div>
 
             <div className="flex-1 flex gap-1">
-                <button onClick={() => handleContactAction('CALL')} className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-navy dark:bg-blue text-white font-semibold text-sm shadow-lg shadow-navy/20 dark:shadow-blue/20 active:scale-95 transition-all">
-                    <PhoneIcon className="w-5 h-5" />
+                <button 
+                  onClick={() => handleContactAction('CALL')} 
+                  disabled={paymentStatus !== 'IDLE'}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-navy dark:bg-blue text-white font-semibold text-sm shadow-lg shadow-navy/20 dark:shadow-blue/20 active:scale-95 transition-all disabled:opacity-50"
+                >
+                    {paymentStatus === 'STARTING' ? <SpinnerIcon className="w-5 h-5 animate-spin" /> : <PhoneIcon className="w-5 h-5" />}
                     <span>اتصال</span>
                 </button>
-                {!isUnlocked && (
-                    <button onClick={() => setShowUnlockPopup(true)} className="w-12 flex items-center justify-center bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-xl text-navy dark:text-slate-400 shadow-sm active:scale-95 transition-all">
-                        <LockIcon className="w-5 h-5 opacity-60" />
-                    </button>
-                )}
             </div>
           </div>
       </div>
@@ -425,11 +544,35 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
                             </div>
                         )}
                     </div>
-                    <div className="flex flex-col gap-2 min-h-[80px]">
+                    <div className="flex flex-col gap-2 min-h-[80px] w-full">
                         <h3 className={`text-xl font-bold transition-colors duration-300 ${paymentStatus === 'SUCCESS' ? 'text-green-600 dark:text-green-500' : 'text-navy dark:text-slate-200'}`}>
-                            {getPaymentText()}
+                            {mfSessionId ? 'إكمال عملية الدفع' : getPaymentText()}
                         </h3>
-                        {paymentStatus === 'IDLE' ? (
+                        {mfSessionId ? (
+                            <div className="w-full mt-4">
+                                <MyFatoorahPayment 
+                                    sessionId={mfSessionId}
+                                    countryCode={mfCountry}
+                                    encryptionKey={mfEncryptionKey ?? undefined}
+                                    onSuccess={onEmbeddedPaymentSuccess}
+                                    onError={(err) => toast.error(err.message || 'فشل الدفع')}
+                                    onRequestNewSession={() => {
+                                        // MF rejected the session — clear and get a fresh one
+                                        console.log('[Contact Unlock] Session rejected by MF, requesting new session...');
+                                        setMfSessionId(null);
+                                        setMfTransactionId(null);
+                                        setMfEncryptionKey(null);
+                                        handleUnlockPayment();
+                                    }}
+                                />
+                                <button 
+                                    onClick={() => setMfSessionId(null)}
+                                    className="w-full mt-4 text-xs text-gray-400 font-bold hover:text-navy underline"
+                                >
+                                    العودة لخيارات الدفع
+                                </button>
+                            </div>
+                        ) : paymentStatus === 'IDLE' ? (
                             <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed max-w-[85%] mx-auto font-sans">
                                 لفتح القفل والتواصل مع البائع في هذا الإعلان، يرجى الدفع مرة واحدة فقط.
                             </p>
@@ -445,7 +588,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
                             </div>
                         )}
                     </div>
-                    {paymentStatus === 'IDLE' && (
+                    {paymentStatus === 'IDLE' && !mfSessionId && (
                         <>
                             <div className="bg-bg dark:bg-slate-800 px-6 py-3 rounded-2xl border border-pale/50 dark:border-slate-700 flex items-center gap-3 animate-fade-in transition-colors duration-300">
                                 <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">سعر فتح الاعلان:</span>
@@ -454,11 +597,11 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({ listingId, onBa
                             <div className="w-full flex flex-col gap-3 mt-4 animate-fade-in">
                                 <button onClick={handleUnlockPayment} className="w-full h-14 bg-black dark:bg-slate-950 text-white rounded-2xl font-bold flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-black/10">
                                     <AppleIcon className="w-6 h-6 mb-1" />
-                                    <span>الدفع عبر Apple Pay</span>
+                                    <span>الدفع السريع</span>
                                 </button>
                                 <button onClick={handleUnlockPayment} className="w-full h-14 bg-white dark:bg-slate-800 text-navy dark:text-slate-200 border border-gray-200 dark:border-slate-700 rounded-2xl font-bold flex items-center justify-center gap-3 active:scale-95 transition-all shadow-sm">
                                     <img src={KNET_LOGO} className="w-8 h-8 object-contain" alt="KNET" />
-                                    <span>الدفع عبر الكي نت</span>
+                                    <span>الدفع ببطاقة بنكية</span>
                                 </button>
                                 <button onClick={() => setShowUnlockPopup(false)} className="w-full h-12 text-gray-400 dark:text-slate-500 font-bold text-sm hover:text-navy dark:hover:text-slate-300 transition-colors active:scale-95 mt-1">
                                     إلغاء

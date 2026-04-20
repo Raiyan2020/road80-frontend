@@ -30,6 +30,7 @@ export interface VerifyOtpPayload {
 
 export interface RegisterCompanyPayload {
   name: string;
+  email?: string;
   caption: string;
   state_id: number | string;
   country_id: number | string;

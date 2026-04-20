@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useRegisterCompany } from '../shared/hooks/useRegisterCompany';
 import { useCountries, useStates } from '../shared/hooks/useLocation';
 import { useDepartments } from '../features/companies/hooks/useDepartments';
-import { BuildingIcon, PhoneIcon, WhatsappIcon, ChevronRightIcon, SpinnerIcon } from '../components/Icons';
+import { BuildingIcon, PhoneIcon, WhatsappIcon, ChevronRightIcon, SpinnerIcon, MailIcon } from '../components/Icons';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/auth/register-company')({
@@ -23,6 +23,7 @@ function RegisterCompanyPage() {
 
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     caption: '',
     company_department_id: '',
     country_id: '',
@@ -73,6 +74,7 @@ function RegisterCompanyPage() {
 
     const payload = {
         name: formData.name,
+        email: formData.email,
         caption: formData.caption,
         state_id: formData.state_id,
         country_id: formData.country_id,
@@ -139,6 +141,23 @@ function RegisterCompanyPage() {
                            <span className="text-xs font-bold text-gray-400">اختر صورة</span>
                         )}
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
+                     </div>
+                     
+                     {/* Email */}
+                     <div className="flex flex-col gap-2">
+                        <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center gap-1.5 px-1">
+                          <MailIcon className="w-4 h-4 text-blue" />
+                          البريد الإلكتروني (اختياري)
+                        </label>
+                        <input 
+                          type="email" 
+                          name="email"
+                          placeholder="example@road80.com" 
+                          value={formData.email}
+                          onChange={handleChange}
+                          className="h-14 px-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors text-left ltr" 
+                          dir="ltr"
+                        />
                      </div>
                   </div>
 

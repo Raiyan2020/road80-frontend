@@ -30,6 +30,9 @@ export interface CallResponse {
   data: {
     payment_url: string;
     transaction_id: number;
+    phone?: string;
+    session_id?: string;
+    encryption_key?: string;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   errors: any[];

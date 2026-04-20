@@ -93,7 +93,11 @@ export const postAdService = {
    * - images: list of image File objects for direct upload
    */
   createAd: async (params: {
-    answers: Array<{ category_id: number; category_value_id: number | string }>;
+    answers: Array<{ 
+      category_id: number; 
+      category_value_id?: number | string;
+      value?: string | number;
+    }>;
     countryId: number | string;
     stateId: number | string;
     cityId: number | string;
@@ -116,7 +120,12 @@ export const postAdService = {
     // Dynamic category answers
     params.answers.forEach((ans, i) => {
       formData.append(`answers[${i}][category_id]`, String(ans.category_id));
-      formData.append(`answers[${i}][category_value_id]`, String(ans.category_value_id));
+      if (ans.category_value_id !== undefined) {
+        formData.append(`answers[${i}][category_value_id]`, String(ans.category_value_id));
+      }
+      if (ans.value !== undefined) {
+        formData.append(`answers[${i}][value]`, String(ans.value));
+      }
     });
 
     // Merged video paths (from chunk upload flow)

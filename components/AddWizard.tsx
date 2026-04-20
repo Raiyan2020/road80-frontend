@@ -11,6 +11,9 @@ import { Category } from '../features/post-ad/services/post-ad.service';
 import { Country } from '../shared/types/country';
 import { toast } from 'sonner';
 import { checkMediaPermissions } from '../shared/utils/media-permissions';
+import MyFatoorahPayment from './MyFatoorahPayment';
+import { paymentService } from '../shared/services/payment.service';
+
 
 interface AddWizardProps {
   onComplete: () => void;
@@ -51,6 +54,13 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [showEmbedded, setShowEmbedded] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState<{ id: string; country: string; originalId?: string } | null>(null);
+
+  const [transactionId, setTransactionId] = useState<number | null>(null);
+  const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
+
+
 
   // ── Location Data ────────────────────────────────────────────────────────
   const { data: states = [] } = useExploreStates(countryId || undefined);
@@ -120,11 +130,28 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     if (currentStepInfo.type === 'country') return !!countryId;
     if (currentStepInfo.type === 'state') return states.length === 0 || !!stateId;
     if (currentStepInfo.type === 'city') return cities.length === 0 || !!cityId;
-    if (currentStepInfo.type === 'details') return !!price && Number(price) > 0;
+    if (currentStepInfo.type === 'details') {
+      return !!price && Number(price) > 0 && title.trim().length > 0 && description.trim().length >= 10;
+    }
     return true;
   };
 
   const next = () => {
+    if (currentStepInfo?.type === 'details') {
+      if (!price || Number(price) <= 0) {
+        toast.error('يرجى إدخال السعر');
+        return;
+      }
+      if (title.trim().length === 0) {
+        toast.error('يرجى إدخال عنوان الإعلان');
+        return;
+      }
+      if (description.trim().length < 10) {
+        toast.error('وصف الإعلان يجب أن يتكون من 10 حروف على الأقل');
+        return;
+      }
+    }
+
     if (!isCurrentStepValid()) {
       toast.error('يرجى تعبئة الخيارات المطلوبة قبل المتابعة');
       return;
@@ -173,20 +200,27 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     try {
       const videoPaths: string[] = uploadState?.serverPath ? [uploadState.serverPath] : [];
 
-      // Build answers array — only include categories with real FK values (select/boolean).
-      // Range and number types use raw user input (e.g., 150 for م²) which are NOT valid
-      // category_value_ids in the backend's database, so we skip them to avoid 422 errors.
-      const validCategoryIds = new Set(
-        categories
-          .filter((c: any) => c.type === 'select' || c.type === 'boolean')
-          .map((c: any) => c.id)
-      );
-      const answers = (Object.entries(categoryValues) as [string, string | number][])
-        .filter(([catId]) => validCategoryIds.has(Number(catId)))
-        .map(([catId, valId]) => ({
-          category_id: Number(catId),
-          category_value_id: valId,
-        }));
+      // Build answers array
+      const answers = categories
+        .map(cat => {
+          const val = categoryValues[cat.id];
+          if (val === undefined || val === null || val === '') return null;
+
+          const ans: any = { category_id: cat.id };
+
+          if (cat.type === 'range' || cat.type === 'number') {
+            ans.value = val;
+            // For range/number types, the backend often expects a unit/type ID (category_value_id).
+            // We use the first predefined value for that category if it exists.
+            if (cat.values && cat.values.length > 0) {
+              ans.category_value_id = cat.values[0].id;
+            }
+          } else {
+            ans.category_value_id = val;
+          }
+          return ans;
+        })
+        .filter((ans): ans is { category_id: number; category_value_id?: number | string; value?: string | number } => ans !== null);
 
       const countryName = countries.find(c => c.id === countryId)?.name || '';
       const stateName = states.find(s => s.id === stateId)?.name || '';
@@ -208,10 +242,36 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         description: finalDescription,
       });
 
+      console.log('--- POST AD SUCCESS RESPONSE ---', res);
+
       const paymentUrl = (res as any).data?.payment_url || (res as any).payment_url;
+      const sessionId = (res as any).data?.session_id || (res as any).session_id;
+      const returnedTransactionId = (res as any).data?.transaction_id || (res as any).transaction_id;
+      const returnedEncryptionKey = (res as any).data?.encryption_key || (res as any).encryption_key;
+
+      if (returnedTransactionId) setTransactionId(returnedTransactionId);
+      if (returnedEncryptionKey) setEncryptionKey(returnedEncryptionKey);
+
       if (paymentUrl) {
         setPublished(true);
         setTimeout(() => { window.location.href = paymentUrl; }, 1200);
+      } else if (sessionId) {
+        // Parse country code from session string (e.g. "KWT-xxxxxxx") — default KWT
+        let finalSessionId = sessionId as string;
+        let countryCodeStr = 'KWT';
+
+        if (typeof sessionId === 'string' && sessionId.includes('-')) {
+          const parts = sessionId.split('-');
+          if (parts[0].length === 3) {
+            countryCodeStr = parts[0];
+            finalSessionId = parts.slice(1).join('-');
+          }
+        }
+
+        // Store the original full session_id for use in /payments/verify as payment_id
+        const originalSessionId = sessionId as string;
+        setSessionInfo({ id: finalSessionId, country: countryCodeStr, originalId: originalSessionId });
+        setShowEmbedded(true);
       } else if (res.status) {
         setPublished(true);
         setTimeout(() => { onComplete(); }, 1500);
@@ -235,6 +295,63 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       setIsProcessing(false);
     }
   };
+
+  const handleEmbeddedPay = async () => {
+    setIsProcessing(true);
+    try {
+      // 1. In a real scenario, you might call createAd first to get an order ID,
+      // or just initiate a session if the backend handles it.
+      // For now, let's assume we call our new service.
+      const res = await paymentService.initiateSession();
+      if (res.status && res.data.SessionId) {
+        setSessionInfo({ id: res.data.SessionId, country: res.data.CountryCode || 'KWT' });
+        setShowEmbedded(true);
+      } else {
+        toast.error('فشل بدء جلسة الدفع الآمن');
+      }
+    } catch (e) {
+      console.error('Failed to initiate payment session', e);
+      toast.error('حدث خطأ أثناء الاتصال ببوابة الدفع');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const onPaymentSuccess = async (_callbackId: string) => {
+    setShowEmbedded(false);
+    setIsProcessing(true);
+    try {
+      if (!transactionId) {
+        toast.error('فشل العثور على رقم العملية');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Always use the original full session_id (e.g. "KWT-f411d7b7-...")
+      // The callback's sessionId can sometimes be corrupted (e.g. "KWT-undefined")
+      const finalPaymentId = sessionInfo?.originalId || sessionInfo?.id || _callbackId;
+
+      console.log('[Verify] transaction_id:', transactionId, '| payment_id:', finalPaymentId);
+
+      // POST /payments/verify
+      const res = await paymentService.verifyPayment({ 
+        transaction_id: transactionId, 
+        payment_id: finalPaymentId,
+      });
+      
+      if (res.status) {
+        setPublished(true);
+        setTimeout(() => { onComplete(); }, 1500);
+      } else {
+        toast.error(res.message || 'فشل إتمام عملية الدفع');
+      }
+    } catch (e) {
+      toast.error('حدث خطأ أثناء تأكيد الدفع');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
 
   // ── UI Helpers ───────────────────────────────────────────────────────────
   const renderTitle = (label: string) => (
@@ -529,7 +646,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="font-bold text-gray-400 text-sm">عنوان الإعلان (اختياري)</label>
+            <label className="font-bold text-navy dark:text-slate-200 text-sm flex items-center justify-between">
+              عنوان الإعلان <span className="text-red-500">*</span>
+            </label>
             <input
               type="text" placeholder="مثال: شقة للإيجار في السالمية" value={title}
               onChange={e => setTitle(e.target.value)}
@@ -537,13 +656,35 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             />
           </div>
           <div className="flex flex-col gap-2">
-            <label className="font-bold text-gray-400 text-sm">وصف الإعلان (اختياري)</label>
+            <label className="font-bold text-navy dark:text-slate-200 text-sm flex items-center justify-between">
+              وصف الإعلان <span className="text-red-500">*</span>
+            </label>
             <textarea
-              rows={5} placeholder="اكتب وصفاً تفصيلياً للعقار..." value={description}
+              rows={5} placeholder="اكتب وصفاً تفصيلياً للعقار (10 حروف على الأقل)..." value={description}
               onChange={e => setDescription(e.target.value)}
               className="w-full rounded-2xl border-2 border-pale dark:border-slate-700 bg-white dark:bg-slate-900 px-5 py-4 text-base font-medium text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all resize-none"
             />
           </div>
+        </div>
+      );
+    }
+
+    if (showEmbedded && sessionInfo) {
+      return (
+        <div className="animate-scale-in pb-10">
+          <MyFatoorahPayment
+            sessionId={sessionInfo.originalId || sessionInfo.id}
+            countryCode={sessionInfo.country}
+            encryptionKey={encryptionKey ?? undefined}
+            onSuccess={onPaymentSuccess}
+            onError={(err) => toast.error('خطأ في الدفع: ' + (err.message || 'فشل العملية'))}
+          />
+          <button 
+            onClick={() => setShowEmbedded(false)}
+            className="w-full mt-4 text-xs text-gray-400 font-bold hover:text-navy underline"
+          >
+            إلغاء والعودة للملخص
+          </button>
         </div>
       );
     }
@@ -611,6 +752,8 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
   // ── Footer buttons ───────────────────────────────────────────────────────
   const renderFooter = () => {
+    if (showEmbedded) return null;
+
     const backBtn = (
       <button
         onClick={prev}
@@ -631,26 +774,17 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
           <button
             onClick={handlePublish}
             disabled={isProcessing}
-            className="w-full py-4 bg-black text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl"
+            className="w-full py-4 bg-navy dark:bg-blue text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-navy/20 dark:shadow-blue/20"
           >
-            {isProcessing
+            {isProcessing && !showEmbedded
               ? <SpinnerIcon className="w-5 h-5 animate-spin" />
-              : <><AppleIcon className="w-5 h-5 mb-0.5" /><span>الدفع والنشر (Apple Pay)</span></>
-            }
-          </button>
-          <button
-            onClick={handlePublish}
-            disabled={isProcessing}
-            className="w-full py-4 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 border border-pale dark:border-slate-700 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-sm"
-          >
-            {isProcessing
-              ? <SpinnerIcon className="w-5 h-5 animate-spin text-navy" />
-              : <><img src={KNET_LOGO} className="w-8 h-8 object-contain" alt="KNET" /><span>الدفع عبر الكي نت</span></>
+              : <><img src="https://raiyansoft.com/wp-content/uploads/2026/02/visa-master.png" className="h-4 object-contain brightness-0 invert" alt="KNET" /><span>الدفع والنشر (Embedded)</span></>
             }
           </button>
         </div>
       );
     }
+
 
     // Steps that need manual Next (range slider, video, images)
     const needsManualNext =

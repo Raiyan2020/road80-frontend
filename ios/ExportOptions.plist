@@ -25,7 +25,7 @@
 
 	<!-- Your Apple Developer Team ID (10-character alphanumeric string) -->
 	<key>teamID</key>
-	<string>YOUR_TEAM_ID</string>
+	<string>F993Q6PTZL</string>
 
 	<!-- Map of bundle ID → provisioning profile name.
 	     The profile name must exactly match what is shown in Xcode / Apple Developer Portal. -->

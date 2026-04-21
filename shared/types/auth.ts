@@ -26,6 +26,8 @@ export interface VerifyOtpPayload {
   phone: string;
   code: string; // 4-digit code
   country_id: string | number;
+  device_id: string;
+  device_type: string;
 }
 
 export interface RegisterCompanyPayload {

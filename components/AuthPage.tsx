@@ -7,7 +7,7 @@ import { authService } from '@/shared/services/auth.service';
 import { useUserStore } from '@/stores/user.store';
 
 import { useCountries } from '@/shared/hooks/useCountries';
-
+import { getFcmToken } from '@/shared/utils/notifications';
 interface AuthPageProps {
   onLoginSuccess: () => void;
 }
@@ -34,12 +34,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     const handleRoute = () => {
       if (location.pathname === '/verify') {
          const storedPhone = sessionStorage.getItem('temp_auth_phone');
+         const storedCountryId = sessionStorage.getItem('temp_auth_country_id');
          if (!storedPhone) {
             navigate({ to: '/auth', replace: true });
             setStep('PHONE');
          } else {
             setStep('OTP');
             setPhone(storedPhone);
+            if (storedCountryId) setCountryId(Number(storedCountryId));
          }
       } else {
          setStep('PHONE');
@@ -76,6 +78,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           setLoading(false);
           if (response.status) {
             sessionStorage.setItem('temp_auth_phone', phone);
+            sessionStorage.setItem('temp_auth_country_id', String(countryId));
             navigate({ to: '/verify', replace: true });
           } else {
             setError(response.message || 'فشل إرسال الرمز');
@@ -120,14 +123,21 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     setError('');
 
     try {
+      const device_id = getFcmToken();
+
       const response = await authService.verifyOtp({
         phone,
         code,
         country_id: countryId,
+        device_id: device_id || 'web-device',
+        device_type: 'web',
       });
 
       if (response.status && response.data) {
         const { user, token } = response.data;
+        // Clean up temporary auth data
+        sessionStorage.removeItem('temp_auth_phone');
+        sessionStorage.removeItem('temp_auth_country_id');
         // Save real token + user to the Zustand store (persisted to localStorage as road80_user)
         loginUser({
           id: user.id,
@@ -220,7 +230,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                          {countries.length > 0 ? (
                            countries.map(c => (
                              <option key={c.id} value={c.id}>
-                               {c.code || 'KW'} {c.phone_code}
+                               {c.country_code || 'KW'} {c.phone_code}
                              </option>
                            ))
                          ) : (
@@ -228,7 +238,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                          )}
                        </select>
                        <div className="pointer-events-none flex items-center gap-1.5 text-navy dark:text-blue font-bold text-[16px] tracking-wide">
-                          <span>{countries.find(c => c.id === countryId)?.code || 'KW'}</span>
+                          <span>{countries.find(c => c.id === countryId)?.country_code || 'KW'}</span>
                           <span>{countries.find(c => c.id === countryId)?.phone_code || '+965'}</span>
                        </div>
                      </div>

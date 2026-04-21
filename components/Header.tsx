@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { BellIcon, ChevronRightIcon, MenuIcon, LogoutIcon } from './Icons';
 import { useNavigate, Link } from '@tanstack/react-router';
 import { useUnreadCount } from '../features/notifications/hooks/use-notifications';
-import { useUserStore } from '../stores/user.store';
+
+import { useLogout } from '../shared/hooks/useLogout';
 import { useContext } from 'react';
 import { AppContext } from './AppContext';
 
@@ -18,7 +19,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: unreadCountResponse } = useUnreadCount();
   const unreadCount = (unreadCountResponse as any)?.data || (unreadCountResponse as any)?.unread_count || 0;
-  const logout = useUserStore(state => state.logout);
+  const { mutate: logoutMutation } = useLogout();
   const { setIsAuthenticated } = useContext(AppContext);
   
   return (
@@ -106,10 +107,9 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
              <div className="p-4 border-t border-pale dark:border-slate-800">
                 <button 
                   onClick={() => {
-                    logout();
-                    setIsAuthenticated(false);
-                    setIsMenuOpen(false);
-                    navigate({ to: '/auth' });
+                     logoutMutation();
+                     setIsAuthenticated(false);
+                     setIsMenuOpen(false);
                   }}
                   className="w-full p-4 rounded-xl font-bold text-red-500 active:bg-red-50 dark:active:bg-red-900/10 transition-colors flex items-center gap-3"
                 >

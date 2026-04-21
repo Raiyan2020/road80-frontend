@@ -23,7 +23,7 @@ import Capacitor
 //    Upload your APNs Auth Key (.p8 file) or APNs Certificate
 // ============================================================
 
-// import FirebaseMessaging  // ← Uncomment after pod install
+import FirebaseMessaging
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -32,8 +32,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // ✅ Step 1: Configure Firebase BEFORE anything else.
-        // Uncomment the line below after adding FirebaseMessaging pod and GoogleService-Info.plist
-        // FirebaseApp.configure()
+        FirebaseApp.configure()
 
         return true
     }

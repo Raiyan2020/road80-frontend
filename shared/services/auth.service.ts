@@ -30,13 +30,15 @@ export const authService = {
       country_id: payload.country_id,
       phone: payload.phone,
       otp: payload.code,
+      device_id: payload.device_id,
+      device_type: payload.device_type,
     });
   },
   /**
    * Logout the user
    */
-  logout: async (): Promise<AuthResponse<[]>> => {
-    return api.post<AuthResponse<[]>>('/auth/logout');
+  logout: async (device_id: string): Promise<AuthResponse<[]>> => {
+    return api.post<AuthResponse<[]>>('/auth/logout', { device_id });
   },
 
   /**

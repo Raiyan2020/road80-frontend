@@ -1,55 +1,90 @@
-import { PushNotifications } from '@capacitor/push-notifications';
-import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
+import { getApps, initializeApp } from 'firebase/app';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { firebaseConfig, VAPID_KEY } from '@/lib/firebase.config';
 
-export const initializePushNotifications = async () => {
-  if (Capacitor.getPlatform() === 'web') {
+const FCM_TOKEN_KEY = 'FCM_TOKEN';
+
+/**
+ * Returns the stored FCM registration token from localStorage.
+ * Used during OTP verification and logout to send the token to the backend.
+ */
+export const getFcmToken = (): string | null => {
+  return localStorage.getItem(FCM_TOKEN_KEY);
+};
+
+// Log the stored token immediately on every page load so it's always visible in the console
+const _storedToken = localStorage.getItem(FCM_TOKEN_KEY);
+if (_storedToken) {
+  console.log(
+    '%c[FCM TOKEN — copy this for the backend]',
+    'color: #4ade80; font-weight: bold; font-size: 13px; background: #1a1a2e; padding: 4px 8px; border-radius: 4px;',
+    '\n' + _storedToken
+  );
+} else {
+  console.info('[FCM] No token stored yet — will be generated after notification permission is granted.');
+}
+
+/**
+ * Initializes Firebase Cloud Messaging for web.
+ *
+ * Flow:
+ *  1. Requests browser notification permission.
+ *  2. Registers the Firebase service worker.
+ *  3. Retrieves the FCM registration token (the "regular" token the backend needs).
+ *  4. Persists the token in localStorage under FCM_TOKEN.
+ *  5. Listens for foreground messages and shows a toast.
+ *
+ * Prerequisites:
+ *  - public/firebase-messaging-sw.js must exist and be configured.
+ *  - firebaseConfig.appId and VAPID_KEY must be filled in lib/firebase.config.ts.
+ */
+export const initializePushNotifications = async (): Promise<void> => {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    console.warn('[FCM] Browser does not support notifications or service workers.');
     return;
   }
 
-  // Check and request permissions
-  let permStatus = await PushNotifications.checkPermissions();
-
-  if (permStatus.receive === 'prompt') {
-    permStatus = await PushNotifications.requestPermissions();
+  // Request permission only if not yet decided
+  let permission = Notification.permission;
+  if (permission === 'default') {
+    permission = await Notification.requestPermission();
   }
 
-  if (permStatus.receive !== 'granted') {
-    console.warn('User denied push notification permissions');
+  if (permission !== 'granted') {
+    console.warn('[FCM] User denied notification permission.');
     return;
   }
 
-  // On success, we should be able to receive notifications
-  await PushNotifications.addListener('registration', (token) => {
-    console.log('Push registration success, token: ' + token.value);
-    // TODO: Send token to backend
-  });
+  try {
+    // Avoid re-initializing Firebase on hot reloads
+    const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+    const messaging = getMessaging(app);
 
-  // Register with Apple / Google
-  await PushNotifications.register();
+    // Register the service worker that handles background messages
+    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
-  // Some registration error occurred
-  await PushNotifications.addListener('registrationError', (error) => {
-    console.error('Error on registration: ' + JSON.stringify(error));
-  });
+    // Get the FCM registration token — this is the token the backend developer needs
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: swRegistration,
+    });
 
-  // Show the notification alert if the app is in foreground
-  await PushNotifications.addListener(
-    'pushNotificationReceived',
-    (notification) => {
-      toast.info(notification.title || 'إشعار جديد', {
-        description: notification.body,
-        duration: 5000,
-      });
+    if (token) {
+      localStorage.setItem(FCM_TOKEN_KEY, token);
+      console.log('%c[FCM TOKEN]', 'color: #4ade80; font-weight: bold; font-size: 13px;', token);
+    } else {
+      console.warn('[FCM] No token received — ensure VAPID key and service worker are configured.');
     }
-  );
 
-  // Method called when a tapping on a notification
-  await PushNotifications.addListener(
-    'pushNotificationActionPerformed',
-    (notification) => {
-      console.log('Push action performed: ' + JSON.stringify(notification));
-      // Handle navigation here if needed
-    }
-  );
+    // Handle foreground (in-app) messages
+    onMessage(messaging, (payload) => {
+      const title = payload.notification?.title || 'إشعار جديد';
+      const body = payload.notification?.body;
+      toast.info(title, { description: body, duration: 5000 });
+    });
+
+  } catch (err) {
+    console.error('[FCM] Initialization failed:', err);
+  }
 };

@@ -17,6 +17,7 @@ export interface SiteSettings {
     telegram?: string;
   };
   publish_ad_fees: string;
+  payment_live: number;
 }
 
 export interface SettingsResponse {

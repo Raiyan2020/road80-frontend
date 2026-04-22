@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SpinnerIcon } from './Icons';
+import { useSettings } from '../shared/hooks/useSettings';
 
 interface MyFatoorahPaymentProps {
   sessionId: string;
   countryCode: string;
   encryptionKey?: string;
-  isLive?: boolean;
+  // isLive is intentionally removed — environment (demo/live) is controlled server-side via settings.payment_live
   onSuccess: (sessionId: string) => void;
   onError: (error: any) => void;
   onRequestNewSession?: () => void; // called when session is rejected — parent should fetch a new one
@@ -24,7 +25,6 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
   sessionId,
   countryCode,
   encryptionKey,
-  isLive = false,
   onSuccess,
   onError,
   onRequestNewSession,
@@ -36,6 +36,31 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
   const initializedForSession = useRef<string | null>(null);
   const observerRef = useRef<MutationObserver | null>(null);
   const hasTriggeredRetry = useRef(false); // prevent infinite retry loop
+  const { data: settings } = useSettings();
+
+  useEffect(() => {
+    if (settings === undefined) return;
+    
+    const scriptId = 'myfatoorah-sdk';
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    const paymentLive = settings?.payment_live === 1;
+    const scriptSrc = paymentLive 
+      ? 'https://portal.myfatoorah.com/sessions/v1/session.js'
+      : 'https://demo.myfatoorah.com/sessions/v1/session.js';
+
+    if (!script) {
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.src = scriptSrc;
+      document.head.appendChild(script);
+    } else if (script.src !== scriptSrc) {
+      script.remove();
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.src = scriptSrc;
+      document.head.appendChild(script);
+    }
+  }, [settings]);
 
   useEffect(() => {
     if (initializedForSession.current === sessionId) {

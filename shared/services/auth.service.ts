@@ -26,13 +26,16 @@ export const authService = {
    * Verify the OTP and login the user
    */
   verifyOtp: async (payload: VerifyOtpPayload): Promise<AuthResponse<VerifyOtpData>> => {
-    return api.post<AuthResponse<VerifyOtpData>>('/auth/verify-otp', {
-      country_id: payload.country_id,
-      phone: payload.phone,
-      otp: payload.code,
-      device_id: payload.device_id,
-      device_type: payload.device_type,
-    });
+    const formData = new FormData();
+    formData.append('country_id', String(payload.country_id));
+    formData.append('phone', payload.phone);
+    formData.append('otp', payload.code);
+    formData.append('device_id', payload.device_id);
+    if (payload.device_type) {
+      formData.append('device_type', payload.device_type);
+    }
+
+    return api.post<AuthResponse<VerifyOtpData>>('/auth/verify-otp', formData);
   },
   /**
    * Logout the user

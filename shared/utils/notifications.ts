@@ -13,6 +13,24 @@ export const getFcmToken = (): string | null => {
   return localStorage.getItem(FCM_TOKEN_KEY);
 };
 
+const FALLBACK_DEVICE_ID_KEY = 'FALLBACK_DEVICE_ID';
+
+/**
+ * Returns the FCM token if available, otherwise returns a unique fallback device ID.
+ * This ensures the backend always receives a unique identifier per device even if push is disabled.
+ */
+export const getDeviceId = (): string => {
+  const fcmToken = getFcmToken();
+  if (fcmToken) return fcmToken;
+  
+  let fallbackId = localStorage.getItem(FALLBACK_DEVICE_ID_KEY);
+  if (!fallbackId) {
+    fallbackId = 'web-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem(FALLBACK_DEVICE_ID_KEY, fallbackId);
+  }
+  return fallbackId;
+};
+
 // Log the stored token immediately on every page load so it's always visible in the console
 const _storedToken = localStorage.getItem(FCM_TOKEN_KEY);
 if (_storedToken) {

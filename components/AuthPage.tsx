@@ -7,9 +7,11 @@ import { authService } from '@/shared/services/auth.service';
 import { useUserStore } from '@/stores/user.store';
 
 import { useCountries } from '@/shared/hooks/useCountries';
-import { getFcmToken } from '@/shared/utils/notifications';
+import { getDeviceId } from '@/shared/utils/notifications';
+import { User } from '@/shared/types/auth';
+
 interface AuthPageProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (user: User) => void;
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
@@ -123,13 +125,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     setError('');
 
     try {
-      const device_id = getFcmToken();
+      const device_id = getDeviceId();
+      console.log('Sending OTP Verification payload:', { phone, code, countryId, device_id });
 
       const response = await authService.verifyOtp({
         phone,
         code,
         country_id: countryId,
-        device_id: device_id || 'web-device',
+        device_id: device_id,
         device_type: 'web',
       });
 
@@ -146,7 +149,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           avatar: user.image,
           token,
         });
-        onLoginSuccess();
+        onLoginSuccess(user);
       } else {
         setError(response.message || 'رمز التفعيل غير صحيح');
         setLoading(false);

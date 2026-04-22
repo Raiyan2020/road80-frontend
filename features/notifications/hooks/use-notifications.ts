@@ -18,14 +18,59 @@ export function useUnreadCount() {
   });
 }
 
+export function useUnreadNotifications() {
+  return useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: () => notificationsService.getUnreadCount(), // Assuming it returns the list as per the postman JSON
+  });
+}
+
 export function useDeleteNotification() {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: (id: string) => notificationsService.deleteNotification(id),
-    onSuccess: () => {
+    onMutate: async (deletedId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      await queryClient.cancelQueries({ queryKey: ['notifications-unread'] });
+
+      // Snapshot the previous value
+      const previousNotifications = queryClient.getQueryData(['notifications']);
+      const previousUnread = queryClient.getQueryData(['notifications-unread']);
+
+      // Optimistically update to the new value by filtering out the deleted ID
+      queryClient.setQueriesData({ queryKey: ['notifications'] }, (old: any) => {
+        if (!old || !old.data) return old;
+        return {
+          ...old,
+          data: old.data.filter((notif: any) => notif.id.toString() !== deletedId.toString())
+        };
+      });
+
+      queryClient.setQueriesData({ queryKey: ['notifications-unread'] }, (old: any) => {
+        if (!old || !old.data) return old;
+        return {
+          ...old,
+          data: old.data.filter((notif: any) => notif.id.toString() !== deletedId.toString())
+        };
+      });
+
+      return { previousNotifications, previousUnread };
+    },
+    onError: (err, newTodo, context) => {
+      // Rollback on error
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(['notifications'], context.previousNotifications);
+      }
+      if (context?.previousUnread) {
+        queryClient.setQueryData(['notifications-unread'], context.previousUnread);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
     },
   });
 }
@@ -35,9 +80,23 @@ export function useDeleteAllNotifications() {
   
   return useMutation({
     mutationFn: () => notificationsService.deleteAllNotifications(),
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      await queryClient.cancelQueries({ queryKey: ['notifications-unread'] });
+
+      queryClient.setQueriesData({ queryKey: ['notifications'] }, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: [] };
+      });
+      queryClient.setQueriesData({ queryKey: ['notifications-unread'] }, (old: any) => {
+        if (!old) return old;
+        return { ...old, data: [] };
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
     },
   });
 }

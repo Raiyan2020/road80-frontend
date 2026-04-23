@@ -19,7 +19,7 @@ const ExplorePage: React.FC = () => {
     state_id: searchParams.get('state_id') || '',
     city_id: searchParams.get('city_id') || '',
     min_price: Number(searchParams.get('min_price')) || 0,
-    max_price: Number(searchParams.get('max_price')) || 50000,
+    max_price: Number(searchParams.get('max_price')) || undefined,
     category_values_ids: searchParams.getAll('category_values_ids[]').map(Number).filter(Boolean)
   };
 
@@ -110,7 +110,7 @@ const ExplorePage: React.FC = () => {
         </form>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
          {loading ? (
            <div className="flex justify-center items-center h-full">
               <SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" />

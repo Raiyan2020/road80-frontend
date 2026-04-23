@@ -191,12 +191,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   const handlePublisherClick = () => {
-    if (listing.publisherId) {
-      navigate({
-        to: "/profile",
-        search: { user: listing.publisherId as any },
-      });
-    }
+    // Prefer raw API user.id, fall back to mapped publisherId
+    const rawId = (listing as any).user?.id ?? listing.publisherId;
+    if (!rawId) return;
+    // Strip any surrounding quotes from serialization bugs
+    const cleanId = String(rawId).replace(/^\"|\"$/g, '');
+    navigate({ to: '/profile', search: { user: cleanId } as any });
   };
 
   const handleUnlockPayment = () => {

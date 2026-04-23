@@ -50,6 +50,7 @@ export const OfficeSchema = z.object({
   activeListingsCount: z.coerce.number().optional(),
   soldOrRentedCount: z.coerce.number().optional(),
   totalViews: z.coerce.number().optional(),
+  totalLikes: z.coerce.number().optional(),
   rating: z.coerce.number().optional(),
   responseTime: z.string().optional(),
   phone: z.string().optional(),

@@ -46,22 +46,36 @@ function BlogsPage() {
                <p className="text-gray-400 font-bold italic">المقال غير موجود</p>
             </div>
           ) : (
-            <article className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-navy/5 border border-pale dark:border-slate-800 overflow-hidden">
-               {blog.image && (
-                 <img src={blog.image} alt={blog.title} className="w-full h-64 sm:h-80 object-cover" />
-               )}
-               <div className="p-6 flex flex-col gap-6 text-right">
-                  <div className="flex flex-col gap-2">
-                    <h1 className="text-[26px] font-black text-navy dark:text-slate-100 leading-tight">{blog.title}</h1>
-                    <div className="h-1.5 w-16 bg-blue rounded-full" />
+             <article className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl shadow-navy/5 border border-pale dark:border-slate-800 overflow-hidden mb-6">
+                {blog.image && (
+                  <div className="relative h-64 sm:h-80 w-full">
+                    <img src={blog.image} alt={blog.title} className="w-full h-full object-cover" />
+                    <div className="absolute top-4 right-4 px-3 py-1 bg-navy/80 backdrop-blur-md text-white rounded-full text-xs font-bold border border-white/20">
+                       {blog.category_name}
+                    </div>
                   </div>
+                )}
+                
+                <div className="p-6 flex flex-col gap-6 text-right">
+                   <div className="flex flex-col gap-3">
+                     <h1 className="text-[28px] font-black text-navy dark:text-slate-100 leading-tight">{blog.title}</h1>
+                     <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
+                        <span className="flex items-center gap-1">
+                           بواسطة: <span className="text-navy dark:text-blue">{blog.publisher_name}</span>
+                        </span>
+                        <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                        <span>{blog.created_at}</span>
+                     </div>
+                     <div className="h-1.5 w-16 bg-blue rounded-full mt-2" />
+                   </div>
 
-                  <div 
-                    className="text-[15px] text-gray-600 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-line prose dark:prose-invert max-w-none" 
-                    dangerouslySetInnerHTML={{ __html: blog.content || blog.description || '' }}
-                  />
-               </div>
-            </article>
+                   <div 
+                     className="text-[15px] text-gray-600 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-line prose dark:prose-invert max-w-none" 
+                     dangerouslySetInnerHTML={{ __html: blog.description || blog.content || '' }}
+                   />
+                </div>
+             </article>
+
           )}
         </div>
       </div>

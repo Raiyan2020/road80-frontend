@@ -15,7 +15,7 @@ function RouteComponent() {
 
   return (
     <div className="absolute inset-0 block">
-      <div className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar pb-20">
+      <div className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar">
         <HomePage theme={theme} onToggleTheme={toggleTheme} />
       </div>
     </div>

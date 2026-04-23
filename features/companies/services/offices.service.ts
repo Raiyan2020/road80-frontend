@@ -36,22 +36,31 @@ export async function fetchOffices(category?: string | number): Promise<Office[]
     const resp = await api.get<{ status: boolean; data: RawOfficeResponse[] }>(url);
     
     if (resp.status && resp.data) {
+      if (!Array.isArray(resp.data)) {
+         console.error('[Offices Service] Expected array but got:', resp.data);
+         return [];
+      }
       return resp.data.map((raw) => {
-        const logoUrl = typeof raw.image === 'string'
-          ? raw.image
-          : (raw.image?.file ?? undefined);
-        const governorate = typeof raw.state === 'object' ? raw.state?.name : (raw.state ?? undefined);
-        
-        return OfficeSchema.parse({
-          id: raw.id,
-          officeName: raw.name ?? "مكتب عقاري",
-          logo: logoUrl,
-          governorate,
-          activeListingsCount: raw.ads_count,
-          rating: raw.rate,
-          sampleListings: [],
-        });
-      });
+        try {
+          const logoUrl = typeof raw.image === 'string'
+            ? raw.image
+            : (raw.image?.file ?? undefined);
+          const governorate = typeof raw.state === 'object' && raw.state !== null ? raw.state?.name : (raw.state ?? undefined);
+          
+          return OfficeSchema.parse({
+            id: raw.id,
+            officeName: raw.name ?? "مكتب عقاري",
+            logo: logoUrl,
+            governorate,
+            activeListingsCount: raw.ads_count,
+            rating: raw.rate,
+            sampleListings: [],
+          });
+        } catch (e) {
+          console.error('[Offices Service] Validation error for office:', raw, e);
+          return null;
+        }
+      }).filter(Boolean) as Office[];
     }
     return [];
   } catch (error) {
@@ -113,43 +122,44 @@ export async function fetchOfficeAds(id: string | number): Promise<Listing[]> {
   }
 }
 
-interface RawProfileResponse {
+interface RawCompanyProfile {
   id: number | string;
   name?: string;
-  officeName?: string;
+  caption?: string;
   image?: string | { file?: string };
-  logo?: string | { file?: string };
-  state?: string | { name?: string };
-  governorate?: string;
-  ads_count?: number;
-  activeListingsCount?: number;
+  total_active_ads?: number;
+  total_ads_watch?: number;
+  total_ads_likes?: number;
   rate?: number;
-  rating?: number;
   [key: string]: unknown;
 }
 
 export async function fetchOfficeById(id: string | number): Promise<Office | null> {
   try {
-    const response = await api.get<{status: boolean; data: RawProfileResponse}>(`/profile/${id}`);
+    const response = await api.get<{ status: boolean; data: RawCompanyProfile }>(`/company/${id}`);
     if (response.status && response.data) {
-       const raw = response.data;
-       
-       const mappedData = {
-          ...raw,
-          officeName: raw.name || raw.officeName || "مكتب عقاري",
-          logo: typeof raw.image === 'string' 
-            ? raw.image 
-            : (raw.image?.file || (typeof raw.logo === 'string' ? raw.logo : raw.logo?.file)),
-          governorate: typeof raw.state === 'object' ? raw.state?.name : (raw.state || raw.governorate),
-          activeListingsCount: raw.ads_count ?? raw.activeListingsCount,
-          rating: raw.rate ?? raw.rating,
-       };
+      const raw = response.data;
 
-       return OfficeSchema.parse(mappedData);
+      const logo = typeof raw.image === 'string'
+        ? raw.image
+        : (raw.image?.file ?? undefined);
+
+      return OfficeSchema.parse({
+        id: raw.id,
+        officeName: raw.name ?? 'شركة',
+        bio: raw.caption ?? undefined,
+        logo,
+        activeListingsCount: raw.total_active_ads ?? 0,
+        totalViews: raw.total_ads_watch ?? 0,
+        totalLikes: raw.total_ads_likes ?? 0,
+        rating: raw.rate ?? 0,
+        sampleListings: [],
+      });
     }
     return null;
   } catch (err) {
-    console.error(`[Offices Service] Error fetching office ${id}:`, err);
+    console.error(`[Offices Service] Error fetching company ${id}:`, err);
     return null;
   }
 }
+

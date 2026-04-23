@@ -109,7 +109,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   };
   
   const params = getParams();
-  const viewedUserId = params.get('user');
+  // Strip surrounding quote characters that can appear from serialization bugs (e.g. %2251%22 → "51" → 51)
+  const rawUserId = params.get('user');
+  const viewedUserId = rawUserId ? rawUserId.replace(/^"|"$/g, '') : null;
   const activeTabParam = params.get('tab');
   const isMe = !viewedUserId || viewedUserId === 'current_user';
 
@@ -165,10 +167,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
       isVerified = false;
   } else {
       if (officeData) {
-        profileName = officeData.officeName || 'ناشر الإعلان';
+        profileName = officeData.officeName || 'شركة';
         profileAvatar = officeData.logo || null;
+        profileBio = officeData.bio || '';
         isVerified = false;
-        stats = { ads: officeData.activeListingsCount?.toString() || '0', likes: "0", views: officeData.rating?.toLocaleString() || "0" };
+        stats = {
+          ads: officeData.activeListingsCount?.toString() || '0',
+          likes: officeData.totalLikes?.toString() || '0',
+          views: officeData.totalViews?.toString() || '0',
+        };
         displayList = officeAdsData as Listing[];
       }
   }
@@ -183,7 +190,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   ];
 
   return (
-    <div className="flex flex-col p-4 gap-6 pb-24 animate-fade-in transition-colors duration-300">
+    <div className="flex flex-col p-4 gap-6 animate-fade-in transition-colors duration-300">
       <div className="flex items-center gap-4">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pale to-white dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-navy dark:text-slate-200 shrink-0 border-2 border-white dark:border-slate-800 shadow-md overflow-hidden relative">
           {profileAvatar ? (

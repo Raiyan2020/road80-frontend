@@ -81,24 +81,38 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     };
 
     const saveAndComplete = async (finalData: typeof data) => {
-        // Create Next.js compatible preferences object
+        // Resolve selected category value IDs → display names
+        const allValues = filters.flatMap((cat) => cat.values);
+        const categoryValueNames = (finalData.categoryValues || [])
+            .map((id) => allValues.find((v) => v.id === id)?.value)
+            .filter(Boolean) as string[];
+
+        // Find deal type specifically (category id=2 "نوع التعاقد")
+        const dealCat = filters.find((c) => c.id === 2);
+        const dealTypeName = dealCat?.values.find((v) =>
+            (finalData.categoryValues || []).includes(v.id)
+        )?.value || '';
+
         const prefsPayload = {
-            propertyType: '',
-            purpose: 'للإيجار', // Fallback defaults like Next.js
-            area: finalData.areaName || finalData.governorateName,
             countryId: finalData.countryId || undefined,
             countryName: finalData.countryName || '',
             stateId: finalData.governorateId || undefined,
+            stateName: finalData.governorateName || '',
             cityId: finalData.areaId || undefined,
+            cityName: finalData.areaName || '',
             categoryValues: finalData.categoryValues || [],
+            categoryValueNames,   // ← resolved names saved directly
+            dealTypeName,         // ← e.g. "إيجار" / "بيع" / "فنادق"
             name: finalData.name,
         };
 
         localStorage.setItem('road80_preferences', JSON.stringify(prefsPayload));
 
+
         if (finalData.governorateId && finalData.areaId) {
             try {
                 await homeService.saveFilterHistory({
+                    name: finalData.name,
                     category_values_ids: finalData.categoryValues || [],
                     state_id: finalData.governorateId,
                     city_id: finalData.areaId

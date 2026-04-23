@@ -34,6 +34,9 @@ export const authService = {
     if (payload.device_type) {
       formData.append('device_type', payload.device_type);
     }
+    if (payload.name) {
+      formData.append('name', payload.name);
+    }
 
     return api.post<AuthResponse<VerifyOtpData>>('/auth/verify-otp', formData);
   },

@@ -28,6 +28,7 @@ export interface VerifyOtpPayload {
   country_id: string | number;
   device_id: string;
   device_type: string;
+  name?: string;
 }
 
 export interface RegisterCompanyPayload {

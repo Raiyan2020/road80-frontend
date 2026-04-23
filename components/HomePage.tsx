@@ -1,28 +1,36 @@
-
-import React, { useState, useEffect, useRef } from 'react';
-import { Listing } from '../types';
-import { SlidersIcon, SunIcon, MoonIcon, ChevronDownIcon, KeyIcon, TagIcon, BedIcon, SpinnerIcon } from './Icons';
-import { useNavigate } from '@tanstack/react-router';
-import { useHomeListings } from '../features/home/hooks/useHomeListings';
-
-
-
-
+import React, { useState, useEffect, useRef } from "react";
+import { Listing } from "../types";
+import {
+  SlidersIcon,
+  SunIcon,
+  MoonIcon,
+  ChevronDownIcon,
+  KeyIcon,
+  TagIcon,
+  BedIcon,
+  SpinnerIcon,
+} from "./Icons";
+import { useNavigate } from "@tanstack/react-router";
+import { useHomeListings } from "../features/home/hooks/useHomeListings";
+import { StaticBanner } from "../features/home/components/StaticBanner";
 
 const QUICK_ACTIONS = [
-  { id: 'rent', label: 'إيجار', icon: KeyIcon },
-  { id: 'sale', label: 'بيع', icon: TagIcon },
-  { id: 'hotels', label: 'فنادق', icon: BedIcon },
+  { id: "rent", label: "إيجار", icon: KeyIcon },
+  { id: "sale", label: "بيع", icon: TagIcon },
+  { id: "hotels", label: "فنادق", icon: BedIcon },
 ];
 
-const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> = ({ images, isLoading }) => {
+const BannerSlider: React.FC<{ images?: string[]; isLoading?: boolean }> = ({
+  images,
+  isLoading,
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     if (!images || images.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % images.length);
+      setCurrentIndex((prev) => (prev + 1) % images.length);
     }, 2500);
     return () => clearInterval(timer);
   }, [images]);
@@ -38,9 +46,9 @@ const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> = ({ im
 
     if (Math.abs(diff) > 50) {
       if (diff < 0) {
-        setCurrentIndex(prev => (prev + 1) % images.length);
+        setCurrentIndex((prev) => (prev + 1) % images.length);
       } else {
-        setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
+        setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
       }
     }
     touchStartX.current = null;
@@ -82,32 +90,12 @@ const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> = ({ im
             <div
               key={i}
               className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                currentIndex === i ? 'bg-blue w-4' : 'bg-white/50'
+                currentIndex === i ? "bg-blue w-4" : "bg-white/50"
               }`}
             />
           ))}
         </div>
       )}
-    </div>
-  );
-};
-
-const StaticBanner: React.FC<{ image?: string, isLoading?: boolean }> = ({ image, isLoading }) => {
-  if (isLoading) {
-    return (
-      <div className="w-full aspect-[2.5/1] bg-pale/30 dark:bg-slate-800 rounded-2xl animate-pulse" />
-    );
-  }
-
-  if (!image) return null;
-
-  return (
-    <div className="w-full aspect-[2.5/1] relative overflow-hidden rounded-2xl shadow-sm bg-gray-100 dark:bg-slate-800">
-      <img
-        src={image}
-        alt="Static Banner"
-        className="w-full h-full object-cover pointer-events-none select-none opacity-90 dark:opacity-80"
-      />
     </div>
   );
 };
@@ -118,13 +106,14 @@ const HomeListingCard: React.FC<{ listing: Listing }> = ({ listing }) => {
     navigate({ to: `/ad/${listing.id}` });
   };
 
-  const [imgSrc, setImgSrc] = useState<string>('');
-  const FALLBACK_IMAGE = 'https://raiyansoft.com/wp-content/uploads/2026/01/1.png';
+  const [imgSrc, setImgSrc] = useState<string>("");
+  const FALLBACK_IMAGE =
+    "https://raiyansoft.com/wp-content/uploads/2026/01/1.png";
 
   useEffect(() => {
     if (listing.imageUrl instanceof Blob || listing.imageUrl instanceof File) {
       setImgSrc(URL.createObjectURL(listing.imageUrl));
-    } else if (typeof listing.imageUrl === 'string') {
+    } else if (typeof listing.imageUrl === "string") {
       setImgSrc(listing.imageUrl);
     } else if (listing.images && listing.images.length > 0) {
       const first = listing.images[0];
@@ -148,14 +137,20 @@ const HomeListingCard: React.FC<{ listing: Listing }> = ({ listing }) => {
           src={imgSrc}
           alt={listing.title}
           className="w-full h-full object-cover"
-          onError={(e) => e.currentTarget.src = FALLBACK_IMAGE}
+          onError={(e) => (e.currentTarget.src = FALLBACK_IMAGE)}
         />
       </div>
       <div className="p-3 flex flex-col gap-1">
-        <span className="text-blue dark:text-blue/80 font-bold text-sm text-right font-sans">{listing.price}</span>
-        <h4 className="text-navy dark:text-slate-200 font-semibold text-xs truncate text-right font-sans">{listing.title}</h4>
+        <span className="text-blue dark:text-blue/80 font-bold text-sm text-right font-sans">
+          {listing.price}
+        </span>
+        <h4 className="text-navy dark:text-slate-200 font-semibold text-xs truncate text-right font-sans">
+          {listing.title}
+        </h4>
         <div className="flex items-center justify-end gap-1 opacity-60">
-          <span className="text-[13px] text-navy dark:text-slate-400 font-medium font-sans">{listing.area}</span>
+          <span className="text-[13px] text-navy dark:text-slate-400 font-medium font-sans">
+            {listing.area}
+          </span>
           <div className="w-1 h-1 rounded-full bg-navy dark:bg-slate-400"></div>
         </div>
       </div>
@@ -163,19 +158,26 @@ const HomeListingCard: React.FC<{ listing: Listing }> = ({ listing }) => {
   );
 };
 
-import { useHomeData } from '../features/home/hooks/useHomeData';
+import { useHomeData } from "../features/home/hooks/useHomeData";
 
-const HomePage: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () => void }> = ({ theme, onToggleTheme }) => {
+const HomePage: React.FC<{
+  theme: "light" | "dark";
+  onToggleTheme: () => void;
+}> = ({ theme, onToggleTheme }) => {
   const navigate = useNavigate();
-  const { data: homeListings = [], isLoading: isListingsLoading } = useHomeListings();
+  const { data: homeListings = [], isLoading: isListingsLoading } =
+    useHomeListings();
   const { data: homeData, isLoading: isHomeDataLoading } = useHomeData();
+
+  console.log({ homeData });
+
   const displayAds = homeListings.slice(0, 6);
 
-  const [searchText, setSearchText] = useState('بيت / بيع / الكويت');
-  const [currentCountryName, setCurrentCountryName] = useState('الكويت');
+  const [searchText, setSearchText] = useState("بيت / بيع / الكويت");
+  const [currentCountryName, setCurrentCountryName] = useState("الكويت");
 
   useEffect(() => {
-    const prefs = localStorage.getItem('road80_preferences');
+    const prefs = localStorage.getItem("road80_preferences");
     if (prefs) {
       try {
         const p = JSON.parse(prefs);
@@ -196,10 +198,17 @@ const HomePage: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () => void }>
         <div className="flex flex-col">
           <span className="text-xs text-gray-400 font-bold mb-0.5">الدولة</span>
           <button
-            onClick={() => navigate({ to: '/quick-start', search: { mode: 'location' } as any })}
+            onClick={() =>
+              navigate({
+                to: "/quick-start",
+                search: { mode: "location" } as any,
+              })
+            }
             className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-full pl-3 pr-2 py-1 shadow-sm active:scale-95 transition-all duration-300"
           >
-            <span className="text-sm font-bold text-navy dark:text-slate-200">{currentCountryName}</span>
+            <span className="text-sm font-bold text-navy dark:text-slate-200">
+              {currentCountryName}
+            </span>
             <ChevronDownIcon className="w-3 h-3 text-blue" />
           </button>
         </div>
@@ -210,7 +219,7 @@ const HomePage: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () => void }>
           className="w-10 h-10 rounded-full bg-pale/30 dark:bg-slate-800 flex items-center justify-center transition-all duration-300 active:scale-95 text-navy dark:text-slate-200 border border-transparent dark:border-slate-700"
           aria-label="تبديل المظهر"
         >
-          {theme === 'light' ? (
+          {theme === "light" ? (
             <MoonIcon className="w-5 h-5" />
           ) : (
             <SunIcon className="w-5 h-5" />
@@ -219,17 +228,24 @@ const HomePage: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () => void }>
       </div>
 
       {/* Top Banner (Slider) */}
-      <BannerSlider images={homeData?.header?.map(h => h.image) || []} isLoading={isHomeDataLoading} />
+      <BannerSlider
+        images={homeData?.header?.map((h) => h.image) || []}
+        isLoading={isHomeDataLoading}
+      />
 
       {/* Interactive Search Card */}
       <div
-        onClick={() => navigate({ to: '/quick-start', search: { mode: 'edit' } as any })}
+        onClick={() =>
+          navigate({ to: "/quick-start", search: { mode: "edit" } as any })
+        }
         className="w-full bg-white dark:bg-slate-900 text-navy dark:text-slate-200 rounded-2xl p-4 shadow-lg shadow-navy/5 dark:shadow-black/20 flex items-center justify-between cursor-pointer active:scale-98 transition-all relative overflow-hidden group border border-navy/10 dark:border-slate-800 hover:border-navy/30 dark:hover:border-slate-700"
       >
         <div className="flex flex-col gap-1 z-10">
-          <span className="text-[13px] text-gray-400 font-medium group-hover:text-blue transition-colors">عن ماذا تبحث</span>
+          <span className="text-[13px] text-gray-400 font-medium group-hover:text-blue transition-colors">
+            عن ماذا تبحث
+          </span>
           <h3 className="text-sm font-semibold text-navy dark:text-slate-200 leading-tight truncate pl-4">
-            {searchText || 'اضغط لتحديد طلبك'}
+            {searchText || "اضغط لتحديد طلبك"}
           </h3>
         </div>
 
@@ -240,53 +256,62 @@ const HomePage: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () => void }>
 
       {/* Quick Actions Row */}
       <div className="flex gap-3">
-        {isHomeDataLoading ? (
-          [1, 2, 3].map((i) => (
-            <div
-              key={`skeleton-${i}`}
-              className="flex-1 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 py-5 rounded-2xl shadow-sm border border-pale dark:border-slate-800 animate-pulse"
-            >
-              <div className="w-12 h-12 rounded-full bg-pale/30 dark:bg-slate-800" />
-              <div className="h-4 w-12 bg-pale/30 dark:bg-slate-800 rounded" />
-            </div>
-          ))
-        ) : (homeData?.categories || []).length > 0 ? (
-          homeData!.categories.slice(0, 3).map((action) => (
-            <button
-              key={action.id}
-              onClick={() => navigate({ to: '/explore', search: { category_values_ids: [action.id] } as any })}
-              className="flex-1 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 py-5 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/20 dark:hover:border-slate-700"
-            >
-              <div className="w-12 h-12 rounded-full bg-navy/5 dark:bg-slate-800 flex items-center justify-center group-hover:bg-navy dark:group-hover:bg-blue transition-colors duration-300">
-                <img src={action.icon} alt={action.value} className="w-6 h-6 object-contain filter group-hover:brightness-0 group-hover:invert transition-all duration-300" />
+        {isHomeDataLoading
+          ? [1, 2, 3].map((i) => (
+              <div
+                key={`skeleton-${i}`}
+                className="flex-1 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 py-5 rounded-2xl shadow-sm border border-pale dark:border-slate-800 animate-pulse"
+              >
+                <div className="w-12 h-12 rounded-full bg-pale/30 dark:bg-slate-800" />
+                <div className="h-4 w-12 bg-pale/30 dark:bg-slate-800 rounded" />
               </div>
-              <span className="text-sm font-medium text-navy dark:text-slate-200 group-hover:text-navy dark:group-hover:text-blue transition-colors">
-                {action.value}
-              </span>
-            </button>
-          ))
-        ) : (
-          QUICK_ACTIONS.map((action) => (
-            <button
-              key={action.id}
-              onClick={() => navigate({ to: '/explore' })} // Demo link
-              className="flex-1 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 py-5 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/20 dark:hover:border-slate-700"
-            >
-              <div className="w-12 h-12 rounded-full bg-navy/5 dark:bg-slate-800 flex items-center justify-center group-hover:bg-navy dark:group-hover:bg-blue transition-colors duration-300">
-                <action.icon className="w-6 h-6 text-navy dark:text-blue group-hover:text-white transition-colors duration-300" />
-              </div>
-              <span className="text-sm font-medium text-navy dark:text-slate-200 group-hover:text-navy dark:group-hover:text-blue transition-colors">
-                {action.label}
-              </span>
-            </button>
-          ))
-        )}
+            ))
+          : (homeData?.categories || []).length > 0
+            ? homeData!.categories.slice(0, 3).map((action) => (
+                <button
+                  key={action.id}
+                  onClick={() =>
+                    navigate({
+                      to: "/explore",
+                      search: { category_values_ids: [action.id] } as any,
+                    })
+                  }
+                  className="flex-1 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 py-5 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/20 dark:hover:border-slate-700"
+                >
+                  <div className="w-12 h-12 rounded-full bg-navy/5 dark:bg-slate-800 flex items-center justify-center group-hover:bg-navy dark:group-hover:bg-blue transition-colors duration-300">
+                    <img
+                      src={action.icon}
+                      alt={action.value}
+                      className="w-6 h-6 object-contain filter group-hover:brightness-0 group-hover:invert transition-all duration-300"
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-navy dark:text-slate-200 group-hover:text-navy dark:group-hover:text-blue transition-colors">
+                    {action.value}
+                  </span>
+                </button>
+              ))
+            : QUICK_ACTIONS.map((action) => (
+                <button
+                  key={action.id}
+                  onClick={() => navigate({ to: "/explore" })} // Demo link
+                  className="flex-1 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 py-5 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/20 dark:hover:border-slate-700"
+                >
+                  <div className="w-12 h-12 rounded-full bg-navy/5 dark:bg-slate-800 flex items-center justify-center group-hover:bg-navy dark:group-hover:bg-blue transition-colors duration-300">
+                    <action.icon className="w-6 h-6 text-navy dark:text-blue group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <span className="text-sm font-medium text-navy dark:text-slate-200 group-hover:text-navy dark:group-hover:text-blue transition-colors">
+                    {action.label}
+                  </span>
+                </button>
+              ))}
       </div>
 
       {/* Latest Ads Section */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-bold text-navy dark:text-slate-200">احدث الاعلانات المضافة تناسب طلبك</h2>
+          <h2 className="text-sm font-bold text-navy dark:text-slate-200">
+            احدث الاعلانات المضافة تناسب طلبك
+          </h2>
         </div>
 
         {isListingsLoading ? (
@@ -303,7 +328,7 @@ const HomePage: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () => void }>
 
         {!isListingsLoading && displayAds.length > 0 && (
           <button
-            onClick={() => navigate({ to: '/explore' })}
+            onClick={() => navigate({ to: "/explore" })}
             className="w-full py-3 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 rounded-xl font-semibold text-sm hover:bg-pale/30 dark:hover:bg-slate-800 active:scale-95 transition-all shadow-sm"
           >
             مشاهدة المزيد
@@ -312,8 +337,10 @@ const HomePage: React.FC<{ theme: 'light' | 'dark'; onToggleTheme: () => void }>
       </div>
 
       {/* Bottom Banner (Static) */}
-      <StaticBanner image={homeData?.footer?.[0]?.image} isLoading={isHomeDataLoading} />
-
+      <StaticBanner
+        images={homeData?.footer?.map((h) => h.image) || []}
+        isLoading={isHomeDataLoading}
+      />
     </div>
   );
 };

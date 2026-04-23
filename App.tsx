@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import SplashScreen from './components/SplashScreen';
 import BottomNavigation from './components/BottomNavigation';
-import HomePage from './components/HomePage';
+import HomePage from './features/home/components/HomePage';
 import ProfilePage from './components/ProfilePage';
 import AddWizard from './components/AddWizard';
 import ListingDetailsPage from './components/ListingDetailsPage';

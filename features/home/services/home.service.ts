@@ -31,3 +31,18 @@ export async function fetchFilterOptions(): Promise<FilterCategory[]> {
     return [];
   }
 }
+
+/**
+ * Fetch all categories (with their values) from /categories.
+ * Used by the QuickActionsRow on the home screen.
+ */
+export async function fetchCategories(): Promise<FilterCategory[]> {
+  try {
+    const response = await api.get<FilterOptionsResponse>('/categories');
+    if (response.status) return response.data;
+    return [];
+  } catch (error) {
+    console.error('[Home Service] Error fetching categories:', error);
+    return [];
+  }
+}

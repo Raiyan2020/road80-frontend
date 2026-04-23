@@ -27,7 +27,7 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
   const [filters, setFilters] = useState<ExploreFilters>({
     category_values_ids: [],
     min_price: 0,
-    max_price: 50000,
+    max_price: undefined,
     ...initialFilters
   });
 
@@ -68,7 +68,7 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
   };
 
   const handleClear = () => {
-    const empty = { category_values_ids: [], min_price: 0, max_price: 50000, country_id: '', state_id: '', city_id: '' };
+    const empty = { category_values_ids: [], min_price: 0, max_price: undefined, country_id: '', state_id: '', city_id: '' };
     setFilters(empty);
     onApply(empty);
     onClose();
@@ -165,8 +165,8 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
                  <div className="flex items-center text-gray-400 font-bold shrink-0">-</div>
                  <input 
                    type="number" 
-                   value={filters.max_price} 
-                   onChange={e => setFilters(p => ({ ...p, max_price: Number(e.target.value) }))}
+                   value={filters.max_price ?? ''} 
+                   onChange={e => setFilters(p => ({ ...p, max_price: e.target.value ? Number(e.target.value) : undefined }))}
                    className="flex-1 w-0 min-w-0 h-12 px-2 text-center rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                    placeholder="إلى"
                  />

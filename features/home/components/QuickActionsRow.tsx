@@ -69,14 +69,14 @@ export const QuickActionsRow: React.FC = () => {
     return (
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1"
+        className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 w-[calc(100%+2rem)]"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {actions.map((action) => (
           <button
             key={action.id}
             onClick={() => handleClick(action.id)}
-            className="flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white dark:bg-slate-900 py-4 px-3 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/30 dark:hover:border-slate-700 min-w-[72px]"
+            className="flex-1 flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white dark:bg-slate-900 py-4 px-3 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/30 dark:hover:border-slate-700 min-w-[90px]"
           >
             <div className="w-12 h-12 rounded-full bg-navy/5 dark:bg-slate-800 flex items-center justify-center group-hover:bg-navy dark:group-hover:bg-blue transition-colors duration-300">
               {CONTRACT_ICONS[action.value] ? (
@@ -98,12 +98,12 @@ export const QuickActionsRow: React.FC = () => {
 
   // ── Fallback static actions ────────────────────────────────────────────────
   return (
-    <div className="flex gap-3 overflow-x-auto no-scrollbar">
+    <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 w-[calc(100%+2rem)]">
       {FALLBACK_ACTIONS.map((action) => (
         <button
           key={action.id}
           onClick={() => handleClick(action.id)}
-          className="flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white dark:bg-slate-900 py-4 px-3 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/30 dark:hover:border-slate-700 min-w-[72px]"
+          className="flex-1 flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white dark:bg-slate-900 py-4 px-3 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/30 dark:hover:border-slate-700 min-w-[90px]"
         >
           <div className="w-12 h-12 rounded-full bg-navy/5 dark:bg-slate-800 flex items-center justify-center group-hover:bg-navy dark:group-hover:bg-blue transition-colors duration-300">
             <action.icon className="w-6 h-6 text-navy dark:text-blue group-hover:text-white transition-colors duration-300" />
@@ -115,6 +115,7 @@ export const QuickActionsRow: React.FC = () => {
       ))}
     </div>
   );
+
 };
 
 export default QuickActionsRow;

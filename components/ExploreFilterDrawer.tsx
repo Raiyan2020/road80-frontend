@@ -9,7 +9,7 @@ export interface ExploreFilters {
   country_id?: number | string;
   state_id?: number | string;
   city_id?: number | string;
-  category_values_ids?: (number | string)[];
+  category_value_id?: (number | string)[];
   min_price?: number;
   max_price?: number;
 }
@@ -26,7 +26,7 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
   const filterOptions = (filterOptionsRes as any)?.data || filterOptionsRes || [];
 
   const [filters, setFilters] = useState<ExploreFilters>({
-    category_values_ids: [],
+    category_value_id: [],
     min_price: 0,
     max_price: undefined,
     ...initialFilters
@@ -54,12 +54,12 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
 
   const toggleCategory = (id: number) => {
     setFilters(prev => {
-      const current = prev.category_values_ids || [];
+      const current = prev.category_value_id || [];
       const numId = Number(id);
       if (current.includes(numId)) {
-        return { ...prev, category_values_ids: current.filter(x => x !== numId) };
+        return { ...prev, category_value_id: current.filter(x => x !== numId) };
       }
-      return { ...prev, category_values_ids: [...current, numId] };
+      return { ...prev, category_value_id: [...current, numId] };
     });
   };
 
@@ -69,7 +69,7 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
   };
 
   const handleClear = () => {
-    const empty = { category_values_ids: [], min_price: 0, max_price: undefined, country_id: '', state_id: '', city_id: '' };
+    const empty = { category_value_id: [], min_price: 0, max_price: undefined, country_id: '', state_id: '', city_id: '' };
     setFilters(empty);
     onApply(empty);
     onClose();
@@ -105,7 +105,7 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
                <h3 className="text-sm font-bold text-gray-500 dark:text-slate-400">{cat.name}</h3>
                <div className="flex flex-wrap gap-2">
                  {cat.values?.map((v: any) => {
-                   const isSelected = (filters.category_values_ids || []).includes(v.id);
+                   const isSelected = (filters.category_value_id || []).includes(v.id);
                    return (
                      <button
                        key={v.id}

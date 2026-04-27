@@ -41,10 +41,8 @@ export const QuickActionsRow: React.FC = () => {
   const actions = contractCategory?.values ?? [];
 
   const handleClick = (valueId: number) => {
-    // Build URL manually with category_values_ids[] to match ExplorePage's URLSearchParams.getAll()
-    const params = new URLSearchParams();
-    params.append("category_values_ids[]", String(valueId));
-    navigate({ to: `/explore/?${params.toString()}` as any });
+    // Use window.location for reliable array query param passing
+    window.location.href = `/explore/?category_value_id=${valueId}`;
   };
 
   // ── Skeleton ───────────────────────────────────────────────────────────────

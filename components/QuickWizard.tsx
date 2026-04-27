@@ -136,8 +136,8 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     );
 
     return (
-        <div className="w-full h-full bg-bg dark:bg-slate-950 flex flex-col relative overflow-hidden text-right transition-colors duration-300" dir="rtl">
-            <div className="px-6 pt-8 pb-4">
+        <div className="w-full h-full bg-white dark:bg-slate-950 flex flex-col relative overflow-hidden text-right transition-colors duration-300" dir="rtl">
+            <div className="px-6 pt-8 pb-4 shrink-0">
                 <div className="w-full h-1.5 bg-pale dark:bg-slate-800 rounded-full overflow-hidden mb-8">
                     <div
                         className="h-full bg-navy dark:bg-blue transition-all duration-500 rounded-full"
@@ -175,13 +175,15 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                             setData({ ...data, countryId: c.id, countryName: c.name, governorateId: null, governorateName: '', areaId: null, areaName: '' });
                                             setTimeout(() => setStep(3), 150);
                                         }}
-                                        className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 active:scale-95 ${data.countryId === c.id ? "border-navy dark:border-blue bg-navy/5 dark:bg-blue/10" : "border-pale dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-navy/20 dark:hover:border-blue/20"
+                                        className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 active:scale-95 ${data.countryId === c.id 
+                                            ? "border-navy dark:border-blue bg-navy/5 dark:bg-blue/20 text-navy dark:text-blue" 
+                                            : "border-pale dark:border-slate-800 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 hover:border-navy/20 dark:hover:border-blue/20"
                                             }`}
                                     >
                                         <div className="w-12 h-12 relative flex items-center justify-center">
                                             {c.image && <img src={c.image} alt={c.name} className="w-full h-full object-contain" />}
                                         </div>
-                                        <span className="font-bold text-sm text-navy dark:text-slate-200">{c.name}</span>
+                                        <span className="font-bold text-sm">{c.name}</span>
                                     </button>
                                 ))}
                             </div>
@@ -203,7 +205,9 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                             setData({ ...data, governorateId: s.id, governorateName: s.name, areaId: null, areaName: '' });
                                             setTimeout(() => setStep(4), 150);
                                         }}
-                                        className={`p-4 h-16 rounded-2xl border-2 transition-all font-bold flex items-center justify-between active:scale-95 ${data.governorateId === s.id ? "border-navy dark:border-blue bg-navy/5 dark:bg-blue/10 text-navy dark:text-blue" : "border-pale dark:border-slate-800 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 hover:border-navy/20 dark:hover:border-blue/20"
+                                        className={`p-4 h-16 rounded-2xl border-2 transition-all font-bold flex items-center justify-between active:scale-95 ${data.governorateId === s.id 
+                                            ? "border-navy dark:border-blue bg-navy/5 dark:bg-blue/20 text-navy dark:text-blue" 
+                                            : "border-pale dark:border-slate-800 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 hover:border-navy/20 dark:hover:border-blue/20"
                                             }`}
                                     >
                                         <span>{s.name}</span>
@@ -232,7 +236,9 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                                 else handleFinish();
                                             }, 150);
                                         }}
-                                        className={`p-4 h-16 rounded-2xl border-2 transition-all font-bold flex items-center justify-between active:scale-95 ${data.areaId === c.id ? "border-navy dark:border-blue bg-navy/5 dark:bg-blue/10 text-navy dark:text-blue" : "border-pale dark:border-slate-800 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 hover:border-navy/20 dark:hover:border-blue/20"
+                                        className={`p-4 h-16 rounded-2xl border-2 transition-all font-bold flex items-center justify-between active:scale-95 ${data.areaId === c.id 
+                                            ? "border-navy dark:border-blue bg-navy/5 dark:bg-blue/20 text-navy dark:text-blue" 
+                                            : "border-pale dark:border-slate-800 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 hover:border-navy/20 dark:hover:border-blue/20"
                                             }`}
                                     >
                                         <span>{c.name}</span>
@@ -264,7 +270,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                                             selectCategoryValue(allIds, v.id);
                                                         }}
                                                         className={`p-4 h-16 rounded-2xl border-2 transition-all font-bold flex items-center justify-between active:scale-95 ${isSelected
-                                                            ? "border-navy dark:border-blue bg-navy/5 dark:bg-blue/10 text-navy dark:text-blue"
+                                                            ? "border-navy dark:border-blue bg-navy/5 dark:bg-blue/20 text-navy dark:text-blue"
                                                             : "border-pale dark:border-slate-800 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 hover:border-navy/20 dark:hover:border-blue/20"
                                                             }`}
                                                     >
@@ -277,12 +283,12 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                     </div>
                                 )}
                             </div>
-                        )}
+                        ) }
                     </div>
                 )}
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-bg via-bg to-transparent dark:from-slate-950 dark:via-slate-950 dark:to-transparent z-10 flex gap-3 transition-colors">
+            <div className="shrink-0 p-6 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-slate-950 dark:via-slate-950/90 dark:to-transparent z-10 flex gap-3 transition-colors">
                 {step === 1 && !isEditMode ? (
                     <button
                         onClick={handleNext}
@@ -293,7 +299,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                         التالي
                     </button>
                 ) : null}
- 
+
                 <button
                     onClick={handleBack}
                     className="w-1/4 min-w-[80px] py-4 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-xl text-navy dark:text-slate-200 font-bold hover:bg-gray-50 dark:hover:bg-slate-800 transition-all active:scale-95"

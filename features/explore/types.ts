@@ -3,7 +3,7 @@ export interface ExploreFilters {
   country_id?: number | string;
   state_id?: number | string;
   city_id?: number | string;
-  category_values_ids?: (number | string)[];
+  category_value_id?: (number | string)[];
   min_price?: number;
   max_price?: number;
   page?: number;

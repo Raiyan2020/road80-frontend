@@ -13,19 +13,29 @@ const ExplorePage: React.FC = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   
-  const initialFilters: ExploreFilters = {
-    name: searchParams.get('name') || '',
-    country_id: searchParams.get('country_id') || '',
-    state_id: searchParams.get('state_id') || '',
-    city_id: searchParams.get('city_id') || '',
-    min_price: Number(searchParams.get('min_price')) || 0,
-    max_price: Number(searchParams.get('max_price')) || undefined,
-    category_values_ids: searchParams.getAll('category_values_ids[]').map(Number).filter(Boolean)
+  const getFiltersFromUrl = () => {
+    const sp = new URLSearchParams(window.location.search);
+    return {
+      name: sp.get('name') || '',
+      country_id: sp.get('country_id') || '',
+      state_id: sp.get('state_id') || '',
+      city_id: sp.get('city_id') || '',
+      min_price: Number(sp.get('min_price')) || 0,
+      max_price: Number(sp.get('max_price')) || undefined,
+      category_value_id: sp.get('category_value_id') ? [Number(sp.get('category_value_id'))] : []
+    };
   };
 
-  const [filters, setFilters] = useState<ExploreFilters>(initialFilters);
+  const [filters, setFilters] = useState<ExploreFilters>(getFiltersFromUrl);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchText, setSearchText] = useState(filters.name || '');
+
+  // Re-sync filters when the URL changes (e.g. navigating from home page with a pre-selected category)
+  useEffect(() => {
+    const newFilters = getFiltersFromUrl();
+    setFilters(newFilters);
+    setSearchText(newFilters.name || '');
+  }, [location.search]);
 
   const { data: listings = [], isLoading: loading } = useExploreListings(filters);
 
@@ -39,10 +49,8 @@ const ExplorePage: React.FC = () => {
     if (newFilters.city_id) params.set('city_id', String(newFilters.city_id));
     if (newFilters.min_price) params.set('min_price', String(newFilters.min_price));
     if (newFilters.max_price && newFilters.max_price !== 50000) params.set('max_price', String(newFilters.max_price));
-    if (newFilters.category_values_ids) {
-      newFilters.category_values_ids.forEach(id => {
-        params.append('category_values_ids[]', String(id));
-      });
+    if (newFilters.category_value_id && newFilters.category_value_id.length > 0) {
+      params.set('category_value_id', String(newFilters.category_value_id[0]));
     }
     
     navigate({ search: Object.fromEntries(params) as any });

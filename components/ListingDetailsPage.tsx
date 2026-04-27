@@ -49,11 +49,13 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   onBack,
 }) => {
   const navigate = useNavigate();
-  const { data: listingData, isLoading: loading, refetch: refetchListing } = useListing(
-    Number(listingId),
-  );
+  const {
+    data: listingData,
+    isLoading: loading,
+    refetch: refetchListing,
+  } = useListing(Number(listingId));
   const listing = listingData || null;
-  
+
   console.log("Ad Data:", listing);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -195,8 +197,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     const rawId = (listing as any).user?.id ?? listing.publisherId;
     if (!rawId) return;
     // Strip any surrounding quotes from serialization bugs
-    const cleanId = String(rawId).replace(/^\"|\"$/g, '');
-    navigate({ to: '/profile', search: { user: cleanId } as any });
+    const cleanId = String(rawId).replace(/^\"|\"$/g, "");
+    navigate({ to: "/profile", search: { user: cleanId } as any });
   };
 
   const handleUnlockPayment = () => {
@@ -300,11 +302,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           );
         }
 
-        console.log(
-          "[Contact Unlock] ✅ Payment verified. Contact unlocked for ad:",
-          listing.id,
-        );
-
         // If user originally wanted to contact via whatsapp/call, do it now
         if (pendingContactType && contactData?.phone) {
           const phone = contactData.phone.replace(/\D/g, "");
@@ -362,10 +359,16 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
       isUnlocked,
     );
 
-    let directPhone = type === "WHATSAPP" ? (listing as any).owner_whatsapp : (listing as any).owner_phone;
-    
+    let directPhone =
+      type === "WHATSAPP"
+        ? (listing as any).owner_whatsapp
+        : (listing as any).owner_phone;
+
     if (!directPhone && unlockedContact) {
-      directPhone = type === "WHATSAPP" ? (unlockedContact.whatsapp || unlockedContact.phone) : unlockedContact.phone;
+      directPhone =
+        type === "WHATSAPP"
+          ? unlockedContact.whatsapp || unlockedContact.phone
+          : unlockedContact.phone;
     }
 
     if (directPhone) {
@@ -652,14 +655,19 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
           {/* Dynamic Attributes Grid */}
           {(listing as any).categories?.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {(listing as any).categories.map((cat: any, idx: number) => (
-                <AttrBadge
-                  key={idx}
-                  label={cat.category_name}
-                  value={cat.range || cat.category_value_name}
-                />
-              ))}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-lg font-bold text-navy dark:text-slate-200 mb-1 font-sans">
+                تفاصيل العقار
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {(listing as any).categories.map((cat: any, idx: number) => (
+                  <AttrBadge
+                    key={idx}
+                    label={cat.category_name}
+                    value={cat.range || cat.category_value_name}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
@@ -687,30 +695,42 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
             </div>
           )}
 
-          <div>
-            <h3 className="text-lg font-bold text-navy dark:text-slate-200 mb-3 font-sans">
-              تفاصيل العقار
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <AttrBadge label="نوع الإعلان" value={listing.listingType} />
-              <AttrBadge label="نوع العقار" value={listing.propertyType} />
-              <AttrBadge
-                label="المساحة"
-                value={listing.size ? `${listing.size} م²` : undefined}
-              />
-              <AttrBadge label="الغرف" value={listing.rooms} />
-              <AttrBadge label="الحمامات" value={listing.bathrooms} />
-              <AttrBadge label="بلكونة" value={listing.balcony} />
-              <AttrBadge label="المواقف" value={listing.parking} />
-              <AttrBadge
-                label="نظام المواقف"
-                value={listing.parkingSystems?.join(", ")}
-              />
-              <AttrBadge label="التكييف" value={listing.ac} />
-              <AttrBadge label="الكهرباء" value={listing.electricity} />
-              <AttrBadge label="الماء" value={listing.water} />
+          {(listing.listingType ||
+            listing.propertyType ||
+            listing.size ||
+            listing.rooms ||
+            listing.bathrooms ||
+            listing.balcony ||
+            listing.parking ||
+            (listing.parkingSystems && listing.parkingSystems.length > 0) ||
+            listing.ac ||
+            listing.electricity ||
+            listing.water) && (
+            <div>
+              <h3 className="text-lg font-bold text-navy dark:text-slate-200 mb-3 font-sans">
+                تفاصيل العقار
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <AttrBadge label="نوع الإعلان" value={listing.listingType} />
+                <AttrBadge label="نوع العقار" value={listing.propertyType} />
+                <AttrBadge
+                  label="المساحة"
+                  value={listing.size ? `${listing.size} م²` : undefined}
+                />
+                <AttrBadge label="الغرف" value={listing.rooms} />
+                <AttrBadge label="الحمامات" value={listing.bathrooms} />
+                <AttrBadge label="بلكونة" value={listing.balcony} />
+                <AttrBadge label="المواقف" value={listing.parking} />
+                <AttrBadge
+                  label="نظام المواقف"
+                  value={listing.parkingSystems?.join(", ")}
+                />
+                <AttrBadge label="التكييف" value={listing.ac} />
+                <AttrBadge label="الكهرباء" value={listing.electricity} />
+                <AttrBadge label="الماء" value={listing.water} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

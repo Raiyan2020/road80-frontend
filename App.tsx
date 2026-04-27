@@ -111,13 +111,14 @@ const App: React.FC = () => {
 
   // Parse Route
   const routePath = currentHash.replace('#', '').split('?')[0] || '/home';
-  const isAuthRoute = ['/auth', '/verify'].includes(routePath);
+  const isAuthRoute = routePath.startsWith('/auth') || routePath.startsWith('/verify');
+  const isStandalonePage = ['/faq', '/terms', '/privacy', '/blogs'].some(p => routePath.startsWith(p));
   const isQuickStart = routePath.startsWith('/quick-start');
   
   // Route Guards
   useEffect(() => {
     if (!showSplash) {
-      if (!isAuthenticated && !isAuthRoute) {
+      if (!isAuthenticated && !isAuthRoute && !isStandalonePage) {
         // Not logged in -> Redirect to Auth
         window.location.hash = '#/auth';
       } else if (isAuthenticated && isAuthRoute) {

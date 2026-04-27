@@ -115,7 +115,8 @@ function RootComponent() {
   }, []);
 
   const routePath = location.pathname;
-  const isAuthRoute = routePath.startsWith('/auth') || routePath === '/verify';
+  const isAuthRoute = routePath.startsWith('/auth') || routePath.startsWith('/verify');
+  const isStandalonePage = ['/faq', '/terms', '/privacy', '/blogs'].some(p => routePath.startsWith(p));
   const isQuickStart = routePath.startsWith('/quick-start');
   const isProfile = routePath.startsWith('/profile');
   const isCompanies = routePath.startsWith('/companies');
@@ -129,13 +130,13 @@ function RootComponent() {
   useEffect(() => {
     if (showSplash) return;
 
-    if (!isAuthenticated && !isAuthRoute) {
+    if (!isAuthenticated && !isAuthRoute && !isStandalonePage) {
       navigateRef.current({ to: '/auth', replace: true });
     } else if (isAuthenticated && isAuthRoute) {
       navigateRef.current({ to: '/home', replace: true });
     }
     // Only re-run when these values actually change — NOT navigate.
-  }, [showSplash, isAuthenticated, isAuthRoute, routePath]);
+  }, [showSplash, isAuthenticated, isAuthRoute, isStandalonePage, routePath]);
 
   let activeTab = Tab.HOME;
   if (routePath.startsWith('/home')) activeTab = Tab.HOME;
@@ -220,7 +221,7 @@ function RootComponent() {
             <SplashScreen onFinish={() => setShowSplash(false)} />
           ) : (
             <>
-              {!isListingRoute && !isQuickStart && !isAuthRoute && (
+              {!isListingRoute && !isQuickStart && !isAuthRoute && !isStandalonePage && (
                 <Header 
                   title={headerProps.title} 
                   showBack={headerProps.showBack} 
@@ -231,7 +232,7 @@ function RootComponent() {
               <main 
                 className="absolute left-0 right-0 overflow-hidden bg-bg dark:bg-slate-950 animate-fade-in transition-colors duration-300"
                 style={{
-                  top: (isListingRoute || isQuickStart || isAuthRoute) ? '0' : 'calc(var(--header-h) + env(safe-area-inset-top))',
+                  top: (isListingRoute || isQuickStart || isAuthRoute || isStandalonePage) ? '0' : 'calc(var(--header-h) + env(safe-area-inset-top))',
                   bottom: (isListingRoute || isQuickStart || isAuthRoute) ? '0' : 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
                   zIndex: (isListingRoute || isQuickStart || isAuthRoute) ? 50 : 10
                 }}

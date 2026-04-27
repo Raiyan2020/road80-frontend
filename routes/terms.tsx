@@ -13,19 +13,19 @@ function TermsPage() {
   const { data, isLoading } = useTerms();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pb-24" dir="rtl">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col pb-24" dir="rtl">
       <Header title="الشروط والأحكام" showBack onBack={() => navigate({ to: '..' })} />
       
       <div className="flex-1 p-5 overflow-y-auto" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>
         {isLoading ? (
           <div className="flex justify-center items-center h-48">
-            <SpinnerIcon className="w-8 h-8 animate-spin text-navy" />
+            <SpinnerIcon className="w-8 h-8 animate-spin text-navy dark:text-blue" />
           </div>
         ) : (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-pale text-right">
-             <h2 className="text-xl font-bold text-navy mb-4">{data?.title || 'الشروط والأحكام'}</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-pale dark:border-slate-800 text-right">
+             <h2 className="text-xl font-bold text-navy dark:text-slate-200 mb-4">{data?.title || 'الشروط والأحكام'}</h2>
              <div 
-               className="text-sm text-gray-600 leading-relaxed font-medium whitespace-pre-line Prose" 
+               className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-line Prose" 
                dangerouslySetInnerHTML={{ __html: data?.description || '' }}
              />
           </div>

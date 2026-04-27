@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useFilterOptions } from '../features/home/hooks/useFilterOptions';
 import { useCountries, useStates, useCities } from '../shared/hooks/useLocation';
+import { CloseIcon } from './Icons';
 
 export interface ExploreFilters {
   name?: string;
@@ -84,8 +85,17 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
         </div>
         
         <div className="flex items-center justify-between px-6 pb-2 border-b border-pale dark:border-slate-800 shrink-0">
-          <h2 className="text-xl font-black text-navy dark:text-slate-100">تصفية البحث</h2>
-          <button onClick={handleClear} className="text-sm font-bold text-red-500">مسح الكل</button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-navy dark:text-slate-300 active:scale-95 transition-all"
+              aria-label="Close"
+            >
+              <CloseIcon className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-black text-navy dark:text-slate-100">تصفية البحث</h2>
+          </div>
+          <button onClick={handleClear} className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors">مسح الكل</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-6 no-scrollbar pb-24">

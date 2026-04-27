@@ -18,7 +18,7 @@ const NotificationsPage: React.FC = () => {
   const loading = activeTab === 'all' ? loadingAll : loadingUnread;
 
   return (
-    <div className="w-full min-h-screen bg-bg p-4 pb-24 animate-fade-in" dir="rtl">
+    <div className="w-full min-h-screen bg-bg dark:bg-slate-950 p-4 pb-24 animate-fade-in" dir="rtl">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-navy dark:text-slate-200">الإشعارات</h2>
         {notifications.length > 0 && activeTab === 'all' && (

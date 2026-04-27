@@ -48,7 +48,6 @@ export const paymentService = {
    * Initiates a MyFatoorah Session (used by AddWizard).
    */
   initiateSession: async (): Promise<InitiateSessionResponse> => {
-    console.log('[PaymentService] initiateSession → POST /payments/initiate-session');
     return api.post<InitiateSessionResponse>('/payments/initiate-session', {});
   },
 
@@ -61,7 +60,6 @@ export const paymentService = {
    * - payment_id: the SessionId returned by MyFatoorah's callback (response.SessionId)
    */
   verifyPayment: async (params: VerifyPaymentParams): Promise<VerifyPaymentResponse> => {
-    console.log('[PaymentService] verifyPayment → POST /payments/verify', params);
     const formData = new FormData();
     formData.append('transaction_id', params.transaction_id.toString());
     formData.append('payment_id', params.payment_id);
@@ -72,7 +70,6 @@ export const paymentService = {
    * Executes payment (legacy/fallback).
    */
   executePayment: async (params: ExecutePaymentParams): Promise<ExecutePaymentResponse> => {
-    console.log('[PaymentService] executePayment → POST /payments/execute-payment', params);
     return api.post<ExecutePaymentResponse>('/payments/execute-payment', params);
   },
 };

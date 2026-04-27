@@ -28,12 +28,12 @@ export const apiClient = ofetch.create({
         }
       }
     } catch (error) {
-      console.warn('[API Client] Request interceptor error:', error);
+      // Fail silently
     }
   },
   async onResponseError({ request, response }) {
     if (response.status === 401) {
-       console.log("Unauthorized", response);
+       // Handle unauthorized
     }
   },
 });

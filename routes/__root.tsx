@@ -93,7 +93,7 @@ function RootComponent() {
         // Navigate to the matched path
         navigateRef.current({ to: path + (search || '') as any, replace: true });
       } catch (e) {
-        console.warn('[DeepLink] Failed to parse URL:', url, e);
+        // Handle deep link error
       }
     };
 

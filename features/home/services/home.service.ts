@@ -27,7 +27,6 @@ export async function fetchFilterOptions(): Promise<FilterCategory[]> {
     if (response.status) return response.data;
     return [];
   } catch (error) {
-    console.error('[Home Service] Error fetching filter options:', error);
     return [];
   }
 }
@@ -42,7 +41,6 @@ export async function fetchCategories(): Promise<FilterCategory[]> {
     if (response.status) return response.data;
     return [];
   } catch (error) {
-    console.error('[Home Service] Error fetching categories:', error);
     return [];
   }
 }

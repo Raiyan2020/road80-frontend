@@ -12,7 +12,7 @@ export function useCallAd() {
   return useMutation({
     mutationFn: (adId: number) => initiateCall(adId),
     onError: (error) => {
-      console.error('[useCallAd] Error initiating call:', error);
+      // Handle error
     },
   });
 }

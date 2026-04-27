@@ -16,7 +16,7 @@ export const authStorage = {
         localStorage.setItem(AUTH_TOKEN_KEY, token);
       }
     } catch (error) {
-      console.error('Error during setToken:', error);
+      // Handle error
     }
   },
 
@@ -30,7 +30,6 @@ export const authStorage = {
       }
       return localStorage.getItem(AUTH_TOKEN_KEY);
     } catch (error) {
-      console.error('Error during getToken:', error);
       return null;
     }
   },
@@ -44,7 +43,7 @@ export const authStorage = {
         localStorage.removeItem(AUTH_TOKEN_KEY);
       }
     } catch (error) {
-      console.error('Error during removeToken:', error);
+      // Handle error
     }
   }
 };

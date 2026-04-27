@@ -64,7 +64,6 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
 
   useEffect(() => {
     if (initializedForSession.current === sessionId) {
-      console.log('[MF] Already initialized for session:', sessionId, '— skipping.');
       return;
     }
 
@@ -87,13 +86,11 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
           
           if (!hasTriggeredRetry.current && onRequestNewSession) {
             hasTriggeredRetry.current = true; // never auto-retry more than once
-            console.error('[MF] ❌ Session rejected. Auto-retrying once...');
             setIsInitialized(false);
             setError('انتهت صلاحية الجلسة، جاري إنشاء جلسة جديدة...');
             setTimeout(onRequestNewSession, 800);
           } else {
             // If already retried once, just show the error — do NOT loop
-            console.error('[MF] ❌ Session rejected again after retry. Showing manual error.');
             setIsInitialized(false);
             setError('جلسة الدفع غير صالحة. تأكد من تفعيل الدفع المدمج في حسابك على MyFatoorah.');
           }
@@ -109,19 +106,14 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
       const container = document.getElementById(containerId);
 
       if (!sdk) {
-        console.warn('[MF] SDK not found, retrying...');
         retryTimer = setTimeout(initMyFatoorah, 500);
         return;
       }
       if (!container) {
-        console.warn('[MF] Container not found, retrying...');
         retryTimer = setTimeout(initMyFatoorah, 150);
         return;
       }
 
-      console.log('[MF] SDK methods:', Object.keys(sdk));
-      console.log('[MF] sessionId:', sessionId);
-      console.log('[MF] encryptionKey:', encryptionKey ?? '(none)');
 
       // v3 API: SessionId includes country prefix (e.g. "KWT-68814db6-...") — pass it as-is
       // v3 config uses 'containerId' (not 'cardViewId'), and no separate 'countryCode' needed
@@ -131,7 +123,6 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
           sessionId,
           containerId: containerId,
           callback: (response: any) => {
-            console.log('[MF] Callback Response (full):', JSON.stringify(response));
             setIsSubmitting(false);
 
             // v3 callback structure:
@@ -150,7 +141,6 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
               if (match) fallbackPaymentId = match[1];
             }
 
-            console.log('[MF] isSuccess:', isSuccess, '| paymentCompleted:', paymentCompleted, '| paymentId:', fallbackPaymentId);
 
             if (isSuccess && (paymentCompleted || fallbackPaymentId)) {
               // Pass the MF paymentId to parent — backend needs this for /payments/verify
@@ -178,26 +168,17 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
 
         // NOTE: encryptionKey is for backend-side verification only.
         // Do NOT pass it to the SDK — it's not a recognized field and may cause validation failure.
-        console.log('[MF] encryptionKey (for backend only, NOT sent to SDK):', encryptionKey ?? '(none)');
 
         // Log the exact config being sent to MF
-        console.log('[MF] Config being sent to init:', JSON.stringify({
-          sessionId: config.sessionId,
-          containerId: config.containerId,
-          hasCallback: typeof config.callback === 'function',
-        }));
-        console.log('[MF] DOM element check:', document.getElementById(containerId));
 
         sdk.init(config);
         initializedForSession.current = sessionId;
         setIsInitialized(true);
         setError(null);
-        console.log('[MF] ✅ init() called for session:', sessionId);
 
         // Start watching for session rejection errors injected by MF
         watchForSessionError();
       } catch (err: any) {
-        console.error('[MF] Init Error:', err);
         setError('فشل تهيئة نظام الدفع. يرجى المحاولة لاحقاً.');
       }
     };
@@ -214,7 +195,6 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
   const handlePay = () => {
     const sdk = getSDK();
     if (!sdk || !isInitialized) {
-      console.warn('[MF] Not ready. isInitialized:', isInitialized);
       return;
     }
     setIsSubmitting(true);
@@ -223,15 +203,12 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
     try {
       const submitFn = sdk.submitCardPayment || sdk.submit || sdk.submitCard;
       if (typeof submitFn === 'function') {
-        console.log('[MF] Calling submit...');
         submitFn.call(sdk);
       } else {
-        console.error('[MF] No submit fn. Keys:', Object.keys(sdk));
         throw new Error('لم يتم العثور على دالة الدفع.');
       }
     } catch (err: any) {
       setIsSubmitting(false);
-      console.error('[MF] Submit Error:', err);
       setError(`خطأ: ${err.message || 'فشل معالجة الدفع'}`);
       onError(err);
     }

@@ -579,7 +579,7 @@ export const getExploreListings = async (): Promise<Listing[]> => {
         const allStored = await getListings();
         storedListings = allStored.filter(l => l.video);
     } catch (e) {
-        console.warn("Could not fetch stored listings for explore", e);
+        // Silently fail or handle error appropriately
     }
 
     // 2. Combine with Demo Explore Ads

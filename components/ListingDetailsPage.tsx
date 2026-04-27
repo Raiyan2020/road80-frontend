@@ -56,7 +56,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   } = useListing(Number(listingId));
   const listing = listingData || null;
 
-  console.log("Ad Data:", listing);
+  // Ad Data
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -203,15 +203,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
   const handleUnlockPayment = () => {
     if (paymentStatus !== "IDLE") return;
-    console.log(
-      "[Contact Unlock] handleUnlockPayment triggered for ad:",
-      listing.id,
-    );
     setPaymentStatus("STARTING");
 
     callMutation.mutate(listing.id, {
       onSuccess: (response) => {
-        console.log("[Contact Unlock] /call response:", response);
 
         if (response.data?.session_id) {
           const sessionId = response.data.session_id;
@@ -223,22 +218,16 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           setMfEncryptionKey(response.data.encryption_key ?? null);
           setPaymentStatus("IDLE");
         } else if (response?.data?.payment_url) {
-          console.log(
-            "[Contact Unlock] Redirect flow. payment_url:",
-            response.data.payment_url,
-          );
           setPaymentStatus("VERIFYING");
           setTimeout(() => setPaymentStatus("CONFIRMING"), 500);
           setTimeout(() => {
             window.location.href = response.data.payment_url;
           }, 1000);
         } else {
-          console.warn("[Contact Unlock] Unexpected response:", response);
           setPaymentStatus("IDLE");
         }
       },
       onError: (err) => {
-        console.error("[Contact Unlock] /call error:", err);
         setPaymentStatus("IDLE");
         toast.error("حدث خطأ أثناء إنشاء جلسة الدفع");
       },
@@ -251,16 +240,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
    * We verify it against our backend using the transaction_id from the /call response.
    */
   const onEmbeddedPaymentSuccess = async (mfCallbackSessionId: string) => {
-    console.log(
-      "[Contact Unlock] MyFatoorah callback fired. SessionId:",
-      mfCallbackSessionId,
-    );
-    console.log("[Contact Unlock] Stored transaction_id:", mfTransactionId);
 
     if (!mfTransactionId) {
-      console.error(
-        "[Contact Unlock] No transaction_id stored — cannot verify payment!",
-      );
       toast.error("خطأ: لا يمكن التحقق من الدفع، يرجى المحاولة مجدداً");
       return;
     }
@@ -268,15 +249,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     setPaymentStatus("VERIFYING");
 
     try {
-      console.log("[Contact Unlock] Calling /payments/verify...", {
-        transaction_id: mfTransactionId,
-        payment_id: mfCallbackSessionId,
-      });
       const verifyRes = await paymentService.verifyPayment({
         transaction_id: mfTransactionId,
         payment_id: mfCallbackSessionId,
       });
-      console.log("[Contact Unlock] /payments/verify response:", verifyRes);
 
       if (verifyRes.status) {
         setPaymentStatus("SUCCESS");
@@ -335,29 +311,16 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           }
         }, 500);
       } else {
-        console.error(
-          "[Contact Unlock] /payments/verify returned status=false:",
-          verifyRes,
-        );
         setPaymentStatus("IDLE");
         toast.error(verifyRes.message || "فشل التحقق من الدفع");
       }
     } catch (err) {
-      console.error("[Contact Unlock] /payments/verify threw an error:", err);
       setPaymentStatus("IDLE");
       toast.error("حدث خطأ أثناء التحقق من الدفع");
     }
   };
 
   const handleContactAction = (type: "WHATSAPP" | "CALL") => {
-    console.log(
-      "[Contact Action] Triggered. type:",
-      type,
-      "| adId:",
-      listing.id,
-      "| isUnlocked:",
-      isUnlocked,
-    );
 
     let directPhone =
       type === "WHATSAPP"
@@ -386,16 +349,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
     callMutation.mutate(listing.id, {
       onSuccess: (response) => {
-        console.log("[Contact Action] /call response:", response);
 
         if (response.data?.phone) {
           // Already unlocked — backend gave us the number directly
           setPaymentStatus("IDLE");
           const phone = response.data.phone.replace(/\D/g, "");
-          console.log(
-            "[Contact Action] Phone number received directly:",
-            phone,
-          );
+          // Phone number received directly
 
           setIsUnlocked(true);
           const user = JSON.parse(localStorage.getItem("road80_user") || "{}");
@@ -406,13 +365,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           );
 
           if (type === "WHATSAPP") {
-            console.log(
-              "[Contact Action] Opening WhatsApp:",
-              `https://wa.me/${phone}`,
-            );
             window.open(`https://wa.me/${phone}`, "_blank");
           } else {
-            console.log("[Contact Action] Calling:", `tel:${phone}`);
             window.location.href = `tel:${phone}`;
           }
         } else if (response.data?.session_id) {
@@ -421,14 +375,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           const transactionId = response.data.transaction_id;
           const country = sessionId.split("-")[0] || "KWT";
 
-          console.log(
-            "[Contact Action] Payment required. session_id:",
-            sessionId,
-            "| transaction_id:",
-            transactionId,
-            "| encryption_key:",
-            response.data.encryption_key,
-          );
+          // Payment required
 
           setMfSessionId(sessionId);
           setMfCountry(country);
@@ -437,17 +384,9 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           setPaymentStatus("IDLE");
           setShowUnlockPopup(true);
         } else if (response.data?.payment_url) {
-          console.log(
-            "[Contact Action] Redirect payment url:",
-            response.data.payment_url,
-          );
           setPaymentStatus("IDLE");
           setShowUnlockPopup(true);
         } else {
-          console.warn(
-            "[Contact Action] Unexpected response structure:",
-            response,
-          );
           setPaymentStatus("IDLE");
           if (response.status || response.message === "success") {
             setShowUnlockPopup(true);
@@ -456,7 +395,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
       },
       onError: (err) => {
         setPaymentStatus("IDLE");
-        console.error("[Contact Action] /call error:", err);
         toast.error("حدث خطأ أثناء محاولة الاتصال");
       },
     });
@@ -831,9 +769,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                       onError={(err) => toast.error(err.message || "فشل الدفع")}
                       onRequestNewSession={() => {
                         // MF rejected the session — clear and get a fresh one
-                        console.log(
-                          "[Contact Unlock] Session rejected by MF, requesting new session...",
-                        );
                         setMfSessionId(null);
                         setMfTransactionId(null);
                         setMfEncryptionKey(null);

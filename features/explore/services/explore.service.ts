@@ -21,7 +21,6 @@ export async function fetchExploreFeed(params?: ExploreFilters): Promise<Explore
 
     return response;
   } catch (error) {
-    console.error('[Explore Service] Error fetching ads:', error);
     return null;
   }
 }

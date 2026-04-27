@@ -30,7 +30,6 @@ async function fetchDepartments(): Promise<Department[]> {
     if (res.status && Array.isArray(res.data)) return res.data;
     return [];
   } catch (e) {
-    console.error('[Companies] fetchDepartments error:', e);
     return [];
   }
 }
@@ -41,7 +40,6 @@ async function fetchCompaniesByDept(deptId: string): Promise<Company[]> {
     if (res.status && Array.isArray(res.data)) return res.data;
     return [];
   } catch (e) {
-    console.error('[Companies] fetchCompaniesByDept error:', e);
     return [];
   }
 }

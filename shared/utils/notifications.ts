@@ -34,13 +34,9 @@ export const getDeviceId = (): string => {
 // Log the stored token immediately on every page load so it's always visible in the console
 const _storedToken = localStorage.getItem(FCM_TOKEN_KEY);
 if (_storedToken) {
-  console.log(
-    '%c[FCM TOKEN — copy this for the backend]',
-    'color: #4ade80; font-weight: bold; font-size: 13px; background: #1a1a2e; padding: 4px 8px; border-radius: 4px;',
-    '\n' + _storedToken
-  );
+  // FCM Token exists
 } else {
-  console.info('[FCM] No token stored yet — will be generated after notification permission is granted.');
+  // No FCM Token stored
 }
 
 /**
@@ -59,7 +55,6 @@ if (_storedToken) {
  */
 export const initializePushNotifications = async (): Promise<void> => {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-    console.warn('[FCM] Browser does not support notifications or service workers.');
     return;
   }
 
@@ -70,7 +65,6 @@ export const initializePushNotifications = async (): Promise<void> => {
   }
 
   if (permission !== 'granted') {
-    console.warn('[FCM] User denied notification permission.');
     return;
   }
 
@@ -90,9 +84,8 @@ export const initializePushNotifications = async (): Promise<void> => {
 
     if (token) {
       localStorage.setItem(FCM_TOKEN_KEY, token);
-      console.log('%c[FCM TOKEN]', 'color: #4ade80; font-weight: bold; font-size: 13px;', token);
     } else {
-      console.warn('[FCM] No token received — ensure VAPID key and service worker are configured.');
+      // Handle no token
     }
 
     // Handle foreground (in-app) messages
@@ -103,6 +96,6 @@ export const initializePushNotifications = async (): Promise<void> => {
     });
 
   } catch (err) {
-    console.error('[FCM] Initialization failed:', err);
+    // Handle FCM initialization failure
   }
 };

@@ -27,7 +27,6 @@ export async function fetchHomeListings(): Promise<Listing[]> {
     }
     
     // Fallback: Fetch general ads from explore if history is empty
-    console.warn('[Home Service] User history empty. Falling back to general explore results.');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fallbackResponse = await api.get<{ status: boolean; data: any[] }>('/explore');
     
@@ -37,7 +36,6 @@ export async function fetchHomeListings(): Promise<Listing[]> {
 
     return [];
   } catch (error) {
-    console.error('[Home Service] Error fetching home listings:', error);
     return [];
   }
 }
@@ -54,7 +52,6 @@ export async function fetchListingById(id: number): Promise<Listing | null> {
     }
     return null;
   } catch (error) {
-    console.error(`[Home Service] Error fetching ad ${id}:`, error);
     return null;
   }
 }

@@ -119,7 +119,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                 });
                 queryClient.invalidateQueries({ queryKey: QUERY_KEYS.listings.all });
             } catch (e) {
-                console.error("Failed to save filter history", e);
+                // Failed to save filter history
             }
         }
 

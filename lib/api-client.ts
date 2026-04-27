@@ -33,14 +33,12 @@ export const apiClient = ofetch.create({
         options.headers = headers;
       }
     } catch (error) {
-      console.warn('[API Client] Request interceptor error:', error);
+      // Handle error
     }
   },
   async onResponseError({ response }) {
     if (response.status === 401) {
-      // Log 401s but do NOT force a redirect — the route guard in __root.tsx
-      // handles auth redirects. A hard redirect here causes an infinite loop.
-      console.warn('[API Client] 401 Unauthorized:', response._data);
+      // Handle 401
     }
   },
 });

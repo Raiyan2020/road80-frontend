@@ -10,7 +10,6 @@ export const checkMediaPermissions = async () => {
   
   // Request if any are in 'prompt' state
   if (cameraStatus.camera === 'prompt' || cameraStatus.photos === 'prompt') {
-    console.log('Requesting media permissions...');
     cameraStatus = await Camera.requestPermissions();
   }
 

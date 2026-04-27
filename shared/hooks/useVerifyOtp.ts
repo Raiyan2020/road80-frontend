@@ -45,8 +45,7 @@ export const useVerifyOtp = () => {
       }
     },
     onError: (error: Error | unknown) => {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      console.error('OTP Verification error:', message);
+      // Handle error
     },
   });
 };

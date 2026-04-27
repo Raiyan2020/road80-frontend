@@ -19,7 +19,6 @@ export async function fetchListingById(id: number): Promise<any | null> {
     // Return raw data directly — the UI handles field mapping itself
     return response.data;
   } catch (error) {
-    console.error(`[Listing Service] Error fetching ad ${id}:`, error);
     return null;
   }
 }

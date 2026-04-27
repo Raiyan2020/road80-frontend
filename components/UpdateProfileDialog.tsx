@@ -51,7 +51,6 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
       toast.success('تم تحديث الملف الشخصي بنجاح');
       onClose();
     } catch (err) {
-      console.error(err);
       toast.error("حدث خطأ أثناء التحديث");
     }
   };

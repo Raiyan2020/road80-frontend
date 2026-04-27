@@ -12,7 +12,6 @@ export async function fetchStates(countryId: number = 1): Promise<State[]> {
     if (response.status) return response.data;
     return [];
   } catch (error) {
-    console.error('[Explore Locations] Error fetching states:', error);
     return [];
   }
 }
@@ -36,7 +35,6 @@ export async function fetchCities(stateId: number): Promise<City[]> {
     if (response.status) return response.data;
     return [];
   } catch (error) {
-    console.error('[Explore Locations] Error fetching cities:', error);
     return [];
   }
 }

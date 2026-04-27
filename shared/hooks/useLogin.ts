@@ -9,11 +9,11 @@ export const useLogin = () => {
       hideToast: true,
     },
     onSuccess: (response: AuthResponse<[]>) => {
-      console.log('OTP sent successfully:', response.message);
+      // Success
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
-      console.error('Login error:', error);
+      // Error
     },
   });
 };

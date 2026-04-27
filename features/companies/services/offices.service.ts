@@ -13,7 +13,6 @@ export async function fetchDepartments(): Promise<CompanyDepartment[]> {
     if (response.status) return response.data;
     return [];
   } catch (error) {
-    console.error('[Offices Service] Error fetching departments:', error);
     return [];
   }
 }
@@ -37,7 +36,6 @@ export async function fetchOffices(category?: string | number): Promise<Office[]
     
     if (resp.status && resp.data) {
       if (!Array.isArray(resp.data)) {
-         console.error('[Offices Service] Expected array but got:', resp.data);
          return [];
       }
       return resp.data.map((raw) => {
@@ -57,14 +55,12 @@ export async function fetchOffices(category?: string | number): Promise<Office[]
             sampleListings: [],
           });
         } catch (e) {
-          console.error('[Offices Service] Validation error for office:', raw, e);
           return null;
         }
       }).filter(Boolean) as Office[];
     }
     return [];
   } catch (error) {
-    console.error('[Offices Service] Error fetching offices:', error);
     return [];
   }
 }
@@ -117,7 +113,6 @@ export async function fetchOfficeAds(id: string | number): Promise<Listing[]> {
     }
     return [];
   } catch (error) {
-    console.error(`[Offices Service] Error fetching ads for company ${id}:`, error);
     return [];
   }
 }
@@ -158,7 +153,6 @@ export async function fetchOfficeById(id: string | number): Promise<Office | nul
     }
     return null;
   } catch (err) {
-    console.error(`[Offices Service] Error fetching company ${id}:`, err);
     return null;
   }
 }

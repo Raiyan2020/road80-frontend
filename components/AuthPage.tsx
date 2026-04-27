@@ -125,12 +125,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
     try {
       const device_id = getDeviceId();
-      console.log("Sending OTP Verification payload:", {
-        phone,
-        code,
-        countryId,
-        device_id,
-      });
+      // Sending OTP Verification payload
 
       const response = await authService.verifyOtp({
         phone,

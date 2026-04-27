@@ -19,7 +19,7 @@ const messaging = firebase.messaging();
 
 // Handle background notifications (when the browser tab is hidden or closed)
 messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] Background notification received:', payload);
+  // Background notification received
 
   const notificationTitle = payload.notification?.title || 'إشعار جديد';
   const notificationOptions = {

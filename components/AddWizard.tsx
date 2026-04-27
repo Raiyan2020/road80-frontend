@@ -241,7 +241,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         description: finalDescription,
       });
 
-      console.log('--- POST AD SUCCESS RESPONSE ---', res);
+      // Post ad success
 
       const paymentUrl = (res as any).data?.payment_url || (res as any).payment_url;
       const sessionId = (res as any).data?.session_id || (res as any).session_id;
@@ -288,7 +288,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         (e?.data?.errors && Object.values(e.data.errors).flat().join(' ')) ||
         e?.message ||
         'حدث خطأ غير متوقع!';
-      console.error('Failed to publish ad', e);
+      // Failed to publish ad
       toast.error(serverMsg, { id: 'create-ad-error' });
     } finally {
       setIsProcessing(false);
@@ -309,7 +309,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         toast.error('فشل بدء جلسة الدفع الآمن');
       }
     } catch (e) {
-      console.error('Failed to initiate payment session', e);
+      // Failed to initiate payment session
       toast.error('حدث خطأ أثناء الاتصال ببوابة الدفع');
     } finally {
       setIsProcessing(false);
@@ -330,7 +330,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       // The backend's /payments/verify needs this MF paymentId, not the session ID
       const finalPaymentId = _callbackId;
 
-      console.log('[Verify] transaction_id:', transactionId, '| payment_id (MF):', finalPaymentId);
+      // Payment verify
 
       // POST /payments/verify
       const res = await paymentService.verifyPayment({ 

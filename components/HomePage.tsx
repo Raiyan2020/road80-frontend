@@ -169,7 +169,7 @@ const HomePage: React.FC<{
     useHomeListings();
   const { data: homeData, isLoading: isHomeDataLoading } = useHomeData();
 
-  console.log({ homeData });
+  // homeData loaded
 
   const displayAds = homeListings.slice(0, 6);
 
@@ -186,7 +186,7 @@ const HomePage: React.FC<{
           setSearchText(`${p.propertyType} / ${p.purpose} / ${p.area}`);
         }
       } catch (e) {
-        console.error("Failed to parse preferences");
+        // Failed to parse preferences
       }
     }
   }, []);

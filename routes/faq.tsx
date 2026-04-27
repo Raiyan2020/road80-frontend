@@ -13,7 +13,7 @@ function FaqPage() {
   const { data, isLoading } = useFaqs();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col pb-24" dir="rtl">
+    <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
       <Header title="الأسئلة الشائعة" showBack onBack={() => navigate({ to: '..' })} />
       
       <div className="flex-1 p-5 overflow-y-auto flex flex-col gap-4" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>

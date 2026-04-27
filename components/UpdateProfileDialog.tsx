@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useProfile } from '../features/account/hooks/useProfile';
 import { SpinnerIcon } from './Icons';
+import { toast } from 'sonner';
 
 export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => void; profileData: any }> = ({ isOpen, onClose, profileData }) => {
   const { updateProfile, isUpdating } = useProfile();
@@ -9,6 +10,7 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
   const [bio, setBio] = useState(profileData?.bio || '');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState(profileData?.image || null);
+  const [showErrors, setShowErrors] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -23,6 +25,20 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const isNameValid = name.trim().length >= 3;
+    const isBioValid = bio.trim().length >= 10;
+
+    if (!isNameValid || !isBioValid) {
+      setShowErrors(true);
+      if (!isNameValid) {
+        toast.error('يجب أن يكون طول الاسم 3 حروف على الأقل');
+      } else if (!isBioValid) {
+        toast.error('يجب أن يكون طول الوصف 10 حروف على الأقل');
+      }
+      return;
+    }
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('caption', bio);
@@ -32,10 +48,11 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
     
     try {
       await updateProfile(formData);
+      toast.success('تم تحديث الملف الشخصي بنجاح');
       onClose();
     } catch (err) {
       console.error(err);
-      alert("حدث خطأ أثناء التحديث");
+      toast.error("حدث خطأ أثناء التحديث");
     }
   };
 
@@ -64,21 +81,31 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-bold text-navy dark:text-slate-200">الاسم</label>
+            <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center justify-between">
+              الاسم <span className="text-red-500 text-[10px]">* 3 حروف على الأقل</span>
+            </label>
             <input 
               type="text" 
               value={name} 
               onChange={e => setName(e.target.value)} 
-              className="h-12 px-4 rounded-xl border border-pale dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200" 
+              className={`h-12 px-4 rounded-xl border bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200 transition-all ${
+                showErrors && name.trim().length < 3 ? 'border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'border-pale dark:border-slate-800 focus:border-navy dark:focus:border-blue'
+              }`} 
+              placeholder="أدخل اسمك"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-bold text-navy dark:text-slate-200">البايو (الوصف)</label>
+            <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center justify-between">
+              البايو (الوصف) <span className="text-red-500 text-[10px]">* 10 حروف على الأقل</span>
+            </label>
             <textarea 
               value={bio} 
               onChange={e => setBio(e.target.value)} 
-              className="px-4 py-3 rounded-xl border border-pale dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200 min-h-[100px]" 
+              className={`px-4 py-3 rounded-xl border bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200 min-h-[100px] transition-all ${
+                showErrors && bio.trim().length < 10 ? 'border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'border-pale dark:border-slate-800 focus:border-navy dark:focus:border-blue'
+              }`} 
+              placeholder="اكتب شيئاً عن نفسك..."
             />
           </div>
 

@@ -29,7 +29,7 @@ function BlogsPage() {
   // Single Blog Detail View
   if (id) {
     return (
-      <div className="min-h-screen bg-bg dark:bg-slate-950 flex flex-col pb-24 animate-fade-in" dir="rtl">
+      <div className="h-full bg-bg dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in" dir="rtl">
         <Header 
           title={blog?.title || 'جاري التحميل...'} 
           showBack 
@@ -84,7 +84,7 @@ function BlogsPage() {
 
   // Blog List View
   return (
-    <div className="min-h-screen bg-bg dark:bg-slate-950 flex flex-col pb-24" dir="rtl">
+    <div className="h-full bg-bg dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
       <Header title="المدونة" showBack onBack={() => navigate({ to: '/home' })} />
       
       <div className="flex-1 p-5 overflow-y-auto flex flex-col gap-5" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>

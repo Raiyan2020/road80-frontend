@@ -13,7 +13,7 @@ function TermsPage() {
   const { data, isLoading } = useTerms();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col pb-24" dir="rtl">
+    <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
       <Header title="الشروط والأحكام" showBack onBack={() => navigate({ to: '..' })} />
       
       <div className="flex-1 p-5 overflow-y-auto" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>

@@ -59,6 +59,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
   const [transactionId, setTransactionId] = useState<number | null>(null);
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
 
 
 
@@ -112,6 +113,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
   useEffect(() => {
     document.getElementById('wizard-scroll-area')?.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowErrors(false);
   }, [step]);
 
   const goTo = useCallback((s: number) => {
@@ -137,25 +139,22 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   };
 
   const next = () => {
-    if (currentStepInfo?.type === 'details') {
-      if (!price || Number(price) <= 0) {
-        toast.error('يرجى إدخال السعر');
-        return;
-      }
-      if (title.trim().length === 0) {
-        toast.error('يرجى إدخال عنوان الإعلان');
-        return;
-      }
-      if (description.trim().length < 10) {
-        toast.error('وصف الإعلان يجب أن يتكون من 10 حروف على الأقل');
-        return;
-      }
-    }
-
     if (!isCurrentStepValid()) {
-      toast.error('يرجى تعبئة الخيارات المطلوبة قبل المتابعة');
+      setShowErrors(true);
+      if (currentStepInfo?.type === 'details') {
+        if (!price || Number(price) <= 0) {
+          toast.error('يرجى إدخال السعر');
+        } else if (title.trim().length === 0) {
+          toast.error('يرجى إدخال عنوان الإعلان');
+        } else if (description.trim().length < 10) {
+          toast.error('وصف الإعلان يجب أن يتكون من 10 حروف على الأقل');
+        }
+      } else {
+        toast.error('يرجى تعبئة الخيارات المطلوبة قبل المتابعة');
+      }
       return;
     }
+
     if (step < totalSteps) goTo(step + 1);
   };
 
@@ -632,6 +631,10 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
     // DETAILS step
     if (currentStepInfo.type === 'details') {
+      const isPriceInvalid = showErrors && (!price || Number(price) <= 0);
+      const isTitleInvalid = showErrors && title.trim().length === 0;
+      const isDescInvalid = showErrors && description.trim().length < 10;
+
       return (
         <div className="flex flex-col gap-5" dir="rtl">
           {renderTitle('تفاصيل الإعلان')}
@@ -642,7 +645,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             <input
               type="number" min="1" placeholder="0.00" value={price}
               onChange={e => setPrice(e.target.value)}
-              className="w-full h-14 rounded-2xl border-2 border-pale dark:border-slate-700 bg-white dark:bg-slate-900 px-5 text-xl font-black text-blue focus:border-navy focus:outline-none transition-all"
+              className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-xl font-black text-blue focus:border-navy focus:outline-none transition-all ${
+                isPriceInvalid ? 'border-red-500' : 'border-pale dark:border-slate-700'
+              }`}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -652,7 +657,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             <input
               type="text" placeholder="مثال: شقة للإيجار في السالمية" value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full h-14 rounded-2xl border-2 border-pale dark:border-slate-700 bg-white dark:bg-slate-900 px-5 text-base font-bold text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all"
+              className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-base font-bold text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all ${
+                isTitleInvalid ? 'border-red-500' : 'border-pale dark:border-slate-700'
+              }`}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -662,7 +669,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             <textarea
               rows={5} placeholder="اكتب وصفاً تفصيلياً للعقار (10 حروف على الأقل)..." value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full rounded-2xl border-2 border-pale dark:border-slate-700 bg-white dark:bg-slate-900 px-5 py-4 text-base font-medium text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all resize-none"
+              className={`w-full rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 py-4 text-base font-medium text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all resize-none ${
+                isDescInvalid ? 'border-red-500' : 'border-pale dark:border-slate-700'
+              }`}
             />
           </div>
         </div>
@@ -732,7 +741,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-400 font-bold text-sm">السعر</span>
-              <span className="font-black text-navy dark:text-slate-200">{price ? `${price} د.ك` : '—'}</span>
+              <span className="font-black text-navy dark:text-slate-200">{price ? `${Number(price).toLocaleString()} د.ك` : '—'}</span>
             </div>
 
             {/* Publish fee */}
@@ -778,7 +787,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
           >
             {isProcessing && !showEmbedded
               ? <SpinnerIcon className="w-5 h-5 animate-spin" />
-              : <><img src="https://raiyansoft.com/wp-content/uploads/2026/02/visa-master.png" className="h-4 object-contain brightness-0 invert" alt="KNET" /><span>الدفع والنشر (Embedded)</span></>
+              : <span>الدفع والنشر</span>
             }
           </button>
         </div>
@@ -799,7 +808,11 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
           {backBtn}
           <button
             onClick={next}
-            className="w-full py-4 bg-navy text-white rounded-xl font-bold shadow-lg shadow-navy/20 active:scale-95 transition-all"
+            className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all ${
+              isCurrentStepValid() 
+                ? 'bg-navy dark:bg-blue text-white shadow-navy/20 active:scale-95' 
+                : 'bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed'
+            }`}
           >
             التالي
           </button>

@@ -643,9 +643,18 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               السعر (د.ك) <span className="text-red-500">*</span>
             </label>
             <input
-              type="number" min="1" placeholder="0.00" value={price}
-              onChange={e => setPrice(e.target.value)}
-              className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-xl font-black text-blue focus:border-navy focus:outline-none transition-all ${
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="0"
+              value={price ? Number(price).toLocaleString('en') : ''}
+              onChange={e => {
+                // Strip every character that is not a digit (blocks e, +, -, letters, dots)
+                const raw = e.target.value.replace(/[^0-9]/g, '');
+                // Limit to 9 digits → max 999,999,999
+                setPrice(raw.slice(0, 9));
+              }}
+              className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-xl font-black text-blue focus:border-navy focus:outline-none transition-all text-right ${
                 isPriceInvalid ? 'border-red-500' : 'border-pale dark:border-slate-700'
               }`}
             />

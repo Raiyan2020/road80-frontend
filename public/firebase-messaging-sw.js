@@ -19,8 +19,32 @@ const messaging = firebase.messaging();
 
 // Handle background notifications (when the browser tab is hidden or closed)
 messaging.onBackgroundMessage((payload) => {
-  // Background notification received
+  const type = payload.data && payload.data.type;
 
+  // ── Block / Delete: notify all open tabs to force-logout ─────────────────
+  if (type === 'block' || type === 'delete') {
+    // Post a message to every open client (tab/window) so the app can logout
+    self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then((clients) => {
+      clients.forEach((client) => {
+        client.postMessage({ type: 'FORCE_LOGOUT', reason: type });
+      });
+    });
+
+    // Also show a system notification so the user knows even if no tab is open
+    const title = type === 'block' ? 'تم تعليق الحساب' : 'تم حذف الحساب';
+    const body  = type === 'block'
+      ? 'تم تعليق حسابك من قبل الإدارة'
+      : 'تم حذف حسابك من قبل الإدارة';
+
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-192x192.png',
+    });
+    return;
+  }
+
+  // ── Normal notification ───────────────────────────────────────────────────
   const notificationTitle = payload.notification?.title || 'إشعار جديد';
   const notificationOptions = {
     body: payload.notification?.body || '',

@@ -27,7 +27,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
   return (
     <>
       <header
-        className="absolute top-0 left-0 right-0 bg-white dark:bg-slate-900 border-b border-pale dark:border-slate-800 shadow-[0_5px_15px_rgba(0,0,0,0.02)] z-40 flex items-center justify-between px-4 transition-colors duration-300"
+        className="absolute top-0 left-0 right-0 bg-white dark:bg-slate-950 border-b border-pale dark:border-slate-700 shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.4)] z-40 flex items-center justify-between px-4 transition-colors duration-300"
         style={{
           paddingTop: "env(safe-area-inset-top)",
           height: "calc(var(--header-h) + env(safe-area-inset-top))",
@@ -80,8 +80,8 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
             onClick={() => setIsMenuOpen(false)}
           />
           {/* Drawer */}
-          <div className="relative w-3/4 max-w-sm h-full bg-white dark:bg-slate-950 shadow-2xl flex flex-col animate-slide-in-right border-l border-pale dark:border-slate-800">
-            <div className="p-6 border-b border-pale dark:border-slate-800 flex items-center justify-between">
+          <div className="relative w-3/4 max-w-sm h-full bg-white dark:bg-slate-950 shadow-2xl flex flex-col animate-slide-in-right border-l border-pale dark:border-slate-700">
+            <div className="p-6 border-b border-pale dark:border-slate-700 flex items-center justify-between">
               <h2 className="text-xl font-bold text-navy dark:text-slate-200">
                 القائمة
               </h2>
@@ -105,7 +105,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
                   key={link.to}
                   to={link.to}
                   onClick={() => setIsMenuOpen(false)}
-                  className="p-4 rounded-xl font-bold text-navy dark:text-slate-200 active:bg-gray-100 dark:active:bg-slate-900 transition-colors flex items-center justify-between"
+                  className="p-4 rounded-xl font-bold text-navy dark:text-slate-200 active:bg-gray-100 dark:active:bg-slate-800 border border-transparent dark:border-slate-700/60 transition-colors flex items-center justify-between hover:border-navy/20 dark:hover:border-slate-600"
                 >
                   {link.title}
                   <ChevronRightIcon className="w-4 h-4 opacity-50 rotate-180" />
@@ -113,14 +113,14 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
               ))}
             </div>
 
-            <div className="p-4 border-t border-pale dark:border-slate-800">
+            <div className="p-4 border-t border-pale dark:border-slate-700">
               <button
                 onClick={() => {
                   logoutMutation();
                   setIsAuthenticated(false);
                   setIsMenuOpen(false);
                 }}
-                className="w-full p-4 rounded-xl font-bold text-red-500 active:bg-red-50 dark:active:bg-red-900/10 transition-colors flex items-center gap-3"
+                className="w-full p-4 rounded-xl font-bold text-red-500 border border-red-200/60 dark:border-red-500/30 bg-red-50/40 dark:bg-red-950/20 active:scale-95 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center gap-3"
               >
                 <LogoutIcon className="w-6 h-6" />
                 تسجيل الخروج

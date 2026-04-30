@@ -9,6 +9,20 @@ import { useCountries } from "@/shared/hooks/useCountries";
 import { getDeviceId } from "@/shared/utils/notifications";
 import { User } from "@/shared/types/auth";
 
+// Number of local phone digits (without country code) per country_code
+const PHONE_DIGITS: Record<string, number> = {
+  KW: 8,  // Kuwait       e.g. 60071234
+  SA: 9,  // Saudi Arabia e.g. 501234567
+  AE: 9,  // UAE          e.g. 501234567
+  QA: 8,  // Qatar        e.g. 33123456
+  BH: 8,  // Bahrain      e.g. 33123456
+  OM: 8,  // Oman         e.g. 91234567
+  JO: 9,  // Jordan       e.g. 791234567
+  EG: 10, // Egypt        e.g. 1001234567
+  IQ: 10, // Iraq         e.g. 7701234567
+};
+const DEFAULT_DIGITS = 10;
+
 interface AuthPageProps {
   onLoginSuccess: (user: User) => void;
 }
@@ -29,6 +43,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const loginMutation = useLogin();
   const loginUser = useUserStore((s) => s.login);
   const { data: countries = [] } = useCountries();
+
+  const selectedCountry = countries.find((c) => c.id === countryId);
+  const maxPhoneDigits = PHONE_DIGITS[selectedCountry?.country_code ?? 'KW'] ?? DEFAULT_DIGITS;
 
   // Sync route with internal step on mount/route change
   useEffect(() => {
@@ -65,9 +82,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setError("");
 
-    // Basic Validation
-    if (!phone || phone.length < 6 || isNaN(Number(phone))) {
-      setError("يرجى إدخال رقم هاتف صحيح");
+    // Basic Validation — must match the country's exact digit count
+    if (!phone || phone.length < maxPhoneDigits || isNaN(Number(phone))) {
+      setError(`يرجى إدخال رقم الهاتف كاملاً (${maxPhoneDigits} أرقام)`);
       return;
     }
 
@@ -241,7 +258,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                         <option value={1}>KW +965</option>
                       )}
                     </select>
-                    <div className="pointer-events-none flex items-center gap-1.5 text-navy dark:text-blue font-bold text-[16px] tracking-wide">
+                    <div className="pointer-events-none flex items-center gap-1 text-navy dark:text-blue font-semibold text-[11px] tracking-wide">
                       <span>
                         {countries.find((c) => c.id === countryId)
                           ?.country_code || "KW"}
@@ -257,12 +274,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   <div className="flex-1 h-full relative">
                     <input
                       type="tel"
+                      inputMode="numeric"
                       value={phone}
-                      onChange={(e) =>
-                        setPhone(e.target.value.replace(/\D/g, ""))
-                      }
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '');
+                        setPhone(raw.slice(0, maxPhoneDigits));
+                      }}
+                      maxLength={maxPhoneDigits}
                       disabled={loading}
-                      className="w-full h-full bg-transparent px-4 text-center font-black text-[22px] text-navy dark:text-slate-100 tracking-[0.15em] focus:outline-none placeholder-gray-300 dark:placeholder-slate-600"
+                      className="w-full h-full bg-transparent px-4 text-center font-black text-[28px] text-navy dark:text-slate-100 tracking-[0.18em] focus:outline-none placeholder-gray-300 dark:placeholder-slate-600"
                       placeholder=""
                       dir="ltr"
                       autoFocus

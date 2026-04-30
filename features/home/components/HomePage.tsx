@@ -69,7 +69,7 @@ const HomePage: React.FC<{
                 search: { mode: "location" } as any,
               })
             }
-            className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-full pl-3 pr-2 py-1 shadow-sm active:scale-95 transition-all duration-300"
+            className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-pale dark:border-slate-600 rounded-full pl-3 pr-2 py-1 shadow-sm active:scale-95 transition-all duration-300"
           >
             <span className="text-sm font-bold text-navy dark:text-slate-200">
               {currentCountryName}
@@ -81,7 +81,7 @@ const HomePage: React.FC<{
         {/* Theme Toggle Button */}
         <button
           onClick={onToggleTheme}
-          className="w-10 h-10 rounded-full bg-pale/30 dark:bg-slate-800 flex items-center justify-center transition-all duration-300 active:scale-95 text-navy dark:text-slate-200 border border-transparent dark:border-slate-700"
+          className="w-10 h-10 rounded-full bg-pale/30 dark:bg-slate-800 flex items-center justify-center transition-all duration-300 active:scale-95 text-navy dark:text-slate-200 border border-pale/80 dark:border-slate-600"
           aria-label="تبديل المظهر"
         >
           {theme === "light" ? (

@@ -123,6 +123,8 @@ function RootComponent() {
   
   // Use regex to detect listing route: /ad/:id
   const isListingRoute = routePath.startsWith('/ad/');
+  // Sub-pages that need a back button but use the shell header
+  const isNotifications = routePath.startsWith('/notifications');
 
   // Route guard: redirect unauthenticated users to /auth,
   // and authenticated users away from auth pages to /home.
@@ -172,6 +174,15 @@ function RootComponent() {
     const searchParams = new URLSearchParams(window.location.search);
     const categoryId = searchParams.get('category');
     const userId = searchParams.get('user');
+
+    // Notifications sub-page → show back button
+    if (isNotifications) {
+      return {
+        title: 'الإشعارات',
+        showBack: true,
+        onBack: () => window.history.back()
+      };
+    }
 
     if (activeTab === Tab.COMPANIES) {
       if (categoryId) {

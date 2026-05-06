@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useProfile } from '../features/account/hooks/useProfile';
-import { SpinnerIcon } from './Icons';
+import { SpinnerIcon, CloseIcon } from './Icons';
 import { toast } from 'sonner';
 
 export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => void; profileData: any }> = ({ isOpen, onClose, profileData }) => {
@@ -59,7 +59,15 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl animate-in slide-in-from-bottom duration-300" dir="rtl">
-        <h2 className="text-xl font-bold text-navy dark:text-slate-200 mb-6">تحديث الملف الشخصي</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-navy dark:text-slate-200">تحديث الملف الشخصي</h2>
+          <button 
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-navy dark:hover:text-white transition-all active:scale-90"
+          >
+            <CloseIcon className="w-5 h-5" />
+          </button>
+        </div>
         
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col items-center gap-3">

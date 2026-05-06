@@ -112,7 +112,7 @@ function BlogsPage() {
                     <p className="text-[14px] text-gray-500 dark:text-slate-400 line-clamp-3 leading-relaxed">{blog.short_description || blog.content?.replace(/<[^>]+>/g, '')}</p>
                     <div className="flex items-center gap-1.5 text-blue font-black text-sm mt-2 transition-transform group-hover:translate-x-[-4px]">
                        اقرأ المزيد
-                       <ChevronRightIcon className="w-4 h-4 rotate-180" />
+                       <ChevronRightIcon className="w-4 h-4 rtl:rotate-180 ltr:rotate-0" />
                     </div>
                  </div>
               </div>

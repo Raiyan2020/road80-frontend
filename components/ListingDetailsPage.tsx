@@ -207,7 +207,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
     callMutation.mutate(listing.id, {
       onSuccess: (response) => {
-
         if (response.data?.session_id) {
           const sessionId = response.data.session_id;
           const transactionId = response.data.transaction_id;
@@ -240,7 +239,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
    * We verify it against our backend using the transaction_id from the /call response.
    */
   const onEmbeddedPaymentSuccess = async (mfCallbackSessionId: string) => {
-
     if (!mfTransactionId) {
       toast.error("خطأ: لا يمكن التحقق من الدفع، يرجى المحاولة مجدداً");
       return;
@@ -321,7 +319,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   const handleContactAction = (type: "WHATSAPP" | "CALL") => {
-
     let directPhone =
       type === "WHATSAPP"
         ? (listing as any).owner_whatsapp
@@ -349,7 +346,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
     callMutation.mutate(listing.id, {
       onSuccess: (response) => {
-
         if (response.data?.phone) {
           // Already unlocked — backend gave us the number directly
           setPaymentStatus("IDLE");
@@ -446,7 +442,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           onClick={onBack}
           className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:scale-95 transition-all"
         >
-          <ChevronRightIcon className="w-6 h-6 rotate-180" />
+          <ChevronRightIcon className="w-6 h-6 rotate-180 rtl:rotate-0" />
         </button>
         <div className="flex gap-3">
           <button

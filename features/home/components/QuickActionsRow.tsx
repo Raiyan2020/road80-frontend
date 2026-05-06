@@ -41,8 +41,10 @@ export const QuickActionsRow: React.FC = () => {
   const actions = contractCategory?.values ?? [];
 
   const handleClick = (valueId: number) => {
-    // Use window.location for reliable array query param passing
-    window.location.href = `/explore/?category_value_id=${valueId}`;
+    navigate({
+      to: "/explore",
+      search: { category_value_id: valueId } as any,
+    });
   };
 
   // ── Skeleton ───────────────────────────────────────────────────────────────

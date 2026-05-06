@@ -109,7 +109,7 @@ function RegisterCompanyPage() {
                   onClick={() => window.history.back()}
                   className="self-start flex items-center gap-1 text-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-blue transition-colors font-bold text-sm"
                 >
-                  <ChevronRightIcon className="w-5 h-5 rotate-180" /> العودة للوراء
+                  <ChevronRightIcon className="w-5 h-5 rtl:rotate-0 ltr:rotate-180" /> العودة للوراء
                 </button>
                 
                 <div className="w-24 h-24 mb-2">

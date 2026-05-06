@@ -11,13 +11,13 @@ import { User } from "@/shared/types/auth";
 
 // Number of local phone digits (without country code) per country_code
 const PHONE_DIGITS: Record<string, number> = {
-  KW: 8,  // Kuwait       e.g. 60071234
-  SA: 9,  // Saudi Arabia e.g. 501234567
-  AE: 9,  // UAE          e.g. 501234567
-  QA: 8,  // Qatar        e.g. 33123456
-  BH: 8,  // Bahrain      e.g. 33123456
-  OM: 8,  // Oman         e.g. 91234567
-  JO: 9,  // Jordan       e.g. 791234567
+  KW: 8, // Kuwait       e.g. 60071234
+  SA: 9, // Saudi Arabia e.g. 501234567
+  AE: 9, // UAE          e.g. 501234567
+  QA: 8, // Qatar        e.g. 33123456
+  BH: 8, // Bahrain      e.g. 33123456
+  OM: 8, // Oman         e.g. 91234567
+  JO: 9, // Jordan       e.g. 791234567
   EG: 10, // Egypt        e.g. 1001234567
   IQ: 10, // Iraq         e.g. 7701234567
 };
@@ -45,7 +45,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const { data: countries = [] } = useCountries();
 
   const selectedCountry = countries.find((c) => c.id === countryId);
-  const maxPhoneDigits = PHONE_DIGITS[selectedCountry?.country_code ?? 'KW'] ?? DEFAULT_DIGITS;
+  const maxPhoneDigits =
+    PHONE_DIGITS[selectedCountry?.country_code ?? "KW"] ?? DEFAULT_DIGITS;
 
   // Sync route with internal step on mount/route change
   useEffect(() => {
@@ -241,7 +242,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   className="flex items-center w-full h-[60px] bg-[#F8FAFC] dark:bg-slate-800 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-navy/10 transition-all shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] border border-gray-100 dark:border-slate-700"
                 >
                   {/* Iso + Phone Code Left Side */}
-                  <div className="relative shrink-0 flex items-center h-full px-5 border-r border-gray-200 dark:border-slate-700">
+                  <div className="relative shrink-0 flex items-center h-full px-1 border-r border-gray-200 dark:border-slate-700">
                     <select
                       value={countryId}
                       onChange={(e) => setCountryId(Number(e.target.value))}
@@ -258,7 +259,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                         <option value={1}>KW +965</option>
                       )}
                     </select>
-                    <div className="pointer-events-none flex items-center gap-1 text-navy dark:text-blue font-semibold text-[11px] tracking-wide">
+                    <div className="pointer-events-none flex items-center gap-1 text-navy dark:text-blue font-semibold text-sm tracking-wide">
                       <span>
                         {countries.find((c) => c.id === countryId)
                           ?.country_code || "KW"}
@@ -271,18 +272,18 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   </div>
 
                   {/* Phone Input Right Side */}
-                  <div className="flex-1 h-full relative">
+                  <div className="flex-1 h-full relative text-[9px]">
                     <input
                       type="tel"
                       inputMode="numeric"
                       value={phone}
                       onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '');
+                        const raw = e.target.value.replace(/\D/g, "");
                         setPhone(raw.slice(0, maxPhoneDigits));
                       }}
                       maxLength={maxPhoneDigits}
                       disabled={loading}
-                      className="w-full h-full bg-transparent px-4 text-center font-black text-[28px] text-navy dark:text-slate-100 tracking-[0.18em] focus:outline-none placeholder-gray-300 dark:placeholder-slate-600"
+                      className="w-full h-full bg-transparent px-1 text-center font-black text-sm text-navy dark:text-slate-100 tracking-[0.18em] focus:outline-none placeholder-gray-300 dark:placeholder-slate-600"
                       placeholder=""
                       dir="ltr"
                       autoFocus
@@ -379,33 +380,33 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             className="text-sm font-bold text-navy dark:text-blue hover:text-blue dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-1.5 active:scale-95"
           >
             إنشاء حساب مكتب عقاري / شركة
-            <ChevronRightIcon className="w-4 h-4 rotate-180" />
+            <ChevronRightIcon className="w-4 h-4 rtl:rotate-180 ltr:rotate-0" />
           </button>
 
-           <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20">
-              بتسجيل الدخول فإنك توافق على
-              <span 
-                onClick={(e) => {
-                   e.preventDefault();
-                   e.stopPropagation();
-                   navigate({ to: '/terms' as any });
-                }}
-                className="underline cursor-pointer hover:text-navy dark:hover:text-blue mx-1 relative z-30 pointer-events-auto"
-              >
-                الشروط والأحكام
-              </span>
-              و
-              <span 
-                onClick={(e) => {
-                   e.preventDefault();
-                   e.stopPropagation();
-                   navigate({ to: '/privacy' as any });
-                }}
-                className="underline cursor-pointer hover:text-navy dark:hover:text-blue mx-1 relative z-30 pointer-events-auto"
-              >
-                سياسة الخصوصية
-              </span>
-           </p>
+          <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20">
+            بتسجيل الدخول فإنك توافق على
+            <span
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate({ to: "/terms" as any });
+              }}
+              className="underline cursor-pointer hover:text-navy dark:hover:text-blue mx-1 relative z-30 pointer-events-auto"
+            >
+              الشروط والأحكام
+            </span>
+            و
+            <span
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate({ to: "/privacy" as any });
+              }}
+              className="underline cursor-pointer hover:text-navy dark:hover:text-blue mx-1 relative z-30 pointer-events-auto"
+            >
+              سياسة الخصوصية
+            </span>
+          </p>
         </div>
       </div>
     </div>

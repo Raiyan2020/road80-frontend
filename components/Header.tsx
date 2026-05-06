@@ -40,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
               className="w-8 h-8 flex items-center justify-center text-navy dark:text-slate-200 active:scale-90 transition-transform -mr-2"
               aria-label="رجوع"
             >
-              <ChevronRightIcon className="w-6 h-6" />
+              <ChevronRightIcon className="w-6 h-6 rtl:rotate-0 ltr:rotate-180" />
             </button>
           ) : (
             <button
@@ -108,7 +108,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
                   className="p-4 rounded-xl font-bold text-navy dark:text-slate-200 active:bg-gray-100 dark:active:bg-slate-800 border border-transparent dark:border-slate-700/60 transition-colors flex items-center justify-between hover:border-navy/20 dark:hover:border-slate-600"
                 >
                   {link.title}
-                  <ChevronRightIcon className="w-4 h-4 opacity-50 rotate-180" />
+                  <ChevronRightIcon className="w-4 h-4 opacity-50 rtl:rotate-180 ltr:rotate-0" />
                 </Link>
               ))}
             </div>

@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { App as CapApp } from '@capacitor/app';
 import { initializePushNotifications } from '../shared/utils/notifications';
+import { useUserStore } from '../stores/user.store';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,22 +34,9 @@ const CATEGORY_NAMES: Record<string, string> = {
 
 function RootComponent() {
   const [showSplash, setShowSplash] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    // Eagerly read from Zustand's persisted store to avoid race condition with route guards.
-    // Zustand persist format: { state: { user: {...}, isAuthenticated: bool }, version: 0 }
-    try {
-      const raw = localStorage.getItem('road80_user');
-      if (!raw) return false;
-      const parsed = JSON.parse(raw);
-      // Zustand format
-      if (parsed?.state?.isAuthenticated && parsed?.state?.user?.token) return true;
-      // Legacy flat format: { token: "..." }
-      if (parsed?.token) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  });
+  // Live subscription to Zustand — forceLogout() and normal logout both update
+  // this automatically, which triggers the route guard below.
+  const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -223,7 +211,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContext.Provider value={{ theme, setTheme, setIsAuthenticated }}>
+      <AppContext.Provider value={{ theme, setTheme }}>
         <div 
           className="relative w-full max-w-[430px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"
           style={{ height: 'calc(var(--vh, 1vh) * 100)' }}

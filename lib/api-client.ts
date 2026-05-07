@@ -1,6 +1,14 @@
 import { ofetch, type FetchOptions } from 'ofetch';
+import { forceLogout } from '@/shared/utils/notifications';
 
 const BASE_URL = 'https://portal.road-80.com/api';
+
+// Auth endpoints that should never trigger a force-logout on failure
+// (e.g. wrong OTP returns status:"needLogin" but user is not logged in yet)
+const AUTH_PATHS = ['/v1/auth/login', '/v1/auth/register', '/v1/auth/verify-otp'];
+
+const isAuthPath = (url: string) =>
+  AUTH_PATHS.some((p) => url.includes(p));
 
 export const apiClient = ofetch.create({
   baseURL: BASE_URL,
@@ -36,9 +44,37 @@ export const apiClient = ofetch.create({
       // Handle error
     }
   },
-  async onResponseError({ response }) {
+
+  // ── Body-level status check (HTTP 200 but logically rejected) ─────────────
+  // The backend returns { status: "block" } or { status: "needLogin" }
+  // as a successful HTTP response (200), so onResponseError won't catch these.
+  async onResponse({ request, response }) {
+    // Skip auth endpoints — a failed login shouldn't trigger force-logout
+    const url = typeof request === 'string' ? request : request.toString();
+    if (isAuthPath(url)) return;
+
+    try {
+      const body = response._data as any;
+      const status = body?.status;
+
+      if (status === 'block') {
+        forceLogout('block');
+      } else if (status === 'needLogin') {
+        // Token is invalid/expired — treat the same as being kicked out
+        forceLogout('block');
+      }
+    } catch {
+      // Ignore JSON parse errors (binary responses, etc.)
+    }
+  },
+
+  // ── HTTP-level 401 Unauthorized ───────────────────────────────────────────
+  async onResponseError({ request, response }) {
     if (response.status === 401) {
-      // Handle 401
+      const url = typeof request === 'string' ? request : request.toString();
+      if (!isAuthPath(url)) {
+        forceLogout('block');
+      }
     }
   },
 });

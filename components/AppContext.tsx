@@ -1,9 +1,8 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext } from 'react';
 
 export const AppContext = createContext<{
   theme: 'light' | 'dark';
   setTheme: React.Dispatch<React.SetStateAction<'light' | 'dark'>>;
-  setIsAuthenticated: (val: boolean) => void;
 } | null>(null);
 
 export const useAppContext = () => {

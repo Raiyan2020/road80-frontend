@@ -2,10 +2,7 @@ import React, { useState } from "react";
 import { BellIcon, ChevronRightIcon, MenuIcon, LogoutIcon } from "./Icons";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useUnreadCount } from "../features/notifications/hooks/use-notifications";
-
 import { useLogout } from "../shared/hooks/useLogout";
-import { useContext } from "react";
-import { AppContext } from "./AppContext";
 
 interface HeaderProps {
   title: string;
@@ -22,7 +19,6 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
     (unreadCountResponse as any)?.unread_count ||
     0;
   const { mutate: logoutMutation } = useLogout();
-  const { setIsAuthenticated } = useContext(AppContext);
 
   return (
     <>
@@ -117,7 +113,6 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
               <button
                 onClick={() => {
                   logoutMutation();
-                  setIsAuthenticated(false);
                   setIsMenuOpen(false);
                 }}
                 className="w-full p-4 rounded-xl font-bold text-red-500 border border-red-200/60 dark:border-red-500/30 bg-red-50/40 dark:bg-red-950/20 active:scale-95 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center gap-3"

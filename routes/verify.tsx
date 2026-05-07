@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import AuthPage from '../components/AuthPage'
-import { useAppContext } from '../components/AppContext'
 
 import type { User } from '../shared/types/auth'
 
@@ -9,16 +8,15 @@ export const Route = createFileRoute('/verify')({
 })
 
 function RouteComponent() {
-  const { setIsAuthenticated } = useAppContext();
   const navigate = useNavigate();
 
   const handleLoginSuccess = (user: User) => {
-    setIsAuthenticated(true);
-    // If the user hasn't set up their profile (e.g. no name), send them to quick-start
+    // Zustand store is already updated by AuthPage (loginUser call).
+    // The route guard in __root.tsx reacts to the Zustand isAuthenticated change automatically.
     if (!user.name) {
       navigate({ to: '/quick-start' });
     } else {
-      navigate({ to: '/' }); // Or to '/dashboard' if appropriate
+      navigate({ to: '/' });
     }
   };
 

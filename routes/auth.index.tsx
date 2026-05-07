@@ -1,17 +1,16 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import AuthPage from '../components/AuthPage'
-import { useAppContext } from '../components/AppContext'
 
 export const Route = createFileRoute('/auth/')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const { setIsAuthenticated } = useAppContext();
   const navigate = useNavigate();
 
   const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
+    // Zustand store is already updated by AuthPage (loginUser call).
+    // The route guard in __root.tsx reacts to the Zustand isAuthenticated change automatically.
     navigate({ to: '/quick-start' });
   };
 

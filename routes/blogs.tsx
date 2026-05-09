@@ -85,7 +85,7 @@ function BlogsPage() {
   // Blog List View
   return (
     <div className="h-full bg-bg dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
-      <Header title="المدونة" showBack onBack={() => navigate({ to: '/home' })} />
+      <Header title="المدونة" showBack onBack={() => window.history.back()} />
       
       <div className="flex-1 p-5 overflow-y-auto flex flex-col gap-5" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>
         {isListLoading ? (

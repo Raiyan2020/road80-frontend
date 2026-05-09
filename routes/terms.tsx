@@ -14,7 +14,7 @@ function TermsPage() {
 
   return (
     <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
-      <Header title="الشروط والأحكام" showBack onBack={() => navigate({ to: '..' })} />
+      <Header title="الشروط والأحكام" showBack onBack={() => window.history.back()} />
       
       <div className="flex-1 p-5 overflow-y-auto" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>
         {isLoading ? (

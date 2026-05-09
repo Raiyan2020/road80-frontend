@@ -14,7 +14,7 @@ function FaqPage() {
 
   return (
     <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
-      <Header title="الأسئلة الشائعة" showBack onBack={() => navigate({ to: '..' })} />
+      <Header title="الأسئلة الشائعة" showBack onBack={() => window.history.back()} />
       
       <div className="flex-1 p-5 overflow-y-auto flex flex-col gap-4" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>
         {isLoading ? (

@@ -39,6 +39,8 @@ export interface RegisterCompanyPayload {
   country_id: number | string;
   phone: string;
   whatsapp_phone: string;
+  phone_country_id?: number | string;
+  whatsapp_country_id?: number | string;
   image: File | null;
   company_department_id: number | string;
 }

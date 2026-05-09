@@ -6,6 +6,19 @@ import { useDepartments } from '../features/companies/hooks/useDepartments';
 import { BuildingIcon, PhoneIcon, WhatsappIcon, ChevronRightIcon, SpinnerIcon, MailIcon } from '../components/Icons';
 import { toast } from 'sonner';
 
+const PHONE_DIGITS: Record<string, number> = {
+  KW: 8,
+  SA: 9,
+  AE: 9,
+  QA: 8,
+  BH: 8,
+  OM: 8,
+  JO: 9,
+  EG: 10,
+  IQ: 10,
+};
+const DEFAULT_DIGITS = 10;
+
 export const Route = createFileRoute('/auth/register-company')({
   component: RegisterCompanyPage
 });
@@ -38,6 +51,12 @@ function RegisterCompanyPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [phoneCountryId, setPhoneCountryId] = useState<number>(1);
+  const [whatsappCountryId, setWhatsappCountryId] = useState<number>(1);
+
+  const maxPhoneDigits = PHONE_DIGITS[countries.find((c: any) => c.id === phoneCountryId)?.country_code ?? "KW"] ?? DEFAULT_DIGITS;
+  const maxWhatsappDigits = PHONE_DIGITS[countries.find((c: any) => c.id === whatsappCountryId)?.country_code ?? "KW"] ?? DEFAULT_DIGITS;
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -80,6 +99,8 @@ function RegisterCompanyPage() {
         country_id: formData.country_id,
         phone: formData.phone,
         whatsapp_phone: formData.whatsapp_phone,
+        phone_country_id: phoneCountryId,
+        whatsapp_country_id: whatsappCountryId,
         image: imageFile,
         company_department_id: formData.company_department_id
     };
@@ -240,16 +261,52 @@ function RegisterCompanyPage() {
                          <PhoneIcon className="w-4 h-4 text-blue" />
                          رقم الهاتف
                        </label>
-                       <input 
-                         required
-                         type="tel" 
-                         name="phone"
-                         placeholder="9xxxxxxxx" 
-                         value={formData.phone}
-                         onChange={handleChange}
-                         className="h-14 px-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors text-right ltr" 
+                       <div
                          dir="ltr"
-                       />
+                         className="flex items-center w-full h-14 bg-gray-50 dark:bg-slate-800/50 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-blue transition-all border border-pale dark:border-slate-700"
+                       >
+                         <div className="relative shrink-0 flex items-center h-full px-2 border-r border-gray-200 dark:border-slate-700">
+                           <select
+                             value={phoneCountryId}
+                             onChange={(e) => {
+                               setPhoneCountryId(Number(e.target.value));
+                               setFormData(prev => ({ ...prev, phone: '' }));
+                             }}
+                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 text-navy dark:text-slate-200 bg-white dark:bg-slate-900"
+                             disabled={loadingCountries || countries.length === 0}
+                           >
+                             {countries.length > 0 ? (
+                               countries.map((c: any) => (
+                                 <option key={c.id} value={c.id} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">
+                                   {c.country_code || "KW"} {c.phone_code}
+                                 </option>
+                               ))
+                             ) : (
+                               <option value={1} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">KW +965</option>
+                             )}
+                           </select>
+                           <div className="pointer-events-none flex items-center gap-1 text-navy dark:text-blue font-semibold text-xs tracking-wide">
+                             <span>{countries.find((c: any) => c.id === phoneCountryId)?.country_code || "KW"}</span>
+                             <span>{countries.find((c: any) => c.id === phoneCountryId)?.phone_code || "+965"}</span>
+                           </div>
+                         </div>
+                         <div className="flex-1 h-full">
+                           <input
+                             required
+                             type="tel"
+                             inputMode="numeric"
+                             value={formData.phone}
+                             onChange={(e) => {
+                               const raw = e.target.value.replace(/\D/g, "");
+                               setFormData(prev => ({...prev, phone: raw.slice(0, maxPhoneDigits)}));
+                             }}
+                             maxLength={maxPhoneDigits}
+                             className="w-full h-full bg-transparent px-3 text-right font-bold text-navy dark:text-slate-100 tracking-wider focus:outline-none"
+                             placeholder={`أدخل ${maxPhoneDigits} أرقام`}
+                             dir="ltr"
+                           />
+                         </div>
+                       </div>
                     </div>
 
                     {/* WhatsApp */}
@@ -258,15 +315,52 @@ function RegisterCompanyPage() {
                          <WhatsappIcon className="w-4 h-4 text-green-500" />
                          رقم الواتساب
                        </label>
-                       <input 
-                         type="tel" 
-                         name="whatsapp_phone"
-                         placeholder="9xxxxxxxx" 
-                         value={formData.whatsapp_phone}
-                         onChange={handleChange}
-                         className="h-14 px-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors text-right ltr" 
+                       <div
                          dir="ltr"
-                       />
+                         className="flex items-center w-full h-14 bg-gray-50 dark:bg-slate-800/50 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-green-500 transition-all border border-pale dark:border-slate-700"
+                       >
+                         <div className="relative shrink-0 flex items-center h-full px-2 border-r border-gray-200 dark:border-slate-700">
+                           <select
+                             value={whatsappCountryId}
+                             onChange={(e) => {
+                               setWhatsappCountryId(Number(e.target.value));
+                               setFormData(prev => ({ ...prev, whatsapp_phone: '' }));
+                             }}
+                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 text-navy dark:text-slate-200 bg-white dark:bg-slate-900"
+                             disabled={loadingCountries || countries.length === 0}
+                           >
+                             {countries.length > 0 ? (
+                               countries.map((c: any) => (
+                                 <option key={c.id} value={c.id} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">
+                                   {c.country_code || "KW"} {c.phone_code}
+                                 </option>
+                               ))
+                             ) : (
+                               <option value={1} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">KW +965</option>
+                             )}
+                           </select>
+                           <div className="pointer-events-none flex items-center gap-1 text-navy dark:text-green-500 font-semibold text-xs tracking-wide">
+                             <span>{countries.find((c: any) => c.id === whatsappCountryId)?.country_code || "KW"}</span>
+                             <span>{countries.find((c: any) => c.id === whatsappCountryId)?.phone_code || "+965"}</span>
+                           </div>
+                         </div>
+                         <div className="flex-1 h-full">
+                           <input
+                             required
+                             type="tel"
+                             inputMode="numeric"
+                             value={formData.whatsapp_phone}
+                             onChange={(e) => {
+                               const raw = e.target.value.replace(/\D/g, "");
+                               setFormData(prev => ({...prev, whatsapp_phone: raw.slice(0, maxWhatsappDigits)}));
+                             }}
+                             maxLength={maxWhatsappDigits}
+                             className="w-full h-full bg-transparent px-3 text-right font-bold text-navy dark:text-slate-100 tracking-wider focus:outline-none"
+                             placeholder={`أدخل ${maxWhatsappDigits} أرقام`}
+                             dir="ltr"
+                           />
+                         </div>
+                       </div>
                     </div>
 
                     {/* Caption */}

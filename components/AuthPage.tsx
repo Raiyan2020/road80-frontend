@@ -246,17 +246,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     <select
                       value={countryId}
                       onChange={(e) => setCountryId(Number(e.target.value))}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 text-navy dark:text-slate-200 bg-white dark:bg-slate-900"
                       disabled={loading || countries.length === 0}
                     >
                       {countries.length > 0 ? (
                         countries.map((c) => (
-                          <option key={c.id} value={c.id}>
+                          <option key={c.id} value={c.id} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">
                             {c.country_code || "KW"} {c.phone_code}
                           </option>
                         ))
                       ) : (
-                        <option value={1}>KW +965</option>
+                        <option value={1} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">KW +965</option>
                       )}
                     </select>
                     <div className="pointer-events-none flex items-center gap-1 text-navy dark:text-blue font-semibold text-sm tracking-wide">

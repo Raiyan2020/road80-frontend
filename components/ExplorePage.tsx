@@ -29,6 +29,7 @@ const ExplorePage: React.FC = () => {
   const [filters, setFilters] = useState<ExploreFilters>(getFiltersFromUrl);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchText, setSearchText] = useState(filters.name || '');
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
   // Re-sync filters when the URL changes (e.g. navigating from home page with a pre-selected category)
   useEffect(() => {
@@ -38,6 +39,21 @@ const ExplorePage: React.FC = () => {
   }, [location.search]);
 
   const { data: listings = [], isLoading: loading } = useExploreListings(filters);
+
+  // Restore scroll position after listings load
+  useEffect(() => {
+    if (!loading && listings.length > 0 && scrollRef.current) {
+      const savedScroll = sessionStorage.getItem('explore-scroll');
+      if (savedScroll) {
+        // Small delay to ensure DOM has completely rendered the images/grid
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop = Number(savedScroll);
+          }
+        }, 50);
+      }
+    }
+  }, [loading, listings.length]);
 
   const applyFilters = (newFilters: ExploreFilters) => {
     setFilters(newFilters);
@@ -118,7 +134,12 @@ const ExplorePage: React.FC = () => {
         </form>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div 
+         id="explore-scroll-container" 
+         className="flex-1 overflow-y-auto no-scrollbar"
+         ref={scrollRef}
+         onScroll={(e) => sessionStorage.setItem('explore-scroll', e.currentTarget.scrollTop.toString())}
+      >
          {loading ? (
            <div className="flex justify-center items-center h-full">
               <SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" />

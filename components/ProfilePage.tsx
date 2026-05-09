@@ -216,6 +216,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   const { data: myFavsData = [], isLoading: myFavsLoading } =
     useUserFavorites();
   const { profile, isLoading: profileLoading } = useProfile();
+  console.log("profile", profile);
+
   const { data: officeData, isLoading: officeLoading } = useOffice(
     viewedUserId || "",
   );
@@ -245,7 +247,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
       views: profile?.total_ads_watch?.toString() || "0",
     };
     profileName = profile?.name || profile?.country_code || "مستخدم";
-    profileBio = profile?.caption || "نورت بروفايلي!";
+    profileBio = profile?.caption || "";
     profileAvatar = profile?.image || null;
     isVerified = false;
   } else {

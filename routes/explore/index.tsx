@@ -8,7 +8,7 @@ export const Route = createFileRoute('/explore/')({
 function RouteComponent() {
   return (
     <div className="absolute inset-0 block">
-      <div className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar">
+      <div className="h-full w-full overflow-hidden">
         <ExplorePage />
       </div>
     </div>

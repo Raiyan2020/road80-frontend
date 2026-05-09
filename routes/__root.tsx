@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
+import { createRootRoute, Outlet, useLocation, useNavigate, ScrollRestoration } from '@tanstack/react-router';
 import React, { useState, useEffect } from 'react';
 import SplashScreen from '../components/SplashScreen';
 import BottomNavigation from '../components/BottomNavigation';
@@ -246,8 +246,8 @@ function RootComponent() {
                 />
               )}
             </>
-          )}
         </div>
+        <ScrollRestoration />
         <Toaster position="top-center" richColors />
       </AppContext.Provider>
     </QueryClientProvider>

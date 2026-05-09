@@ -246,6 +246,7 @@ function RootComponent() {
                 />
               )}
             </>
+          )}
         </div>
         <ScrollRestoration />
         <Toaster position="top-center" richColors />

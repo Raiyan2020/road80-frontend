@@ -317,7 +317,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
         <StatItem label="المشاهدات" value={stats.views} />
       </div>
 
-      <div className="flex gap-3">
+      {/* <div className="flex gap-3">
         <a
           href="https://wa.me/96598812020"
           target="_blank"
@@ -334,10 +334,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           <PhoneIcon className="w-5 h-5" />
           <span>اتصال</span>
         </a>
-      </div>
+      </div> */}
 
       {/* Social and Action Icons Row */}
-      <div className="flex justify-center gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar py-2 mt-1 mb-2">
+      {/* <div className="flex justify-center gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar py-2 mt-1 mb-2">
         {socialActions.map((action) => (
           <a
             key={action.id}
@@ -349,7 +349,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
             <action.icon className="w-5 h-5" />
           </a>
         ))}
-      </div>
+      </div> */}
 
       <div className="flex flex-col gap-4 mt-2">
         <h3 className="text-lg font-bold text-navy dark:text-slate-200 font-sans px-1">

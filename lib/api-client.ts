@@ -5,7 +5,7 @@ const BASE_URL = 'https://portal.road-80.com/api';
 
 // Auth endpoints that should never trigger a force-logout on failure
 // (e.g. wrong OTP returns status:"needLogin" but user is not logged in yet)
-const AUTH_PATHS = ['/v1/auth/login', '/v1/auth/register', '/v1/auth/verify-otp'];
+const AUTH_PATHS = ['/v1/auth/login', '/v1/auth/register', '/v1/auth/verify-otp', '/auth/logout'];
 
 const isAuthPath = (url: string) =>
   AUTH_PATHS.some((p) => url.includes(p));
@@ -61,7 +61,7 @@ export const apiClient = ofetch.create({
         forceLogout('block');
       } else if (status === 'needLogin') {
         // Token is invalid/expired — treat the same as being kicked out
-        forceLogout('block');
+        forceLogout('session_expired');
       }
     } catch {
       // Ignore JSON parse errors (binary responses, etc.)
@@ -73,7 +73,7 @@ export const apiClient = ofetch.create({
     if (response.status === 401) {
       const url = typeof request === 'string' ? request : request.toString();
       if (!isAuthPath(url)) {
-        forceLogout('block');
+        forceLogout('session_expired');
       }
     }
   },

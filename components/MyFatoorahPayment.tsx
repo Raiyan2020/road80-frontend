@@ -152,7 +152,6 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
             }
           },
           style: {
-            hideCardIcons: false,
             direction: 'ltr',
             cardHeight: 220,
             input: {
@@ -233,12 +232,27 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
           </div>
         )}
 
-        {/* MF SDK injects its iframe here */}
+        {/* MF SDK injects its iframe here.
+            We clip the top ~145px where MF renders Apple Pay / Google Pay / KNET buttons
+            by shifting the iframe up with translateY and hiding the overflow. */}
         <div
-          id={containerId}
-          style={{ minHeight: isInitialized ? 220 : 0 }}
-          className="w-full bg-white dark:bg-slate-900 rounded-2xl border border-pale dark:border-slate-800 overflow-hidden transition-all"
-        />
+          style={{
+            overflow: 'hidden',
+            /* compensate height so the card input area still gets its full space */
+            marginBottom: isInitialized ? '-200px' : 0,
+          }}
+          className="w-full rounded-2xl border border-pale dark:border-slate-800"
+        >
+          <div
+            id={containerId}
+            style={{
+              minHeight: isInitialized ? 420 : 0,
+              transform: isInitialized ? 'translateY(-200px)' : 'none',
+              transition: 'transform 0.2s',
+            }}
+            className="w-full bg-white dark:bg-slate-900 overflow-hidden"
+          />
+        </div>
 
         {!isInitialized && !error && (
           <div className="flex flex-col items-center gap-2 py-6">

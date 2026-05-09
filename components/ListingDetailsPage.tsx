@@ -811,7 +811,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                     <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">
                       سعر فتح الاعلان:
                     </span>
-                    <span className="text-lg font-bold text-navy dark:text-slate-200">
+                    <span className="text-md font-bold text-navy dark:text-slate-200">
                       {UNLOCK_FEE}
                     </span>
                   </div>

@@ -40,14 +40,23 @@ export const getDeviceId = (): string => {
  * Called when a push notification with type "block" or "delete" is received.
  * Works without React hooks so it can be called from anywhere.
  */
-export const forceLogout = (reason: 'block' | 'delete') => {
+export const forceLogout = (reason: 'block' | 'delete' | 'session_expired') => {
+  const store = useUserStore.getState();
+  
+  // If the user is already logged out, don't show random toasts
+  if (!store.isAuthenticated) {
+    return;
+  }
+
   // Clear Zustand store + auth storage directly (no React hooks needed)
-  useUserStore.getState().logout();
+  store.logout();
 
   const msg =
     reason === 'block'
       ? 'تم تعليق حسابك من قبل الإدارة'
-      : 'تم حذف حسابك من قبل الإدارة';
+      : reason === 'delete'
+      ? 'تم حذف حسابك من قبل الإدارة'
+      : 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً';
 
   toast.error(msg, { duration: 6000 });
 

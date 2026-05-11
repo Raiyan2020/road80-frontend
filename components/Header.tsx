@@ -3,6 +3,7 @@ import { BellIcon, ChevronRightIcon, MenuIcon, LogoutIcon } from "./Icons";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useUnreadCount } from "../features/notifications/hooks/use-notifications";
 import { useLogout } from "../shared/hooks/useLogout";
+import { useUIStore } from "../stores/ui.store";
 
 interface HeaderProps {
   title: string;
@@ -12,7 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isMenuOpen, setMenuOpen: setIsMenuOpen } = useUIStore();
   const { data: unreadCountResponse } = useUnreadCount();
   const unreadCount =
     (unreadCountResponse as any)?.data ||

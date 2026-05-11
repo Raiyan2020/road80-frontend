@@ -2,6 +2,7 @@ import React from 'react';
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import Header from '../components/Header';
 import { useBlogs, useBlogDetail } from '../features/blogs/hooks/useBlogs';
+import { useUIStore } from '../stores/ui.store';
 import { SpinnerIcon, ChevronRightIcon } from '../components/Icons';
 
 type BlogsSearch = {
@@ -85,7 +86,10 @@ function BlogsPage() {
   // Blog List View
   return (
     <div className="h-full bg-bg dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
-      <Header title="المدونة" showBack onBack={() => window.history.back()} />
+      <Header title="المدونة" showBack onBack={() => {
+        useUIStore.getState().setMenuOpen(true);
+        window.history.back();
+      }} />
       
       <div className="flex-1 p-5 overflow-y-auto flex flex-col gap-5" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>
         {isListLoading ? (

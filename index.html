@@ -110,6 +110,16 @@
         background: transparent;
       }
 
+      /* Prevent image dragging and long-press save for app-like feel */
+      img {
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
+        -webkit-touch-callout: none;
+      }
+
       /* Fix iOS Safari extra top space & height */
       html, body {
         margin: 0;

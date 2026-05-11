@@ -21,6 +21,20 @@ declare global {
 
 const getSDK = () => window.myFatoorah || window.myfatoorah || null;
 
+const translateMyFatoorahError = (msg: string): string => {
+  if (!msg) return 'فشل الدفع';
+  const lowerMsg = msg.toLowerCase();
+  if (lowerMsg.includes('card details are invalid or missing')) return 'بيانات البطاقة غير صالحة أو غير مكتملة';
+  if (lowerMsg.includes('card number is invalid')) return 'رقم البطاقة غير صالح';
+  if (lowerMsg.includes('expiry date is invalid') || lowerMsg.includes('invalid expiry')) return 'تاريخ الانتهاء غير صالح';
+  if (lowerMsg.includes('cvv is invalid') || lowerMsg.includes('invalid cvv')) return 'رمز التحقق (CVV) غير صالح';
+  if (lowerMsg.includes('insufficient funds')) return 'الرصيد غير كافٍ';
+  if (lowerMsg.includes('declined')) return 'تم رفض العملية من قبل البنك';
+  
+  // Clean up any stray exclamation marks often returned by the SDK
+  return msg.replace(/^!|!$/g, '').trim();
+};
+
 const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
   sessionId,
   countryCode,
@@ -147,7 +161,7 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
               onSuccess(fallbackPaymentId || sessionId);
             } else if (response?.Error || response?.error) {
               const msg = response.Error || response.error || 'فشل الدفع';
-              setError(msg);
+              setError(translateMyFatoorahError(msg));
               onError(response);
             }
           },
@@ -208,7 +222,8 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
       }
     } catch (err: any) {
       setIsSubmitting(false);
-      setError(`خطأ: ${err.message || 'فشل معالجة الدفع'}`);
+      const msg = err.message || 'فشل معالجة الدفع';
+      setError(`خطأ: ${translateMyFatoorahError(msg)}`);
       onError(err);
     }
   };

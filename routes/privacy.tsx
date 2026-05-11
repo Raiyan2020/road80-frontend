@@ -2,6 +2,7 @@ import React from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import Header from '../components/Header';
 import { usePrivacy } from '../features/pages/hooks/usePages';
+import { useUIStore } from '../stores/ui.store';
 import { SpinnerIcon } from '../components/Icons';
 
 export const Route = createFileRoute('/privacy')({
@@ -14,7 +15,10 @@ function PrivacyPage() {
 
   return (
     <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
-      <Header title="سياسة الخصوصية" showBack onBack={() => window.history.back()} />
+      <Header title="سياسة الخصوصية" showBack onBack={() => {
+        useUIStore.getState().setMenuOpen(true);
+        window.history.back();
+      }} />
       
       <div className="flex-1 p-5 overflow-y-auto" style={{ paddingTop: 'calc(var(--header-h) + env(safe-area-inset-top) + 20px)' }}>
         {isLoading ? (

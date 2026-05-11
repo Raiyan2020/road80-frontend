@@ -11,6 +11,8 @@ interface UIState {
   setHeaderTitle: (title: string) => void;
   showBack: boolean;
   setShowBack: (val: boolean) => void;
+  isMenuOpen: boolean;
+  setMenuOpen: (val: boolean) => void;
 
   // Country
   selectedCountryCode: string;
@@ -47,6 +49,8 @@ export const useUIStore = create<UIState>()(
       setHeaderTitle: (headerTitle) => set({ headerTitle }),
       showBack: false,
       setShowBack: (showBack) => set({ showBack }),
+      isMenuOpen: false,
+      setMenuOpen: (isMenuOpen) => set({ isMenuOpen }),
 
       selectedCountryCode: 'KW',
       setSelectedCountry: (code) => set({ selectedCountryCode: code }),

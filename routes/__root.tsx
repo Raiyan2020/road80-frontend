@@ -8,6 +8,8 @@ import { AppContext } from '../components/AppContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { App as CapApp } from '@capacitor/app';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
 import { initializePushNotifications } from '../shared/utils/notifications';
 import { useUserStore } from '../stores/user.store';
 
@@ -55,8 +57,16 @@ function RootComponent() {
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
+      if (Capacitor.isNativePlatform()) {
+        StatusBar.setBackgroundColor({ color: '#020617' }); // slate-950
+        StatusBar.setStyle({ style: Style.Dark });
+      }
     } else {
       document.documentElement.classList.remove('dark');
+      if (Capacitor.isNativePlatform()) {
+        StatusBar.setBackgroundColor({ color: '#FFFFFF' });
+        StatusBar.setStyle({ style: Style.Light });
+      }
     }
     localStorage.setItem('road80_theme', theme);
   }, [theme]);
@@ -97,9 +107,12 @@ function RootComponent() {
     };
   }, []);
 
-  // Initialize push notifications
+  // Initialize push notifications and status bar overlay
   useEffect(() => {
     initializePushNotifications();
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setOverlaysWebView({ overlay: true });
+    }
   }, []);
 
   const routePath = location.pathname;
@@ -249,7 +262,7 @@ function RootComponent() {
           )}
         </div>
         <ScrollRestoration />
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-center" richColors duration={8000} />
       </AppContext.Provider>
     </QueryClientProvider>
   );

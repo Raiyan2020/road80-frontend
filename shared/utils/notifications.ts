@@ -58,7 +58,7 @@ export const forceLogout = (reason: 'block' | 'delete' | 'session_expired') => {
       ? 'تم حذف حسابك من قبل الإدارة'
       : 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً';
 
-  toast.error(msg, { duration: 6000 });
+  toast.error(msg, { duration: 12000 });
 
   // Redirect to /auth — replace so user cannot navigate back
   setTimeout(() => {
@@ -130,7 +130,7 @@ export const initializePushNotifications = async (): Promise<void> => {
       // Normal notification
       const title = payload.notification?.title || 'إشعار جديد';
       const body = payload.notification?.body;
-      toast.info(title, { description: body, duration: 5000 });
+      toast.info(title, { description: body, duration: 10000 });
     });
 
     // ── Background message handler ──────────────────────────────────────────

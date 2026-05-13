@@ -319,26 +319,32 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   const handleContactAction = (type: "WHATSAPP" | "CALL") => {
-    let directPhone =
-      type === "WHATSAPP"
-        ? (listing as any).owner_whatsapp
-        : (listing as any).owner_phone;
+    const isPaid = (listing as any).is_paid === 1;
+    const phone = (listing as any).owner_phone || (unlockedContact as any)?.phone;
+    const whatsapp = (listing as any).owner_whatsapp || (unlockedContact as any)?.whatsapp;
 
-    if (!directPhone && unlockedContact) {
-      directPhone =
-        type === "WHATSAPP"
-          ? unlockedContact.whatsapp || unlockedContact.phone
-          : unlockedContact.phone;
-    }
+    if (isPaid || isUnlocked) {
+      if (phone || whatsapp) {
+        const contactInfo = [];
+        if (phone) contactInfo.push(`الهاتف: ${phone}`);
+        if (whatsapp) contactInfo.push(`واتساب: ${whatsapp}`);
 
-    if (directPhone) {
-      const phone = directPhone.replace(/\D/g, "");
-      if (type === "WHATSAPP") {
-        window.open(`https://wa.me/${phone}`, "_blank");
-      } else {
-        window.location.href = `tel:${phone}`;
+        toast.success("بيانات التواصل متاحة", {
+          description: contactInfo.join(" | "),
+          duration: 10000,
+          action: {
+            label: "نسخ الرقم",
+            onClick: () => {
+              const toCopy = phone || whatsapp;
+              if (toCopy) {
+                navigator.clipboard.writeText(toCopy);
+                toast.success("تم نسخ الرقم بنجاح");
+              }
+            },
+          },
+        });
+        return;
       }
-      return;
     }
 
     setPendingContactType(type);

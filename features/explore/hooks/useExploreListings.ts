@@ -15,6 +15,6 @@ export function useExploreListings(filters?: ExploreFilters) {
         }
         return [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 }

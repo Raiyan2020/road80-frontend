@@ -13,8 +13,8 @@ const ExplorePage: React.FC = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   
-  const getFiltersFromUrl = () => {
-    const sp = new URLSearchParams(window.location.search);
+  const getFiltersFromUrl = (search: string) => {
+    const sp = new URLSearchParams(search);
     return {
       name: sp.get('name') || '',
       country_id: sp.get('country_id') || '',
@@ -26,16 +26,20 @@ const ExplorePage: React.FC = () => {
     };
   };
 
-  const [filters, setFilters] = useState<ExploreFilters>(getFiltersFromUrl);
+  const [filters, setFilters] = useState<ExploreFilters>(() => getFiltersFromUrl(location.search));
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchText, setSearchText] = useState(filters.name || '');
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   // Re-sync filters when the URL changes (e.g. navigating from home page with a pre-selected category)
+  // Re-sync filters when the URL changes (e.g. navigating from home page with a pre-selected category)
   useEffect(() => {
-    const newFilters = getFiltersFromUrl();
+    const newFilters = getFiltersFromUrl(location.search);
     setFilters(newFilters);
-    setSearchText(newFilters.name || '');
+    // Only update search text if it differs from current filters to avoid cursor jumping
+    if (newFilters.name !== searchText) {
+      setSearchText(newFilters.name || '');
+    }
   }, [location.search]);
 
   const { data: listings = [], isLoading: loading } = useExploreListings(filters);

@@ -864,12 +864,6 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               toast.error("خطأ في الدفع: " + (err.message || "فشل العملية"))
             }
           />
-          <button
-            onClick={() => setShowEmbedded(false)}
-            className="w-full mt-4 text-xs text-gray-400 font-bold hover:text-navy underline"
-          >
-            إلغاء والعودة للملخص
-          </button>
         </div>
       );
     }

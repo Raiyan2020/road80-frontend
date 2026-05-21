@@ -277,7 +277,7 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
         )}
       </div>
 
-      <button
+      {/* <button
         onClick={handlePay}
         disabled={isSubmitting || !isInitialized}
         className={`w-full py-4 rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg ${
@@ -291,7 +291,7 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
         ) : (
           <span>ادفع الآن</span>
         )}
-      </button>
+      </button> */}
 
       <div className="flex justify-center items-center gap-5 opacity-40">
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" className="h-2.5 object-contain" alt="Visa" />

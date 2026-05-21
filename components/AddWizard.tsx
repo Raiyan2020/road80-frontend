@@ -70,6 +70,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [isRedirectingToPayment, setIsRedirectingToPayment] = useState(false);
   const [showEmbedded, setShowEmbedded] = useState(false);
   const [sessionInfo, setSessionInfo] = useState<{
     id: string;
@@ -310,6 +311,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       if (returnedEncryptionKey) setEncryptionKey(returnedEncryptionKey);
 
       if (paymentUrl) {
+        setIsRedirectingToPayment(true);
         setPublished(true);
         setTimeout(() => {
           window.location.href = paymentUrl;
@@ -337,9 +339,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         setShowEmbedded(true);
       } else if (res.status) {
         setPublished(true);
-        setTimeout(() => {
-          onComplete();
-        }, 1500);
+        // We do not use setTimeout here anymore so the user can read the success message
       } else {
         // Show the backend validation message
         const errMsg =
@@ -413,9 +413,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
       if (res.status) {
         setPublished(true);
-        setTimeout(() => {
-          onComplete();
-        }, 1500);
+        // We do not use setTimeout here anymore so the user can read the success message
       } else {
         toast.error(res.message || "فشل إتمام عملية الدفع");
       }
@@ -462,16 +460,30 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   // ── Success screen ───────────────────────────────────────────────────────
   if (published) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-bg dark:bg-slate-950 animate-fade-in">
+      <div className="w-full h-full flex flex-col items-center justify-center gap-6 bg-bg dark:bg-slate-950 animate-fade-in px-4">
         <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/20">
           <CheckIcon className="w-12 h-12 text-white" />
         </div>
         <h3 className="text-2xl font-black text-navy dark:text-slate-200">
-          تم النشر بنجاح!
+          تم استلام إعلانك بنجاح!
         </h3>
-        <p className="text-gray-400 text-sm text-center max-w-xs">
-          جاري التوجيه إلى بوابة الدفع...
-        </p>
+        {isRedirectingToPayment ? (
+          <p className="text-gray-400 text-sm text-center max-w-xs">
+            جاري التوجيه إلى بوابة الدفع...
+          </p>
+        ) : (
+          <div className="flex flex-col items-center gap-4 mt-4 w-full max-w-xs">
+             <button
+                onClick={() => onComplete()}
+                className="w-full py-4 rounded-2xl bg-navy dark:bg-blue text-white font-bold transition-all active:scale-95 shadow-lg shadow-navy/20"
+             >
+                الذهاب إلى إعلاناتي
+             </button>
+             <p className="text-gray-400 text-sm text-center font-medium">
+                سيظهر إعلانك فور مراجعته والموافقة عليه من قبل الإدارة.
+             </p>
+          </div>
+        )}
       </div>
     );
   }

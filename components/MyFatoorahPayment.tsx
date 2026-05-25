@@ -53,6 +53,23 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
   const { data: settings } = useSettings();
 
   useEffect(() => {
+    const styleId = 'myfatoorah-disable-selection-style';
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      #myfatoorah-payment-lock,
+      #myfatoorah-payment-lock * {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  useEffect(() => {
     if (settings === undefined) return;
     
     const scriptId = 'myfatoorah-sdk';
@@ -228,8 +245,23 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
     }
   };
 
+  const clearSelection = () => {
+    window.getSelection()?.removeAllRanges();
+  };
+
   return (
-    <div className="flex flex-col gap-5 w-full animate-fade-in">
+    <div
+      id="myfatoorah-payment-lock"
+      className="flex flex-col gap-5 w-full animate-fade-in select-none"
+      onContextMenu={(event) => event.preventDefault()}
+      onDragStart={(event) => event.preventDefault()}
+      onSelect={clearSelection}
+      style={{
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }}
+    >
       <div className="bg-pale/30 dark:bg-slate-800/50 p-4 rounded-2xl border border-pale dark:border-slate-700">
         <h4 className="text-[13px] font-bold text-navy dark:text-slate-300 mb-3">تفاصيل الدفع الآمن</h4>
 

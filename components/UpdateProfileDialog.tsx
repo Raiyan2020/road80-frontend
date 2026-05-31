@@ -48,7 +48,7 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
     
     try {
       await updateProfile(formData);
-      toast.success('تم تحديث الملف الشخصي بنجاح');
+      toast.success('تم تحديث الملف الشخصي بنجاح', { closeButton: true });
       onClose();
     } catch (err) {
       toast.error("حدث خطأ أثناء التحديث");

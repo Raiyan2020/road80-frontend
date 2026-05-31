@@ -63,7 +63,7 @@ export function useToggleLike() {
 
     onSuccess: (response) => {
       if (response.status) {
-        toast.success(response.message);
+        toast.success(response.message, { closeButton: true });
       } else {
         toast.error(response.message || 'فشل تنفيذ العملية');
       }

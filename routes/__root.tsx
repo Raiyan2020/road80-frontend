@@ -262,7 +262,7 @@ function RootComponent() {
           )}
         </div>
         <ScrollRestoration />
-        <Toaster position="top-center" richColors duration={8000} />
+        <Toaster position="top-center" richColors duration={10000} />
       </AppContext.Provider>
     </QueryClientProvider>
   );

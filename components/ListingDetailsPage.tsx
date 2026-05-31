@@ -296,16 +296,17 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
             toast.success("تم الدفع بنجاح!", {
               description: `رقم التواصل: ${fullPhone}`,
               duration: 10000,
+              closeButton: true,
               action: {
                 label: "نسخ الرقم",
                 onClick: () => {
                   navigator.clipboard.writeText(fullPhone);
-                  toast.success("تم النسخ للحافظة");
+                  toast.success("تم النسخ للحافظة", { closeButton: true });
                 },
               },
             });
           } else {
-            toast.success("تم الدفع بنجاح وتحرير رقم التواصل!");
+            toast.success("تم الدفع بنجاح وتحرير رقم التواصل!", { closeButton: true });
           }
         }, 500);
       } else {
@@ -332,13 +333,14 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
         toast.success("بيانات التواصل متاحة", {
           description: contactInfo.join(" | "),
           duration: 10000,
+          closeButton: true,
           action: {
             label: "نسخ الرقم",
             onClick: () => {
               const toCopy = phone || whatsapp;
               if (toCopy) {
                 navigator.clipboard.writeText(toCopy);
-                toast.success("تم نسخ الرقم بنجاح");
+                toast.success("تم نسخ الرقم بنجاح", { closeButton: true });
               }
             },
           },

@@ -18,7 +18,7 @@ export const useLogout = () => {
     // We don't clear the store in onMutate anymore to ensure the 
     // Authorization header is sent with the logout request.
     onSuccess: () => {
-      toast.success('تم تسجيل الخروج بنجاح');
+      toast.success('تم تسجيل الخروج بنجاح', { closeButton: true });
     },
     onSettled: () => {
       // Always clear store and redirect, even if API fails

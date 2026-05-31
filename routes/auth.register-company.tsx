@@ -152,7 +152,7 @@ function RegisterCompanyPage() {
     registerMutation.mutate(payload, {
       onSuccess: (response: any) => {
         if (response.status || response.message === "success") {
-          toast.success("تم التسجيل بنجاح، في انتظار موافقة الإدارة");
+          toast.success("تم التسجيل بنجاح، في انتظار موافقة الإدارة", { closeButton: true });
           navigate({ to: "/auth" });
         } else {
           toast.error(response.message || "حدث خطأ ما أثناء التسجيل");

@@ -26,14 +26,6 @@ export async function fetchHomeListings(): Promise<Listing[]> {
         return response.data.map(raw => mapRawExploreToListing(raw));
     }
     
-    // Fallback: Fetch general ads from explore if history is empty
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fallbackResponse = await api.get<{ status: boolean; data: any[] }>('/explore');
-    
-    if (fallbackResponse.status && fallbackResponse.data) {
-        return fallbackResponse.data.map(raw => mapRawExploreToListing(raw));
-    }
-
     return [];
   } catch (error) {
     return [];

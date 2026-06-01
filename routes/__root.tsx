@@ -152,9 +152,9 @@ function RootComponent() {
   const getRouteForTab = (tab: Tab) => {
     switch (tab) {
       case Tab.HOME: return '/home';
-      case Tab.COMPANIES: return '/companies/';
+      case Tab.COMPANIES: return '/companies';
       case Tab.ADD: return '/post-ad';
-      case Tab.EXPLORE: return '/explore/';
+      case Tab.EXPLORE: return '/explore';
       case Tab.PROFILE: return '/profile';
       default: return '/home';
     }
@@ -190,7 +190,7 @@ function RootComponent() {
         return {
           title: CATEGORY_NAMES[categoryId] || 'الشركات',
           showBack: true,
-          onBack: () => navigate({ to: '/companies' })
+          onBack: () => navigate({ to: '/companies/' as any, search: { category: undefined } as any })
         };
       } else {
         return {
@@ -255,7 +255,7 @@ function RootComponent() {
               {!isListingRoute && !isQuickStart && !isAuthRoute && (
                 <BottomNavigation 
                     activeTab={activeTab} 
-                    onTabChange={(tab) => navigate({ to: getRouteForTab(tab) as any })} 
+                    onTabChange={(tab) => navigate({ to: getRouteForTab(tab) as any, search: tab === Tab.COMPANIES ? ({ category: undefined } as any) : undefined })} 
                 />
               )}
             </>

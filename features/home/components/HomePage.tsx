@@ -105,11 +105,11 @@ const HomePage: React.FC<{
         }
         className="w-full bg-white dark:bg-slate-900 text-navy dark:text-slate-200 rounded-2xl p-4 shadow-lg shadow-navy/5 dark:shadow-black/20 flex items-center justify-between cursor-pointer active:scale-98 transition-all relative overflow-hidden group border border-navy/10 dark:border-slate-800 hover:border-navy/30 dark:hover:border-slate-700"
       >
-        <div className="flex flex-col gap-1 z-10">
+        <div className="flex flex-col gap-1 z-10 flex-1 min-w-0 text-right pr-2">
           <span className="text-[13px] text-gray-400 font-medium group-hover:text-blue transition-colors">
             عن ماذا تبحث
           </span>
-          <h3 className="text-sm font-semibold text-navy dark:text-slate-200 leading-tight truncate pl-4">
+          <h3 className="text-sm font-semibold text-navy dark:text-slate-200 leading-tight truncate" dir="rtl">
             {searchText || "اضغط لتحديد طلبك"}
           </h3>
         </div>
@@ -134,11 +134,23 @@ const HomePage: React.FC<{
           <div className="flex justify-center items-center py-10">
             <SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" />
           </div>
-        ) : (
+        ) : displayAds.length > 0 ? (
           <div className="grid grid-cols-2 gap-3">
             {displayAds.map((ad, index) => (
               <HomeListingCard key={`${ad.id}-${index}`} listing={ad} />
             ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center p-6 bg-white dark:bg-slate-900 border border-pale/50 dark:border-slate-800 rounded-2xl gap-4">
+            <span className="text-gray-500 dark:text-slate-400 text-sm font-medium leading-relaxed font-sans">
+              لا توجد لديك أي مقترحات بناءً على اختيارك، ابدأ الاستكشاف معنا
+            </span>
+            <button
+              onClick={() => navigate({ to: "/explore" })}
+              className="px-6 py-2.5 bg-blue text-white rounded-full font-bold text-sm hover:bg-blue/90 active:scale-95 transition-all shadow-md"
+            >
+              ابدأ الاستكشاف
+            </button>
           </div>
         )}
 

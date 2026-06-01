@@ -866,7 +866,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
     if (showEmbedded && sessionInfo) {
       return (
-        <div className="animate-scale-in pb-10">
+        <div className="animate-scale-in">
           <MyFatoorahPayment
             sessionId={sessionInfo.originalId || sessionInfo.id}
             countryCode={sessionInfo.country}

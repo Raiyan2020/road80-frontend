@@ -52,21 +52,20 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
   const hasTriggeredRetry = useRef(false); // prevent infinite retry loop
   const { data: settings } = useSettings();
 
+  // Continuously clear any text selection the user makes (works around cross-origin iframe limitation)
   useEffect(() => {
-    const styleId = 'myfatoorah-disable-selection-style';
-    if (document.getElementById(styleId)) return;
+    const clearSel = () => {
+      try { window.getSelection()?.removeAllRanges(); } catch {}
+    };
 
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = `
-      #myfatoorah-payment-lock,
-      #myfatoorah-payment-lock * {
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-      }
-    `;
-    document.head.appendChild(style);
+    // Fire on every selection-change and on touch move (prevents drag-select on mobile)
+    document.addEventListener('selectionchange', clearSel, true);
+    document.addEventListener('touchmove', clearSel, { passive: true, capture: true });
+
+    return () => {
+      document.removeEventListener('selectionchange', clearSel, true);
+      document.removeEventListener('touchmove', clearSel, true);
+    };
   }, []);
 
   useEffect(() => {
@@ -285,16 +284,16 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
         <div
           style={{
             overflow: 'hidden',
-            /* compensate height so the card input area still gets its full space */
-            marginBottom: isInitialized ? '-200px' : 0,
+            /* shift the iframe up to hide MF's "Insert Card Details" header + alt-pay row */
+            marginBottom: isInitialized ? '-210px' : 0,
           }}
           className="w-full rounded-2xl border border-pale dark:border-slate-800"
         >
           <div
             id={containerId}
             style={{
-              minHeight: isInitialized ? 420 : 0,
-              transform: isInitialized ? 'translateY(-200px)' : 'none',
+              minHeight: isInitialized ? 430 : 0,
+              transform: isInitialized ? 'translateY(-210px)' : 'none',
               transition: 'transform 0.2s',
             }}
             className="w-full bg-white dark:bg-slate-900 overflow-hidden"

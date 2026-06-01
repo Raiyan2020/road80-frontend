@@ -11,10 +11,21 @@ const FALLBACK_IMAGE = 'https://raiyansoft.com/wp-content/uploads/2026/01/1.png'
 const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  
-  const getFiltersFromUrl = (search: string) => {
-    const sp = new URLSearchParams(search);
+  const getFiltersFromUrl = (search: any) => {
+    let sp: URLSearchParams;
+    if (typeof search === 'string') {
+      sp = new URLSearchParams(search);
+    } else {
+      const record: Record<string, string> = {};
+      if (search) {
+        Object.entries(search).forEach(([key, val]) => {
+          if (val !== undefined && val !== null) {
+            record[key] = String(val);
+          }
+        });
+      }
+      sp = new URLSearchParams(record);
+    }
     return {
       name: sp.get('name') || '',
       country_id: sp.get('country_id') || '',

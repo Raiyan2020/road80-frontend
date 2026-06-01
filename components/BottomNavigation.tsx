@@ -19,9 +19,9 @@ const NAV_ITEMS: NavItem[] = [
 const getRouteForTab = (tab: Tab) => {
   switch (tab) {
     case Tab.HOME: return '/home';
-    case Tab.COMPANIES: return '/companies/';
+    case Tab.COMPANIES: return '/companies';
     case Tab.ADD: return '/post-ad';
-    case Tab.EXPLORE: return '/explore/';
+    case Tab.EXPLORE: return '/explore';
     case Tab.PROFILE: return '/profile';
     default: return '/home';
   }
@@ -59,7 +59,8 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab }) => {
           return (
             <Link
               key={item.id}
-              to={getRouteForTab(item.id)}
+              to={getRouteForTab(item.id) as any}
+              search={item.id === Tab.COMPANIES ? ({ category: undefined } as any) : undefined}
               className={`flex flex-1 flex-col items-center justify-center gap-1 h-full transition-all duration-200 ${
                 isActive ? 'text-navy dark:text-blue' : 'text-gray-400 dark:text-slate-600'
               }`}

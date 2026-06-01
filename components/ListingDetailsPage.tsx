@@ -263,9 +263,9 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
         // Extract contact from API response (supports data.contact_info.phone or data.phone)
         const contactData = verifyRes.data?.contact_info ||
-          verifyRes.contact_info || {
-            phone: verifyRes.data?.phone || verifyRes.phone,
-            whatsapp: verifyRes.data?.whatsapp || verifyRes.whatsapp,
+          (verifyRes as any).contact_info || {
+            phone: verifyRes.data?.phone || (verifyRes as any).phone,
+            whatsapp: verifyRes.data?.whatsapp || (verifyRes as any).whatsapp,
           };
 
         if (contactData && contactData.phone) {
@@ -326,7 +326,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
     if (isPaid || isUnlocked) {
       if (phone || whatsapp) {
-        const contactInfo = [];
+        const contactInfo: string[] = [];
         if (phone) contactInfo.push(`الهاتف: ${phone}`);
         if (whatsapp) contactInfo.push(`واتساب: ${whatsapp}`);
 

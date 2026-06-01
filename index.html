@@ -110,6 +110,23 @@
         background: transparent;
       }
 
+      /* Prevent text selection globally — required for native app store approval */
+      * {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+      }
+
+      /* Re-enable selection only inside form inputs */
+      input, textarea, [contenteditable="true"] {
+        -webkit-user-select: text;
+        -moz-user-select: text;
+        -ms-user-select: text;
+        user-select: text;
+      }
+
       /* Prevent image dragging and long-press save for app-like feel */
       img {
         -webkit-user-drag: none;
@@ -118,6 +135,7 @@
         -o-user-drag: none;
         user-drag: none;
         -webkit-touch-callout: none;
+        pointer-events: none;
       }
 
       /* Fix iOS Safari extra top space & height */

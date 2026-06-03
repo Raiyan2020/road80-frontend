@@ -300,7 +300,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 {loading ? (
                   <SpinnerIcon className="w-6 h-6 animate-spin text-white" />
                 ) : (
-                  "إرسال رمز التفعيل"
+                  "دخول"
                 )}
               </button>
             </form>

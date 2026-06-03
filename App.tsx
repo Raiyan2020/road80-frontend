@@ -37,7 +37,7 @@ const App: React.FC = () => {
     // Default to Light Mode. Only enable Dark Mode if explicitly saved.
     const saved = localStorage.getItem('road80_theme');
     if (saved === 'dark') {
-        return 'dark';
+      return 'dark';
     }
     return 'light';
   });
@@ -63,7 +63,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const onHashChange = () => setCurrentHash(window.location.hash);
     window.addEventListener('hashchange', onHashChange);
-    
+
     // Initial Route Set if empty
     if (!window.location.hash) {
       window.location.hash = '#/home';
@@ -83,20 +83,20 @@ const App: React.FC = () => {
       CapacitorApp.addListener('appUrlOpen', (event: any) => {
         // Example URL: road80://payment-callback?status=success&paymentId=...
         const url = new URL(event.url);
-        
+
         if (url.host === 'payment-callback') {
-            const status = url.searchParams.get('status');
-            const paymentId = url.searchParams.get('paymentId');
+          const status = url.searchParams.get('status');
+          const paymentId = url.searchParams.get('paymentId');
 
-            // 1. Close the 3DS browser if open
-            Browser.close();
+          // 1. Close the 3DS browser if open
+          Browser.close();
 
-            // 2. Navigate based on status using the hash router
-            if (status === 'success') {
-                window.location.hash = `#/profile?payment=success&id=${paymentId}`;
-            } else {
-                window.location.hash = '#/profile?payment=failed';
-            }
+          // 2. Navigate based on status using the hash router
+          if (status === 'success') {
+            window.location.hash = `#/profile?payment=success&id=${paymentId}`;
+          } else {
+            window.location.hash = '#/profile?payment=failed';
+          }
         }
       });
     };
@@ -114,7 +114,7 @@ const App: React.FC = () => {
   const isAuthRoute = routePath.startsWith('/auth') || routePath.startsWith('/verify');
   const isStandalonePage = ['/faq', '/terms', '/privacy', '/blogs'].some(p => routePath.startsWith(p));
   const isQuickStart = routePath.startsWith('/quick-start');
-  
+
   // Route Guards
   useEffect(() => {
     if (!showSplash) {
@@ -138,7 +138,7 @@ const App: React.FC = () => {
   else if (routePath.startsWith('/explore')) activeTab = Tab.EXPLORE;
   else if (routePath.startsWith('/profile')) activeTab = Tab.PROFILE;
   else if (routePath.startsWith('/ad/')) {
-    activeTab = Tab.PROFILE; 
+    activeTab = Tab.PROFILE;
     const parts = routePath.split('/');
     if (parts.length >= 3) {
       listingId = parseInt(parts[2]);
@@ -213,8 +213,8 @@ const App: React.FC = () => {
   const handleBackFromDetails = () => {
     window.history.back();
   };
-  
-  const handleTabChange = () => {}; 
+
+  const handleTabChange = () => { };
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
@@ -226,8 +226,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div 
-      className="relative w-full max-w-[430px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"
+    <div
+      className="relative w-full max-w-[991px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"
       style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
     >
       {showSplash ? (
@@ -236,21 +236,21 @@ const App: React.FC = () => {
         <>
           {/* Auth Flow */}
           {(!isAuthenticated || isAuthRoute) ? (
-             <AuthPage onLoginSuccess={handleLoginSuccess} />
+            <AuthPage onLoginSuccess={handleLoginSuccess} />
           ) : (
             /* Protected App Shell */
             <>
               {/* Layer 1: Header */}
               {!listingId && !isQuickStart && (
-                <Header 
-                  title={headerProps.title} 
-                  showBack={headerProps.showBack} 
-                  onBack={headerProps.onBack} 
+                <Header
+                  title={headerProps.title}
+                  showBack={headerProps.showBack}
+                  onBack={headerProps.onBack}
                 />
               )}
 
               {/* Layer 2: Main Content Area */}
-              <main 
+              <main
                 className="absolute left-0 right-0 overflow-hidden bg-bg dark:bg-slate-950 animate-fade-in transition-colors duration-300"
                 style={{
                   top: (listingId || isQuickStart) ? '0' : 'calc(var(--header-h) + env(safe-area-inset-top))',
@@ -258,15 +258,15 @@ const App: React.FC = () => {
                   zIndex: (listingId || isQuickStart) ? 50 : 10
                 }}
               >
-                 {isQuickStart ? (
-                    <QuickWizard onComplete={handleQuickWizardComplete} />
-                 ) : listingId ? (
-                    <ListingDetailsPage 
-                      listingId={listingId}
-                      onBack={handleBackFromDetails} 
-                    />
-                 ) : (
-                   <>
+                {isQuickStart ? (
+                  <QuickWizard onComplete={handleQuickWizardComplete} />
+                ) : listingId ? (
+                  <ListingDetailsPage
+                    listingId={listingId}
+                    onBack={handleBackFromDetails}
+                  />
+                ) : (
+                  <>
                     <div className={`absolute inset-0 ${activeTab === Tab.HOME ? 'block' : 'hidden'}`}>
                       <div className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar pb-20">
                         <HomePage theme={theme} onToggleTheme={toggleTheme} />
@@ -280,7 +280,7 @@ const App: React.FC = () => {
                     </div>
 
                     <div className={`absolute inset-0 ${activeTab === Tab.ADD ? 'block' : 'hidden'}`}>
-                       <AddWizard onComplete={handleWizardComplete} />
+                      <AddWizard onComplete={handleWizardComplete} />
                     </div>
 
                     <div className={`absolute inset-0 ${activeTab === Tab.EXPLORE ? 'block' : 'hidden'}`}>
@@ -290,22 +290,22 @@ const App: React.FC = () => {
                     </div>
 
                     <div className={`absolute inset-0 ${activeTab === Tab.PROFILE ? 'block' : 'hidden'}`}>
-                       <div className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar pb-20">
-                         <ProfilePage 
-                            key={lastUpdate} 
-                            onListingClick={handleListingClick}
-                         />
-                       </div>
+                      <div className="h-full w-full overflow-y-auto overflow-x-hidden no-scrollbar pb-20">
+                        <ProfilePage
+                          key={lastUpdate}
+                          onListingClick={handleListingClick}
+                        />
+                      </div>
                     </div>
-                   </>
-                 )}
+                  </>
+                )}
               </main>
 
               {/* Layer 3: Bottom Navigation */}
               {!listingId && !isQuickStart && (
-                <BottomNavigation 
-                    activeTab={activeTab} 
-                    onTabChange={handleTabChange} 
+                <BottomNavigation
+                  activeTab={activeTab}
+                  onTabChange={handleTabChange}
                 />
               )}
             </>

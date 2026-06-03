@@ -121,7 +121,7 @@ function RootComponent() {
   const isQuickStart = routePath.startsWith('/quick-start');
   const isProfile = routePath.startsWith('/profile');
   const isCompanies = routePath.startsWith('/companies');
-  
+
   // Use regex to detect listing route: /ad/:id
   const isListingRoute = routePath.startsWith('/ad/');
   // Sub-pages that need a back button but use the shell header
@@ -147,7 +147,7 @@ function RootComponent() {
   else if (routePath.startsWith('/post-ad')) activeTab = Tab.ADD;
   else if (routePath.startsWith('/explore')) activeTab = Tab.EXPLORE;
   else if (routePath.startsWith('/profile')) activeTab = Tab.PROFILE;
-  else if (isListingRoute) activeTab = Tab.PROFILE; 
+  else if (isListingRoute) activeTab = Tab.PROFILE;
 
   const getRouteForTab = (tab: Tab) => {
     switch (tab) {
@@ -220,13 +220,13 @@ function RootComponent() {
 
   const headerProps = getHeaderProps();
 
-  const handleTabChange = () => {}; 
+  const handleTabChange = () => { };
 
   return (
     <QueryClientProvider client={queryClient}>
       <AppContext.Provider value={{ theme, setTheme }}>
-        <div 
-          className="relative w-full max-w-[430px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"
+        <div
+          className="relative w-full max-w-[991px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"
           style={{ height: 'calc(var(--vh, 1vh) * 100)' }}
         >
           {showSplash ? (
@@ -234,14 +234,14 @@ function RootComponent() {
           ) : (
             <>
               {!isListingRoute && !isQuickStart && !isAuthRoute && !isStandalonePage && (
-                <Header 
-                  title={headerProps.title} 
-                  showBack={headerProps.showBack} 
-                  onBack={headerProps.onBack} 
+                <Header
+                  title={headerProps.title}
+                  showBack={headerProps.showBack}
+                  onBack={headerProps.onBack}
                 />
               )}
 
-              <main 
+              <main
                 className="absolute left-0 right-0 overflow-hidden bg-bg dark:bg-slate-950 animate-fade-in transition-colors duration-300"
                 style={{
                   top: (isListingRoute || isQuickStart || isAuthRoute || isStandalonePage) ? '0' : 'calc(var(--header-h) + env(safe-area-inset-top))',
@@ -253,9 +253,9 @@ function RootComponent() {
               </main>
 
               {!isListingRoute && !isQuickStart && !isAuthRoute && (
-                <BottomNavigation 
-                    activeTab={activeTab} 
-                    onTabChange={(tab) => navigate({ to: getRouteForTab(tab) as any, search: tab === Tab.COMPANIES ? ({ category: undefined } as any) : undefined })} 
+                <BottomNavigation
+                  activeTab={activeTab}
+                  onTabChange={(tab) => navigate({ to: getRouteForTab(tab) as any, search: tab === Tab.COMPANIES ? ({ category: undefined } as any) : undefined })}
                 />
               )}
             </>

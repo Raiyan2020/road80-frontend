@@ -35,6 +35,7 @@ export interface ExploreRawAd {
     file: string;
     type: string;
   };
+  status?: number;
 }
 
 export interface ExploreResponse {

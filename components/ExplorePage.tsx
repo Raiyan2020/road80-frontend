@@ -5,6 +5,7 @@ import { Listing } from '../types';
 import { PlayIcon, SpinnerIcon, SlidersIcon, SearchIcon } from './Icons';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import { ExploreFilterDrawer, ExploreFilters } from './ExploreFilterDrawer';
+import { listingHasVideo } from '../features/explore/services/explore.service';
 
 const FALLBACK_IMAGE = 'https://raiyansoft.com/wp-content/uploads/2026/01/1.png';
 
@@ -180,12 +181,14 @@ const ExplorePage: React.FC = () => {
              {/* Dark Gradient Overlay */}
              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
 
-             {/* Play Icon Center */}
-             <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                    <PlayIcon className="w-5 h-5 text-white ml-0.5" />
-                </div>
-             </div>
+             {/* Play Icon Center — video ads only */}
+             {listingHasVideo(item) && (
+               <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+                      <PlayIcon className="w-5 h-5 text-white ml-0.5" />
+                  </div>
+               </div>
+             )}
 
              {/* Meta Info (Bottom) */}
              <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col justify-end text-white">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   CheckIcon,
@@ -21,6 +21,12 @@ import { Category } from "../features/post-ad/services/post-ad.service";
 import { Country } from "../shared/types/country";
 import { toast } from "sonner";
 import { checkMediaPermissions } from "../shared/utils/media-permissions";
+import {
+  AD_IMAGE_TYPE_ERROR,
+  AD_VIDEO_TYPE_ERROR,
+  isAllowedAdImage,
+  isAllowedAdVideo,
+} from "../shared/utils/media-validation";
 import MyFatoorahPayment from "./MyFatoorahPayment";
 import { paymentService } from "../shared/services/payment.service";
 
@@ -80,7 +86,10 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
   const [transactionId, setTransactionId] = useState<number | null>(null);
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [showErrors, setShowErrors] = useState(false);
+  const [keyboardPadding, setKeyboardPadding] = useState(0);
 
   // ── Location Data ────────────────────────────────────────────────────────
   const { data: states = [] } = useExploreStates(countryId || undefined);
@@ -155,6 +164,55 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   );
 
   const currentStepInfo = steps[step - 1];
+  const isDetailsStep = currentStepInfo?.type === "details";
+
+  const scrollInputIntoView = useCallback((element: HTMLElement) => {
+    const container = document.getElementById("wizard-scroll-area");
+
+    setTimeout(() => {
+      if (!container) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const elementRect = element.getBoundingClientRect();
+      const offset =
+        elementRect.top -
+        containerRect.top -
+        containerRect.height / 2 +
+        elementRect.height / 2;
+
+      container.scrollBy({ top: offset, behavior: "smooth" });
+    }, 350);
+  }, []);
+
+  useEffect(() => {
+    if (!isDetailsStep) {
+      setKeyboardPadding(0);
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const updateKeyboardPadding = () => {
+      const keyboardHeight = Math.max(
+        0,
+        window.innerHeight - viewport.height - viewport.offsetTop,
+      );
+      setKeyboardPadding(keyboardHeight);
+    };
+
+    updateKeyboardPadding();
+    viewport.addEventListener("resize", updateKeyboardPadding);
+    viewport.addEventListener("scroll", updateKeyboardPadding);
+
+    return () => {
+      viewport.removeEventListener("resize", updateKeyboardPadding);
+      viewport.removeEventListener("scroll", updateKeyboardPadding);
+    };
+  }, [isDetailsStep]);
 
   // ── Validation ───────────────────────────────────────────────────────────
   const isCurrentStepValid = (): boolean => {
@@ -210,13 +268,81 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     }
   };
 
+  const resetWizard = useCallback(() => {
+    setCategoryValues({});
+    setCountryId(null);
+    setStateId(null);
+    setCityId(null);
+    setPrice("");
+    setTitle("");
+    setDescription("");
+    setImages([]);
+    setVideoFile(null);
+    setIsProcessing(false);
+    setPublished(false);
+    setIsRedirectingToPayment(false);
+    setShowEmbedded(false);
+    setSessionInfo(null);
+    setTransactionId(null);
+    setEncryptionKey(null);
+    setShowErrors(false);
+    resetVideoUpload();
+    setStep(1);
+  }, [resetVideoUpload]);
+
+  // Allow starting a new ad via bottom-nav "+" without visiting profile first.
+  useEffect(() => {
+    if (!published) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const requestedStep = parseInt(params.get("step") || "1", 10);
+
+    if (requestedStep === 1) {
+      resetWizard();
+    }
+  }, [location.search, published, resetWizard]);
+
   // ── Video Upload ─────────────────────────────────────────────────────────
   const handleVideoSelect = async (file: File) => {
+    if (!isAllowedAdVideo(file)) {
+      toast.error(AD_VIDEO_TYPE_ERROR);
+      if (videoInputRef.current) {
+        videoInputRef.current.value = "";
+      }
+      return;
+    }
+
     setVideoFile(file);
     try {
       await uploadVideo(file);
     } catch {
       toast.error("فشل رفع الفيديو. يرجى المحاولة مرة أخرى.");
+    }
+  };
+
+  const handleImageSelect = (files: FileList | null) => {
+    if (!files?.length) return;
+
+    const validFiles: File[] = [];
+    let hasInvalid = false;
+
+    Array.from(files).forEach((file) => {
+      if (isAllowedAdImage(file)) {
+        validFiles.push(file);
+      } else {
+        hasInvalid = true;
+      }
+    });
+
+    if (hasInvalid) {
+      toast.error(AD_IMAGE_TYPE_ERROR);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+      }
+    }
+
+    if (validFiles.length) {
+      setImages((prev) => [...prev, ...validFiles]);
     }
   };
 
@@ -473,15 +599,27 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
           </p>
         ) : (
           <div className="flex flex-col items-center gap-4 mt-4 w-full max-w-xs">
-             <button
-                onClick={() => onComplete()}
-                className="w-full py-4 rounded-2xl bg-navy dark:bg-blue text-white font-bold transition-all active:scale-95 shadow-lg shadow-navy/20"
-             >
-                الذهاب إلى إعلاناتي
-             </button>
-             <p className="text-gray-400 text-sm text-center font-medium">
-                سيظهر إعلانك فور مراجعته والموافقة عليه من قبل الإدارة.
-             </p>
+            <button
+              onClick={() => {
+                resetWizard();
+                goTo(1);
+              }}
+              className="w-full py-4 rounded-2xl bg-navy dark:bg-blue text-white font-bold transition-all active:scale-95 shadow-lg shadow-navy/20"
+            >
+              نشر إعلان جديد
+            </button>
+            <button
+              onClick={() => {
+                resetWizard();
+                onComplete();
+              }}
+              className="w-full py-4 rounded-2xl border-2 border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold transition-all active:scale-95"
+            >
+              الذهاب إلى إعلاناتي
+            </button>
+            <p className="text-gray-400 text-sm text-center font-medium">
+              سيظهر إعلانك فور مراجعته والموافقة عليه من قبل الإدارة.
+            </p>
           </div>
         )}
       </div>
@@ -715,11 +853,12 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                 <p className="font-bold text-navy dark:text-slate-200">
                   اختر فيديو
                 </p>
-                <p className="text-xs text-gray-400 mt-1">MP4, MOV, AVI</p>
+                <p className="text-xs text-gray-400 mt-1">MP4, MOV</p>
               </div>
               <input
+                ref={videoInputRef}
                 type="file"
-                accept="video/*"
+                accept="video/mp4,video/quicktime,.mp4,.mov"
                 className="hidden"
                 onClick={async (e) => {
                   const granted = await checkMediaPermissions();
@@ -767,8 +906,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             <label className="aspect-square rounded-xl border-2 border-dashed border-pale dark:border-slate-700 flex items-center justify-center cursor-pointer hover:border-navy transition-all">
               <PlusIcon className="w-8 h-8 text-gray-300" />
               <input
+                ref={imageInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/jpg,.jpg,.jpeg,.png"
                 multiple
                 className="hidden"
                 onClick={async (e) => {
@@ -779,18 +919,13 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                   }
                 }}
                 onChange={(e) => {
-                  if (e.target.files) {
-                    setImages((prev) => [
-                      ...prev,
-                      ...Array.from(e.target.files!),
-                    ]);
-                  }
+                  handleImageSelect(e.target.files);
                 }}
               />
             </label>
           </div>
           <p className="text-xs text-gray-400 text-center mt-3">
-            {images.length} صورة مختارة
+            {images.length} صورة مختارة · JPG, JPEG, PNG
           </p>
         </>
       );
@@ -815,6 +950,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               pattern="[0-9]*"
               placeholder="0"
               value={price ? Number(price).toLocaleString("en") : ""}
+              onFocus={(e) => scrollInputIntoView(e.currentTarget)}
               onChange={(e) => {
                 // Strip every character that is not a digit (blocks e, +, -, letters, dots)
                 const raw = e.target.value.replace(/[^0-9]/g, "");
@@ -836,6 +972,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               type="text"
               placeholder="مثال: شقة للإيجار في السالمية"
               value={title}
+              onFocus={(e) => scrollInputIntoView(e.currentTarget)}
               onChange={(e) => setTitle(e.target.value)}
               className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-base font-bold text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all ${
                 isTitleInvalid
@@ -852,6 +989,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               rows={5}
               placeholder="اكتب وصفاً تفصيلياً للعقار (10 حروف على الأقل)..."
               value={description}
+              onFocus={(e) => scrollInputIntoView(e.currentTarget)}
               onChange={(e) => setDescription(e.target.value)}
               className={`w-full rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 py-4 text-base font-medium text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all resize-none ${
                 isDescInvalid
@@ -859,6 +997,30 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                   : "border-pale dark:border-slate-700"
               }`}
             />
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2 pb-4">
+            <button
+              onClick={prev}
+              disabled={step === 1}
+              className={`w-full py-4 rounded-xl font-bold border border-pale dark:border-slate-700 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 transition-all shadow-sm ${
+                step === 1
+                  ? "opacity-40 cursor-not-allowed"
+                  : "active:scale-95 hover:bg-pale/30"
+              }`}
+            >
+              رجوع
+            </button>
+            <button
+              onClick={next}
+              className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all ${
+                isCurrentStepValid()
+                  ? "bg-navy dark:bg-blue text-white shadow-navy/20 active:scale-95"
+                  : "bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              التالي
+            </button>
           </div>
         </div>
       );
@@ -970,6 +1132,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   // ── Footer buttons ───────────────────────────────────────────────────────
   const renderFooter = () => {
     if (showEmbedded) return null;
+    if (currentStepInfo?.type === "details") return null;
 
     const backBtn = (
       <button
@@ -1009,7 +1172,6 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     const needsManualNext =
       currentStepInfo?.type === "video" ||
       currentStepInfo?.type === "images" ||
-      currentStepInfo?.type === "details" ||
       (currentStepInfo?.type === "category" &&
         currentStepInfo.data.type === "range");
 
@@ -1034,6 +1196,8 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     // Default: just back button (auto-advance on selection)
     return <div className="w-full">{backBtn}</div>;
   };
+
+  const footerContent = renderFooter();
 
   // ── Layout ───────────────────────────────────────────────────────────────
   return (
@@ -1067,15 +1231,25 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       {/* Scrollable content */}
       <div
         id="wizard-scroll-area"
-        className="flex-1 overflow-y-auto no-scrollbar px-5 py-4 pb-6"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar px-5 py-4"
+        style={{
+          WebkitOverflowScrolling: "touch",
+          touchAction: "pan-y",
+          overscrollBehavior: "contain",
+          paddingBottom: isDetailsStep
+            ? `${Math.max(keyboardPadding, 24) + 16}px`
+            : "24px",
+        }}
       >
         <div className="animate-fade-in">{renderStep()}</div>
       </div>
 
       {/* Footer */}
-      <div className="shrink-0 px-5 pb-8 pt-3 bg-gradient-to-t from-bg dark:from-slate-950 via-bg/90 dark:via-slate-950/90 to-transparent">
-        {renderFooter()}
-      </div>
+      {footerContent && (
+        <div className="shrink-0 px-5 pb-8 pt-3 bg-gradient-to-t from-bg dark:from-slate-950 via-bg/90 dark:via-slate-950/90 to-transparent">
+          {footerContent}
+        </div>
+      )}
     </div>
   );
 };

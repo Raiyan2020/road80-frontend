@@ -29,6 +29,30 @@ export async function fetchExploreFeed(params?: ExploreFilters): Promise<Explore
  * Maps Raw Explore Ad to our internal Listing schema.
  * Handles both 'answers' (legacy/detailed) and 'categories' (shorthand) response formats.
  */
+const isVideoFile = (file?: string) => {
+  if (!file) return false;
+  const lower = file.toLowerCase();
+  return (
+    lower.endsWith('.mp4') ||
+    lower.endsWith('.mov') ||
+    lower.endsWith('.avi') ||
+    lower.endsWith('.webm')
+  );
+};
+
+export function listingHasVideo(
+  listing: Pick<Listing, 'video' | 'images'>,
+): boolean {
+  if (listing.video) return true;
+
+  const firstImage = listing.images?.[0];
+  if (typeof firstImage === 'string') {
+    return isVideoFile(firstImage);
+  }
+
+  return false;
+}
+
 export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
   // Broad search for property type in answers or categories
   const propertyType = 
@@ -47,6 +71,9 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
   const numericPrice = parseFloat(numericPriceStr) || 0;
   const formattedPrice = numericPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ' د.ك';
 
+  const hasVideo =
+    raw.image?.type === 'video' || isVideoFile(raw.image?.file);
+
   return ListingSchema.parse({
     id: raw.id,
     title: raw.title,
@@ -54,10 +81,12 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
     governorate: raw.state_name,
     area: raw.city_name,
     images: raw.image?.file ? [raw.image.file] : [],
+    video: hasVideo && raw.image?.file ? raw.image.file : undefined,
     listingType: listingType,
     propertyType: propertyType,
     isLiked: Boolean(raw.is_liked),
     likesCount: raw.likes_count || 0,
     watchCount: raw.watch_count || raw.views || 0,
+    status: raw.status,
   });
 }

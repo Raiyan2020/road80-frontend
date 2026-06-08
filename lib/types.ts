@@ -32,6 +32,7 @@ export const ListingSchema = z.object({
   isLiked: z.boolean().optional().default(false),
   likesCount: z.number().optional().default(0),
   watchCount: z.number().optional().default(0),
+  status: z.number().optional(),
 });
 
 export type Listing = z.infer<typeof ListingSchema>;

@@ -12,6 +12,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { initializePushNotifications } from '../shared/utils/notifications';
 import { useUserStore } from '../stores/user.store';
+import { useSyncFavorites } from '../features/favorites/hooks/useSyncFavorites';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,11 @@ const CATEGORY_NAMES: Record<string, string> = {
   'decor': 'قسم الديكور',
   'materials': 'مواد البناء'
 };
+
+function FavoritesBootstrap() {
+  useSyncFavorites();
+  return null;
+}
 
 function RootComponent() {
   const [showSplash, setShowSplash] = useState(true);
@@ -224,6 +230,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <FavoritesBootstrap />
       <AppContext.Provider value={{ theme, setTheme }}>
         <div
           className="relative w-full max-w-[991px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"

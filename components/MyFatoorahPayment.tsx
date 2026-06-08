@@ -149,9 +149,50 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
       // v3 config uses 'containerId' (not 'cardViewId'), and no separate 'countryCode' needed
 
       try {
+        const cardStyle = {
+          direction: 'ltr',
+          cardHeight: '200px',
+          hideNetworkIcons: false,
+          input: {
+            color: '#3e689b',
+            fontSize: '16px',
+            fontFamily: 'sans-serif',
+            borderColor: '#e1eaf5',
+            borderRadius: '12px',
+            placeholder: { color: '#a9c2e0', fontSize: '14px' },
+          },
+          label: {
+            display: true,
+            color: '#3e689b',
+            fontSize: '13px',
+            fontWeight: '600',
+          },
+          error: { borderColor: '#ef4444' },
+          button: {
+            useCustomButton: false,
+            textContent: 'ادفع الآن',
+            fontSize: '16px',
+            fontFamily: 'sans-serif',
+            color: '#ffffff',
+            backgroundColor: '#3e689b',
+            height: '52px',
+            borderRadius: '16px',
+            width: '100%',
+            margin: '12px 0 0',
+            cursor: 'pointer',
+            onButtonClicked: () => {
+              setIsSubmitting(true);
+              setError(null);
+            },
+          },
+          separator: { display: 'none' },
+        };
+
         const config: Record<string, any> = {
           sessionId,
-          containerId: containerId,
+          containerId,
+          paymentOptions: ['Card'],
+          language: 'ar',
           callback: (response: any) => {
             setIsSubmitting(false);
 
@@ -181,17 +222,9 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
               onError(response);
             }
           },
-          style: {
-            direction: 'ltr',
-            cardHeight: 220,
-            input: {
-              color: '#3e689b',
-              fontSize: '16px',
-              fontFamily: 'sans-serif',
-              placeholder: { color: '#a9c2e0', fontSize: '14px' },
-            },
-            label: { display: false, color: '#3e689b', fontSize: '14px', fontWeight: 'bold' },
-            error: { borderColor: '#ef4444' },
+          style: cardStyle,
+          settings: {
+            card: { style: cardStyle },
           },
         };
 
@@ -220,29 +253,6 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
       observerRef.current?.disconnect();
     };
   }, [sessionId, countryCode, encryptionKey]);
-
-  const handlePay = () => {
-    const sdk = getSDK();
-    if (!sdk || !isInitialized) {
-      return;
-    }
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      const submitFn = sdk.submitCardPayment || sdk.submit || sdk.submitCard;
-      if (typeof submitFn === 'function') {
-        submitFn.call(sdk);
-      } else {
-        throw new Error('لم يتم العثور على دالة الدفع.');
-      }
-    } catch (err: any) {
-      setIsSubmitting(false);
-      const msg = err.message || 'فشل معالجة الدفع';
-      setError(`خطأ: ${translateMyFatoorahError(msg)}`);
-      onError(err);
-    }
-  };
 
   const clearSelection = () => {
     window.getSelection()?.removeAllRanges();
@@ -278,59 +288,32 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
           </div>
         )}
 
-        {/* MF SDK injects its iframe here.
-            We clip the top ~145px where MF renders Apple Pay / Google Pay / KNET buttons
-            by shifting the iframe up with translateY and hiding the overflow. */}
-        <div
-          style={{
-            overflow: 'hidden',
-            /* shift the iframe up to hide MF's "Insert Card Details" header + alt-pay row */
-            marginBottom: isInitialized ? '-210px' : 0,
-          }}
-          className="w-full rounded-2xl border border-pale dark:border-slate-800"
-        >
-          <div
-            id={containerId}
-            style={{
-              minHeight: isInitialized ? 430 : 0,
-              transform: isInitialized ? 'translateY(-210px)' : 'none',
-              transition: 'transform 0.2s',
-            }}
-            className="w-full bg-white dark:bg-slate-900 overflow-hidden"
-          />
+        <div className="relative w-full rounded-2xl border border-pale dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden min-h-[280px]">
+          <div id={containerId} className="w-full" />
+
+          {!isInitialized && !error && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white dark:bg-slate-900">
+              <SpinnerIcon className="w-7 h-7 text-navy/30 animate-spin" />
+              <span className="text-[10px] text-gray-400">جاري تحميل نظام الدفع...</span>
+            </div>
+          )}
         </div>
 
-        {!isInitialized && !error && (
-          <div className="flex flex-col items-center gap-2 py-6">
-            <SpinnerIcon className="w-7 h-7 text-navy/30 animate-spin" />
-            <span className="text-[10px] text-gray-400">جاري تحميل نظام الدفع...</span>
+        {isSubmitting && (
+          <div className="flex items-center justify-center gap-2 py-3">
+            <SpinnerIcon className="w-5 h-5 text-navy/50 animate-spin" />
+            <span className="text-[12px] text-gray-500 font-medium">جاري معالجة الدفع...</span>
           </div>
         )}
       </div>
 
-      {/* <button
-        onClick={handlePay}
-        disabled={isSubmitting || !isInitialized}
-        className={`w-full py-4 rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-lg ${
-          isSubmitting || !isInitialized
-            ? 'bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed shadow-none'
-            : 'bg-navy dark:bg-blue text-white shadow-navy/20'
-        }`}
-      >
-        {isSubmitting ? (
-          <><SpinnerIcon className="w-5 h-5 animate-spin" /><span>جاري معالجة الدفع...</span></>
-        ) : (
-          <span>ادفع الآن</span>
-        )}
-      </button> */}
-
       <div className="flex justify-center items-center gap-5 opacity-40">
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" className="h-2.5 object-contain" alt="Visa" />
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" className="h-4 object-contain" alt="Mastercard" />
-        <span className="text-[9px] font-black text-gray-400 border-l border-gray-300 pl-4">KNET</span>
+        <span className="text-[9px] font-black text-gray-400 border-s border-gray-300 ps-4">KNET</span>
       </div>
-      <p className="text-[9px] text-center text-gray-400 font-medium tracking-wider uppercase">
-        Secure Payment Powered by MyFatoorah
+      <p className="text-[9px] text-center text-gray-400 font-medium tracking-wide">
+        دفع آمن بدعم من MyFatoorah
       </p>
     </div>
   );

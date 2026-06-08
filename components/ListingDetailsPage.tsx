@@ -76,7 +76,11 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     phone?: string;
     whatsapp?: string | null;
   } | null>(null);
-  const isFavorite = useFavoritesStore((state) => state.isFavorite(listingId));
+  const normalizedListingId = Number(listingId);
+  const isFavorite = useFavoritesStore((state) =>
+    state.ids.includes(normalizedListingId),
+  );
+  const mergeFavoriteIds = useFavoritesStore((state) => state.mergeIds);
   const { mutate: toggleFavoriteMutation } = useFavoriteToggle();
   const callMutation = useCallAd();
 
@@ -86,6 +90,14 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
   useEffect(() => {
     if (listing) {
+      const serverLiked = Boolean(
+        (listing as { is_liked?: boolean; isLiked?: boolean }).is_liked ??
+          (listing as { is_liked?: boolean; isLiked?: boolean }).isLiked,
+      );
+      if (serverLiked) {
+        mergeFavoriteIds([Number(listing.id)]);
+      }
+
       const userStr = localStorage.getItem("road80_user");
       const user = userStr ? JSON.parse(userStr) : {};
       const userId = user.phone || "guest";
@@ -108,7 +120,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     } else if (!loading) {
       setTimeout(onBack, 100);
     }
-  }, [listing, loading, onBack]);
+  }, [listing, loading, onBack, mergeFavoriteIds]);
 
   if (loading || !listing) {
     return (

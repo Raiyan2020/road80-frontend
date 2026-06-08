@@ -24,6 +24,8 @@ import {
 import { UpdateProfileDialog } from "./UpdateProfileDialog";
 import { useOffice } from "../features/companies/hooks/useOffices";
 import { useOfficeAds } from "../features/companies/hooks/useOfficeAds";
+import { listingHasVideo } from "../features/explore/services/explore.service";
+import { PlayIcon } from "./Icons";
 
 interface ProfilePageProps {
   onListingClick?: (listing: Listing) => void;
@@ -80,6 +82,8 @@ const ListingCard: React.FC<{
     }
   }, [listing]);
 
+  const hasVideo = listingHasVideo(listing);
+
   return (
     <div
       onClick={onClick}
@@ -95,6 +99,14 @@ const ListingCard: React.FC<{
         <span className="absolute top-2 left-2 bg-navy/80 dark:bg-blue/80 text-white text-[13px] px-2 py-0.5 rounded-full z-10 font-bold">
           جديد
         </span>
+
+        {hasVideo && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="w-10 h-10 rounded-full bg-black/35 backdrop-blur-md flex items-center justify-center border border-white/30">
+              <PlayIcon className="w-5 h-5 text-white ml-0.5" />
+            </div>
+          </div>
+        )}
 
         {isOwner && (
           <div className="absolute top-2 right-2 flex gap-1 z-20">
@@ -129,6 +141,20 @@ const ListingCard: React.FC<{
             >
               {isToggling ? (
                 "..."
+              ) : listing.status === 0 ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                  <path
+                    fillRule="evenodd"
+                    d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.588 1.587-.213 3.335-1.848 4.118a1.627 1.627 0 01-1.848 0zM10 5.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
               ) : (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -136,11 +162,11 @@ const ListingCard: React.FC<{
                   fill="currentColor"
                   className="w-4 h-4"
                 >
-                  {listing.status === 0 ? (
-                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                  ) : (
-                    <path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z" />
-                  )}
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
             </button>

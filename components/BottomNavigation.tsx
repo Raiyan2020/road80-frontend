@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { Tab, NavItem } from '../types';
 import { HomeIcon, BuildingIcon, PlusIcon, PlayIcon, UserIcon } from './Icons';
 
@@ -28,6 +28,13 @@ const getRouteForTab = (tab: Tab) => {
 };
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab }) => {
+  const navigate = useNavigate();
+
+  const handleAddClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    navigate({ to: '/post-ad', search: { step: 1 } as any });
+  };
+
   return (
     <div 
       className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-pale dark:border-slate-800 shadow-[0_-5px_15px_rgba(0,0,0,0.02)] z-40 overflow-visible transition-colors duration-300"
@@ -46,6 +53,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab }) => {
                 key={item.id}
                 to={getRouteForTab(item.id)}
                 search={item.id === Tab.ADD ? { step: 1 } : undefined}
+                onClick={item.id === Tab.ADD ? handleAddClick : undefined}
                 className={`relative -top-6 bg-navy dark:bg-blue text-white rounded-full w-14 h-14 flex items-center justify-center transform transition-all duration-300 active:scale-95 border-4 border-bg dark:border-slate-950 z-50 ${
                   isActive ? 'shadow-[0_0_20px_4px_rgba(5,47,117,0.4)]' : 'shadow-lg'
                 }`}

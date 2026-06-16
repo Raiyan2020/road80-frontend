@@ -15,7 +15,14 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ['notifications', 'unread'],
     queryFn: notificationsService.getUnreadCount,
-    select: (res) => res.data.unread_count,
+    select: (res: any) =>
+      Number(
+        res?.data?.unread_count ??
+        res?.data?.data?.unread_count ??
+        res?.unread_count ??
+        res?.count ??
+        0
+      ),
     refetchInterval: 60_000, // refresh every minute
   });
 }

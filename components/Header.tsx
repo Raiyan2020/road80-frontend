@@ -14,11 +14,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
   const navigate = useNavigate();
   const { isMenuOpen, setMenuOpen: setIsMenuOpen } = useUIStore();
-  const { data: unreadCountResponse } = useUnreadCount();
-  const unreadCount =
-    (unreadCountResponse as any)?.data ||
-    (unreadCountResponse as any)?.unread_count ||
-    0;
+  const { data: unreadCount = 0 } = useUnreadCount();
   const { mutate: logoutMutation } = useLogout();
 
   return (
@@ -56,13 +52,13 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
 
         <button
           onClick={() => navigate({ to: "/notifications" })}
-          className="w-8 h-8 flex items-center justify-center text-navy dark:text-slate-200 relative active:scale-95 transition-transform"
+          className="w-10 h-10 flex items-center justify-center text-navy dark:text-slate-200 relative active:scale-95 transition-transform"
           aria-label="التنبيهات"
         >
           <BellIcon className="w-6 h-6" />
-          {(unreadCount as number) > 0 && (
-            <span className="absolute top-1.5 right-2 w-[18px] h-[18px] bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm ring-2 ring-white dark:ring-slate-900 border border-white/20">
-              {(unreadCount as number) > 99 ? "+99" : (unreadCount as number)}
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full flex items-center justify-center text-white text-[10px] leading-none font-bold shadow-sm ring-2 ring-white dark:ring-slate-900 border border-white/20">
+              {unreadCount > 99 ? "+99" : unreadCount}
             </span>
           )}
         </button>

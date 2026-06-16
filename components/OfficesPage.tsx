@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { Route } from '../routes/companies/index';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api-client';
-import { StarIcon, SpinnerIcon } from './Icons';
+import { SpinnerIcon } from './Icons';
 import { AppImage } from './AppImage';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -145,6 +145,13 @@ const OfficesPage: React.FC = () => {
     staleTime: 0,
   });
 
+  const sortedCompanies = [...companies].sort((a, b) => {
+    const aAds = Number(a.ads_count ?? 0);
+    const bAds = Number(b.ads_count ?? 0);
+    if (bAds !== aAds) return bAds - aAds;
+    return String(a.name ?? '').localeCompare(String(b.name ?? ''), 'ar');
+  });
+
   const handleCompanyClick = (id: number | string) => {
     // Ensure id is a plain number string — no surrounding quotes
     const cleanId = String(id).replace(/^\"|\"$/g, '');
@@ -187,14 +194,14 @@ const OfficesPage: React.FC = () => {
         <div className="flex justify-center items-center py-16">
           <SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" />
         </div>
-      ) : companies.length === 0 && category ? (
+      ) : sortedCompanies.length === 0 && category ? (
         <div className="flex flex-col items-center justify-center py-16 gap-2">
           <span className="text-3xl">😕</span>
           <p className="text-gray-400 dark:text-slate-500 font-bold">لا توجد شركات في هذا القسم</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
-          {companies.map((company) => (
+          {sortedCompanies.map((company) => (
             <div
               key={company.id}
               onClick={() => handleCompanyClick(company.id)}
@@ -208,14 +215,6 @@ const OfficesPage: React.FC = () => {
                     alt={company.name}
                     className="w-full h-full"
                   />
-                </div>
-
-                {/* Rating badge */}
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-2.5 py-1 rounded-xl shadow-sm border border-pale/50 dark:border-slate-700">
-                  <span className="text-[14px] font-semibold text-navy dark:text-slate-200 leading-none mt-0.5">
-                    {company.rate ?? '0.00'}
-                  </span>
-                  <StarIcon className="w-4 h-4 text-yellow-400" />
                 </div>
               </div>
 

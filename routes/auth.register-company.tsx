@@ -13,6 +13,7 @@ import {
 } from "../components/Icons";
 import { toast } from "sonner";
 import { AppImage } from "@/components/AppImage";
+import { z } from "zod";
 
 const PHONE_DIGITS: Record<string, number> = {
   KW: 8,
@@ -26,6 +27,61 @@ const PHONE_DIGITS: Record<string, number> = {
   IQ: 10,
 };
 const DEFAULT_DIGITS = 10;
+
+const registerCompanySchema = (phoneDigits: number, whatsappDigits: number) =>
+  z.object({
+    name: z.string().trim().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل"),
+    email: z
+      .union([
+        z.string().trim().email("البريد الإلكتروني غير صحيح"),
+        z.literal(""),
+      ])
+      .optional(),
+    caption: z
+      .string()
+      .trim()
+      .min(1, "يرجى إدخال وصف الشركة")
+      .min(10, "الوصف يجب أن يكون 10 أحرف على الأقل")
+      .max(255, "الوصف يجب أن يكون 255 حرفاً على الأكثر"),
+    company_department_id: z
+      .union([z.string(), z.number()])
+      .refine((val) => !!val, "يرجى اختيار القسم"),
+    country_id: z
+      .union([z.string(), z.number()])
+      .refine((val) => !!val, "يرجى اختيار الدولة"),
+    state_id: z
+      .union([z.string(), z.number()])
+      .refine((val) => !!val, "يرجى اختيار المحافظة"),
+    phone: z
+      .string()
+      .trim()
+      .regex(/^\d+$/, "رقم الهاتف يجب أن يحتوي على أرقام فقط")
+      .length(phoneDigits, `رقم الهاتف يجب أن يكون ${phoneDigits} أرقام`),
+    whatsapp_phone: z
+      .string()
+      .trim()
+      .regex(/^\d+$/, "رقم الواتساب يجب أن يحتوي على أرقام فقط")
+      .length(
+        whatsappDigits,
+        `رقم الواتساب يجب أن يكون ${whatsappDigits} أرقام`,
+      ),
+    image: z.any().refine((file) => file instanceof File, "يرجى رفع صورة الشركة"),
+  });
+
+type RegisterCompanyErrors = Partial<
+  Record<
+    | "name"
+    | "email"
+    | "caption"
+    | "company_department_id"
+    | "country_id"
+    | "state_id"
+    | "phone"
+    | "whatsapp_phone"
+    | "image",
+    string
+  >
+>;
 
 export const Route = createFileRoute("/auth/register-company")({
   component: RegisterCompanyPage,
@@ -64,6 +120,7 @@ function RegisterCompanyPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [errors, setErrors] = useState<RegisterCompanyErrors>({});
 
   const [phoneCountryId, setPhoneCountryId] = useState<number>(1);
   const [whatsappCountryId, setWhatsappCountryId] = useState<number>(1);
@@ -78,6 +135,32 @@ function RegisterCompanyPage() {
         "KW"
     ] ?? DEFAULT_DIGITS;
 
+  const schema = registerCompanySchema(maxPhoneDigits, maxWhatsappDigits);
+
+  const setFieldError = (field: keyof RegisterCompanyErrors, value?: string) => {
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (value) next[field] = value;
+      else delete next[field];
+      return next;
+    });
+  };
+
+  const clearAllErrors = () => setErrors({});
+
+  const getFieldError = (field: keyof RegisterCompanyErrors) => errors[field];
+
+  const mapZodErrors = (err: z.ZodError): RegisterCompanyErrors => {
+    const mapped: RegisterCompanyErrors = {};
+    err.issues.forEach((issue) => {
+      const field = issue.path[0];
+      if (typeof field === "string" && !mapped[field as keyof RegisterCompanyErrors]) {
+        mapped[field as keyof RegisterCompanyErrors] = issue.message;
+      }
+    });
+    return mapped;
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -87,6 +170,7 @@ function RegisterCompanyPage() {
       
       if (!validTypes.includes(file.type) || file.size > maxSize) {
         toast.error("عذراً، يجب أن يكون حجم الصورة أقل من 1 ميجابايت وبصيغة JPG أو PNG فقط.");
+        setFieldError("image", "يرجى رفع صورة بصيغة JPG أو PNG وحجم أقل من 1 ميجابايت");
         // Clear the input so they can try again
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -96,6 +180,7 @@ function RegisterCompanyPage() {
 
       setImageFile(file);
       setPreviewImage(URL.createObjectURL(file));
+      setFieldError("image");
     }
   };
 
@@ -111,30 +196,27 @@ function RegisterCompanyPage() {
       // Reset state if country changes
       ...(name === "country_id" ? { state_id: "" } : {}),
     }));
+
+    if (name in formData || name === "country_id" || name === "state_id") {
+      setFieldError(name as keyof RegisterCompanyErrors);
+      if (name === "country_id") setFieldError("state_id");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !formData.name ||
-      !formData.country_id ||
-      !formData.company_department_id ||
-      !formData.state_id ||
-      !formData.phone ||
-      !formData.whatsapp_phone ||
-      !formData.caption
-    ) {
-      toast.error("يرجى تعبئة جميع الحقول المطلوبة");
+    const payloadForValidation = {
+      ...formData,
+      image: imageFile,
+    };
+
+    const result = schema.safeParse(payloadForValidation);
+    if (!result.success) {
+      setErrors(mapZodErrors(result.error));
       return;
     }
-    if (!imageFile) {
-      toast.error("يرجى اختيار شعار الشركة");
-      return;
-    }
-    if (formData.caption.length < 10) {
-      toast.error("وصف الشركة يجب أن يكون 10 أحرف على الأقل");
-      return;
-    }
+
+    clearAllErrors();
 
     const payload = {
       name: formData.name,
@@ -206,7 +288,7 @@ function RegisterCompanyPage() {
 
         {/* Form */}
         <div className="bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-[32px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
             {/* Image Uploader */}
             <div className="flex flex-col items-center gap-2">
               <span className="text-sm font-bold text-navy dark:text-slate-200">
@@ -229,6 +311,11 @@ function RegisterCompanyPage() {
                   onChange={handleImageChange}
                 />
               </div>
+              {getFieldError("image") && (
+                <p className="text-xs text-red-500 font-medium text-center">
+                  {getFieldError("image")}
+                </p>
+              )}
 
               {/* Email */}
               <div className="flex flex-col gap-2">
@@ -242,9 +329,29 @@ function RegisterCompanyPage() {
                   placeholder="example@road80.com"
                   value={formData.email}
                   onChange={handleChange}
+                  onBlur={() => {
+                    if (formData.email.trim()) {
+                      const emailResult = z
+                        .string()
+                        .trim()
+                        .email("البريد الإلكتروني غير صحيح")
+                        .safeParse(formData.email);
+                      setFieldError(
+                        "email",
+                        emailResult.success ? undefined : emailResult.error.issues[0]?.message,
+                      );
+                    } else {
+                      setFieldError("email");
+                    }
+                  }}
                   className="h-14 px-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors text-left ltr"
                   dir="ltr"
                 />
+                {getFieldError("email") && (
+                  <p className="text-xs text-red-500 font-medium px-1">
+                    {getFieldError("email")}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -256,14 +363,27 @@ function RegisterCompanyPage() {
                   اسم الشركة
                 </label>
                 <input
-                  required
                   type="text"
                   name="name"
                   placeholder="أدخل اسم الشركة"
                   value={formData.name}
                   onChange={handleChange}
+                  onBlur={() => {
+                    const value = formData.name.trim();
+                    setFieldError(
+                      "name",
+                      value.length < 3
+                        ? "الاسم يجب أن يكون 3 أحرف على الأقل"
+                        : undefined,
+                    );
+                  }}
                   className="h-14 px-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors"
                 />
+                {getFieldError("name") && (
+                  <p className="text-xs text-red-500 font-medium px-1">
+                    {getFieldError("name")}
+                  </p>
+                )}
               </div>
 
               {/* Department Select */}
@@ -272,10 +392,14 @@ function RegisterCompanyPage() {
                   القسم
                 </label>
                 <select
-                  required
                   name="company_department_id"
                   value={formData.company_department_id}
                   onChange={handleChange}
+                  onBlur={() => {
+                    if (!formData.company_department_id) {
+                      setFieldError("company_department_id", "يرجى اختيار القسم");
+                    }
+                  }}
                   className="h-14 px-4 pr-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none"
                   style={{
                     backgroundPosition: "left 1rem center",
@@ -293,6 +417,11 @@ function RegisterCompanyPage() {
                       </option>
                     ))}
                 </select>
+                {getFieldError("company_department_id") && (
+                  <p className="text-xs text-red-500 font-medium px-1">
+                    {getFieldError("company_department_id")}
+                  </p>
+                )}
               </div>
 
               {/* Country Select */}
@@ -301,10 +430,14 @@ function RegisterCompanyPage() {
                   الدولة
                 </label>
                 <select
-                  required
                   name="country_id"
                   value={formData.country_id}
                   onChange={handleChange}
+                  onBlur={() => {
+                    if (!formData.country_id) {
+                      setFieldError("country_id", "يرجى اختيار الدولة");
+                    }
+                  }}
                   className="h-14 px-4 pr-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none"
                   style={{
                     backgroundPosition: "left 1rem center",
@@ -322,6 +455,11 @@ function RegisterCompanyPage() {
                       </option>
                     ))}
                 </select>
+                {getFieldError("country_id") && (
+                  <p className="text-xs text-red-500 font-medium px-1">
+                    {getFieldError("country_id")}
+                  </p>
+                )}
               </div>
 
               {/* State Select */}
@@ -330,11 +468,15 @@ function RegisterCompanyPage() {
                   المحافظة
                 </label>
                 <select
-                  required
                   name="state_id"
                   value={formData.state_id}
                   onChange={handleChange}
                   disabled={!formData.country_id || loadingStates}
+                  onBlur={() => {
+                    if (!formData.state_id) {
+                      setFieldError("state_id", "يرجى اختيار المحافظة");
+                    }
+                  }}
                   className="h-14 px-4 pr-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none disabled:opacity-50"
                   style={{
                     backgroundPosition: "left 1rem center",
@@ -356,6 +498,11 @@ function RegisterCompanyPage() {
                       </option>
                     ))}
                 </select>
+                {getFieldError("state_id") && (
+                  <p className="text-xs text-red-500 font-medium px-1">
+                    {getFieldError("state_id")}
+                  </p>
+                )}
               </div>
 
               {/* Phone */}
@@ -374,6 +521,7 @@ function RegisterCompanyPage() {
                       onChange={(e) => {
                         setPhoneCountryId(Number(e.target.value));
                         setFormData((prev) => ({ ...prev, phone: "" }));
+                        setFieldError("phone");
                       }}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 text-navy dark:text-slate-200 bg-white dark:bg-slate-900"
                       disabled={loadingCountries || countries.length === 0}
@@ -410,7 +558,6 @@ function RegisterCompanyPage() {
                   </div>
                   <div className="flex-1 h-full">
                     <input
-                      required
                       type="tel"
                       inputMode="numeric"
                       value={formData.phone}
@@ -420,6 +567,7 @@ function RegisterCompanyPage() {
                           ...prev,
                           phone: raw.slice(0, maxPhoneDigits),
                         }));
+                        setFieldError("phone");
                       }}
                       maxLength={maxPhoneDigits}
                       className="w-full h-full bg-transparent px-3 text-right font-bold text-navy dark:text-slate-100 tracking-wider focus:outline-none"
@@ -428,6 +576,11 @@ function RegisterCompanyPage() {
                     />
                   </div>
                 </div>
+                {getFieldError("phone") && (
+                  <p className="text-xs text-red-500 font-medium px-1">
+                    {getFieldError("phone")}
+                  </p>
+                )}
               </div>
 
               {/* WhatsApp */}
@@ -449,6 +602,7 @@ function RegisterCompanyPage() {
                           ...prev,
                           whatsapp_phone: "",
                         }));
+                        setFieldError("whatsapp_phone");
                       }}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 text-navy dark:text-slate-200 bg-white dark:bg-slate-900"
                       disabled={loadingCountries || countries.length === 0}
@@ -485,7 +639,6 @@ function RegisterCompanyPage() {
                   </div>
                   <div className="flex-1 h-full">
                     <input
-                      required
                       type="tel"
                       inputMode="numeric"
                       value={formData.whatsapp_phone}
@@ -495,6 +648,7 @@ function RegisterCompanyPage() {
                           ...prev,
                           whatsapp_phone: raw.slice(0, maxWhatsappDigits),
                         }));
+                        setFieldError("whatsapp_phone");
                       }}
                       maxLength={maxWhatsappDigits}
                       className="w-full h-full bg-transparent px-3 text-right font-bold text-navy dark:text-slate-100 tracking-wider focus:outline-none"
@@ -503,6 +657,11 @@ function RegisterCompanyPage() {
                     />
                   </div>
                 </div>
+                {getFieldError("whatsapp_phone") && (
+                  <p className="text-xs text-red-500 font-medium px-1">
+                    {getFieldError("whatsapp_phone")}
+                  </p>
+                )}
               </div>
 
               {/* Caption */}
@@ -515,8 +674,22 @@ function RegisterCompanyPage() {
                   placeholder="تحدث قليلاً عن نشاط الشركة العقاري..."
                   value={formData.caption}
                   onChange={handleChange}
+                  onBlur={() => {
+                    const value = formData.caption.trim();
+                    setFieldError(
+                      "caption",
+                      value.length < 10
+                        ? "الوصف يجب أن يكون 10 أحرف على الأقل"
+                        : undefined,
+                    );
+                  }}
                   className="min-h-[120px] p-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors resize-y"
                 />
+                {getFieldError("caption") && (
+                  <p className="text-xs text-red-500 font-medium px-1">
+                    {getFieldError("caption")}
+                  </p>
+                )}
               </div>
             </div>
 

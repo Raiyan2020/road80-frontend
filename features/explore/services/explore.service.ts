@@ -89,6 +89,13 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
     video: hasVideo && imageFile ? imageFile : undefined,
     listingType: listingType,
     propertyType: propertyType,
+    description:
+      [
+        raw.answers?.map((a) => `${a.category_name}: ${a.category_value_name}`).join(' | '),
+        raw.categories?.map((c) => `${c.name}: ${c.value}`).join(' | '),
+      ]
+        .filter(Boolean)
+        .join(' || ') || undefined,
     isLiked: Boolean(raw.is_liked),
     likesCount: raw.likes_count || 0,
     watchCount: raw.watch_count || raw.views || 0,

@@ -2,6 +2,26 @@ import React, { useState } from 'react';
 import { SpinnerIcon, BellIcon } from './Icons';
 import { useNotifications, useDeleteNotification, useDeleteAllNotifications, useUnreadNotifications } from '../features/notifications/hooks/use-notifications';
 
+const getNotificationText = (notif: any) => {
+  const data = notif?.data || {};
+  const title =
+    data.title ||
+    data.subject ||
+    notif?.notification?.title ||
+    notif?.title ||
+    'إشعار';
+  const message =
+    data.message ||
+    data.body ||
+    data.content ||
+    data.description ||
+    notif?.notification?.body ||
+    notif?.body ||
+    '';
+
+  return { title, message };
+};
+
 const NotificationsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
   
@@ -59,6 +79,7 @@ const NotificationsPage: React.FC = () => {
         <div className="flex flex-col gap-3">
           {notifications.map((notif: any) => {
             const isRead = notif.read_at !== null;
+            const { title, message } = getNotificationText(notif);
             return (
             <div key={notif.id} className={`p-4 rounded-xl shadow-sm border relative group ${isRead ? 'bg-white dark:bg-slate-900 border-pale dark:border-slate-800' : 'bg-navy/5 dark:bg-blue/5 border-navy/20 dark:border-blue/20'} transition-colors duration-300`}>
               <button 
@@ -67,8 +88,8 @@ const NotificationsPage: React.FC = () => {
               >
                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" /></svg>
               </button>
-              <h4 className="font-bold text-navy dark:text-slate-200 text-sm mb-1 ml-6">{notif.data?.title || 'إشعار'}</h4>
-              <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-2">{notif.data?.message || ''}</p>
+              <h4 className="font-bold text-navy dark:text-slate-200 text-sm mb-1 ml-6">{title}</h4>
+              {!!message && <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-2 whitespace-pre-line">{message}</p>}
               <span className="text-[10px] text-gray-400 dark:text-slate-500">{notif.created_at_diff || notif.created_at}</span>
             </div>
           )})}

@@ -539,8 +539,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 no-scrollbar bg-bg dark:bg-slate-950 transition-colors duration-300">
         <div className="relative bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
-          {/* Main Carousel - Strict 1:1 Aspect Ratio using padding hack for iOS stability */}
-          <div className="relative w-full pt-[100%] bg-gray-200 dark:bg-slate-800 overflow-hidden group">
+          {/* Main Carousel - Responsive frame that preserves natural media proportions */}
+          <div className="relative w-full min-h-[280px] max-h-[72vh] bg-gray-200 dark:bg-slate-800 overflow-hidden group">
             <div
               ref={scrollRef}
               className="absolute inset-0 w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar"
@@ -563,7 +563,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                   ) : (
                     <AppImage
                       src={getSrc(item.src)}
-                      className="w-full h-full"
+                      className="w-full h-full object-contain"
+                      coverClassName="object-contain"
                       alt={`Slide ${idx}`}
                     />
                   )}

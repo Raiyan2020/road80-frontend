@@ -2,6 +2,7 @@ import { toast } from 'sonner';
 import { getApps, initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { firebaseConfig, VAPID_KEY } from '@/lib/firebase.config';
+import { getQueryClient } from '@/lib/query-client';
 import { useUserStore } from '@/stores/user.store';
 
 const FCM_TOKEN_KEY = 'FCM_TOKEN';
@@ -131,6 +132,10 @@ export const initializePushNotifications = async (): Promise<void> => {
       const title = payload.notification?.title || 'إشعار جديد';
       const body = payload.notification?.body;
       toast.info(title, { description: body, duration: 10000 });
+      const queryClient = getQueryClient();
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
     });
 
     // ── Background message handler ──────────────────────────────────────────

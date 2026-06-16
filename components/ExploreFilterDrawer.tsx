@@ -27,10 +27,21 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
 
   const [filters, setFilters] = useState<ExploreFilters>({
     category_value_id: [],
-    min_price: 0,
+    min_price: undefined,
     max_price: undefined,
     ...initialFilters
   });
+  const didMountRef = React.useRef(false);
+  const didMountStateRef = React.useRef(false);
+
+  useEffect(() => {
+    setFilters({
+      category_value_id: [],
+      min_price: undefined,
+      max_price: undefined,
+      ...initialFilters,
+    });
+  }, [initialFilters, isOpen]);
 
   const { data: countriesRes } = useCountries();
   const countries = (countriesRes as any)?.data || countriesRes || [];
@@ -43,10 +54,18 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
 
   // Reset states/cities when parents change
   useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
     setFilters(prev => ({ ...prev, state_id: '', city_id: '' }));
   }, [filters.country_id]);
 
   useEffect(() => {
+    if (!didMountStateRef.current) {
+      didMountStateRef.current = true;
+      return;
+    }
     setFilters(prev => ({ ...prev, city_id: '' }));
   }, [filters.state_id]);
 
@@ -69,8 +88,9 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
   };
 
   const handleClear = () => {
-    const empty = { category_value_id: [], min_price: 0, max_price: undefined, country_id: '', state_id: '', city_id: '' };
+    const empty = { category_value_id: [], min_price: undefined, max_price: undefined, country_id: '', state_id: '', city_id: '' };
     setFilters(empty);
+    sessionStorage.removeItem('explore-filters');
     onApply(empty);
     onClose();
   };
@@ -166,8 +186,8 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
             <div className="flex gap-4 items-center">
               <input
                 type="number"
-                value={filters.min_price}
-                onChange={e => setFilters(p => ({ ...p, min_price: Number(e.target.value) }))}
+                value={filters.min_price ?? ''}
+                onChange={e => setFilters(p => ({ ...p, min_price: e.target.value ? Number(e.target.value) : undefined }))}
                 className="flex-1 w-0 min-w-0 h-12 px-2 text-center rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 placeholder="من"
               />

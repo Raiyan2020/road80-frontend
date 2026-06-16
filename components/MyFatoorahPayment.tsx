@@ -151,7 +151,7 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
       try {
         const cardStyle = {
           direction: 'ltr',
-          cardHeight: '200px',
+          cardHeight: '300px',
           hideNetworkIcons: false,
           input: {
             color: '#3e689b',
@@ -159,6 +159,8 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
             fontFamily: 'sans-serif',
             borderColor: '#e1eaf5',
             borderRadius: '12px',
+            inputHeight: '46px',
+            inputMargin: '12px',
             placeholder: { color: '#a9c2e0', fontSize: '14px' },
           },
           label: {
@@ -261,7 +263,7 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
   return (
     <div
       id="myfatoorah-payment-lock"
-      className="flex flex-col gap-5 w-full animate-fade-in select-none"
+      className="flex flex-col gap-6 w-full animate-fade-in select-none"
       onContextMenu={(event) => event.preventDefault()}
       onDragStart={(event) => event.preventDefault()}
       onSelect={clearSelection}
@@ -271,8 +273,8 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
         userSelect: 'none',
       }}
     >
-      <div className="bg-pale/30 dark:bg-slate-800/50 p-4 rounded-2xl border border-pale dark:border-slate-700">
-        <h4 className="text-[13px] font-bold text-navy dark:text-slate-300 mb-3">تفاصيل الدفع الآمن</h4>
+      <div className="bg-pale/30 dark:bg-slate-800/50 p-5 rounded-2xl border border-pale dark:border-slate-700">
+        <h4 className="text-[13px] font-bold text-navy dark:text-slate-300 mb-5">تفاصيل الدفع الآمن</h4>
 
         {error && (
           <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-center flex flex-col gap-2">
@@ -288,7 +290,7 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
           </div>
         )}
 
-        <div className="relative w-full rounded-2xl border border-pale dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden min-h-[280px]">
+        <div className="relative w-full rounded-2xl border border-pale dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden min-h-[380px] py-3">
           <div id={containerId} className="w-full" />
 
           {!isInitialized && !error && (

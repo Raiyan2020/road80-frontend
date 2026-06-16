@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { SpinnerIcon, ChevronRightIcon, PhoneIcon } from "./Icons";
+import { SpinnerIcon, ChevronRightIcon, PhoneIcon, CloseIcon } from "./Icons";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { useLogin } from "@/shared/hooks/useLogin";
 import { authService } from "@/shared/services/auth.service";
 import { useUserStore } from "@/stores/user.store";
 
 import { useCountries } from "@/shared/hooks/useCountries";
+import { usePrivacy, useTerms } from "@/features/pages/hooks/usePages";
 import { getDeviceId } from "@/shared/utils/notifications";
 import { User } from "@/shared/types/auth";
 import { AppImage } from "./AppImage";
@@ -38,12 +40,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(30);
+  const [pageDialog, setPageDialog] = useState<"terms" | "privacy" | null>(null);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Real API hooks
   const loginMutation = useLogin();
   const loginUser = useUserStore((s) => s.login);
   const { data: countries = [] } = useCountries();
+  const { data: termsData, isLoading: isTermsLoading } = useTerms();
+  const { data: privacyData, isLoading: isPrivacyLoading } = usePrivacy();
 
   const selectedCountry = countries.find((c) => c.id === countryId);
   const maxPhoneDigits =
@@ -185,27 +190,39 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const handleResend = async () => {
     if (timer > 0) return;
     setTimer(30);
+    setError("");
     try {
       const response = await authService.resendOtp({
         phone,
         country_id: countryId,
       });
-      if (!response.status) {
-        setError(response.message || "فشل إعادة الإرسال");
+      if (response.status) {
+        toast.success("تم إعادة إرسال رمز التفعيل", { closeButton: true });
+      } else {
+        const message = response.message || "فشل إعادة الإرسال";
+        setError(message);
+        toast.error(message, { closeButton: true });
       }
     } catch {
-      setError("فشل إعادة الإرسال، حاول مرة أخرى");
+      const message = "فشل إعادة الإرسال، حاول مرة أخرى";
+      setError(message);
+      toast.error(message, { closeButton: true });
     }
   };
 
+  const closeDialog = () => setPageDialog(null);
+  const dialogTitle = pageDialog === "terms" ? "الشروط والأحكام" : "سياسة الخصوصية";
+  const dialogData = pageDialog === "terms" ? termsData : privacyData;
+  const dialogLoading = pageDialog === "terms" ? isTermsLoading : isPrivacyLoading;
+
   return (
-    <div className="min-h-full w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden animate-fade-in p-6">
+    <div className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in p-6">
       {/* Soft Background Blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-blue/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[40%] bg-navy/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Content Container */}
-      <div className="w-full max-w-[340px] flex flex-col items-center z-10">
+      <div className="w-full max-w-[340px] flex flex-col items-center z-10 py-6 sm:py-0">
         {/* Logo */}
         <div className="mb-8">
           <AppImage
@@ -368,14 +385,14 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           )}
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 text-red-500 text-xs font-bold text-center rounded-xl animate-fade-in border border-red-100">
+            <div className="mt-2 p-1 bg-red-50 text-red-500 text-xs font-bold text-center rounded-xl animate-fade-in border border-red-100">
               {error}
             </div>
           )}
         </div>
 
         {/* Footer Text & Register Company Link */}
-        <div className="mt-8 text-center px-4 flex flex-col items-center gap-4">
+        <div className="mt-8 text-center px-4 flex flex-col items-center gap-4 pb-4">
           {/* Register Company Button/Link */}
           <button
             onClick={() => navigate({ to: "/auth/register-company" })}
@@ -385,13 +402,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             <ChevronRightIcon className="w-4 h-4 rtl:rotate-180 ltr:rotate-0" />
           </button>
 
-          <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20">
-            بتسجيل الدخول فإنك توافق على
-            <span
+            <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20">
+              بتسجيل الدخول فإنك توافق على
+              <span
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                navigate({ to: "/terms" as any });
+                setPageDialog("terms");
               }}
               className="underline cursor-pointer hover:text-navy dark:hover:text-blue mx-1 relative z-30 pointer-events-auto"
             >
@@ -402,7 +419,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                navigate({ to: "/privacy" as any });
+                setPageDialog("privacy");
               }}
               className="underline cursor-pointer hover:text-navy dark:hover:text-blue mx-1 relative z-30 pointer-events-auto"
             >
@@ -411,6 +428,40 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           </p>
         </div>
       </div>
+
+      {pageDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" dir="rtl">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeDialog} />
+          <div className="relative w-full max-w-[420px] max-h-[85dvh] bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl border border-white/60 dark:border-slate-800 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-800">
+              <h2 className="text-lg font-bold text-navy dark:text-slate-200">{dialogTitle}</h2>
+              <button
+                onClick={closeDialog}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-navy dark:hover:text-white transition-all active:scale-90"
+              >
+                <CloseIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 bg-gray-50/60 dark:bg-slate-950/40">
+              {dialogLoading ? (
+                <div className="flex justify-center items-center h-48">
+                  <SpinnerIcon className="w-8 h-8 animate-spin text-navy dark:text-blue" />
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-pale dark:border-slate-800 text-right">
+                  <h3 className="text-xl font-bold text-navy dark:text-slate-200 mb-4">
+                    {dialogData?.title || dialogTitle}
+                  </h3>
+                  <div
+                    className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-line Prose"
+                    dangerouslySetInnerHTML={{ __html: dialogData?.description || "" }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

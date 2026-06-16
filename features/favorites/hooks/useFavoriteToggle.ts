@@ -10,10 +10,16 @@ export function useFavoriteToggle() {
   return useMutation<ToggleLikeResponse, Error, number>({
     mutationFn: (id: number) => favoritesService.toggleLike(id),
     onMutate: (id) => {
+      const wasFavorite = useFavoritesStore.getState().isFavorite(id);
       toggleStore(id);
+      return { wasFavorite };
     },
-    onSuccess: (response, id) => {
+    onSuccess: (response, id, context) => {
       if (response?.status === true) {
+        toast.success(
+          context?.wasFavorite ? 'تمت الإزالة من المفضلة' : 'تمت الإضافة إلى المفضلة',
+          { closeButton: true }
+        );
         queryClient.invalidateQueries({ queryKey: ['profile', 'my-favorites'] });
         return;
       }

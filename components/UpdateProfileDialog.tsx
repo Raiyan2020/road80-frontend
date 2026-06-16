@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useEffect } from 'react';
 import { useProfile } from '../features/account/hooks/useProfile';
 import { SpinnerIcon, CloseIcon } from './Icons';
 import { AppImage } from './AppImage';
@@ -8,11 +9,20 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
   const { updateProfile, isUpdating } = useProfile();
   
   const [name, setName] = useState(profileData?.name || '');
-  const [bio, setBio] = useState(profileData?.bio || '');
+  const [bio, setBio] = useState(profileData?.caption || profileData?.bio || '');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState(profileData?.image || null);
   const [showErrors, setShowErrors] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setName(profileData?.name || '');
+    setBio(profileData?.caption || profileData?.bio || '');
+    setPreviewImage(profileData?.image || null);
+    setImageFile(null);
+    setShowErrors(false);
+  }, [isOpen, profileData]);
 
   if (!isOpen) return null;
 

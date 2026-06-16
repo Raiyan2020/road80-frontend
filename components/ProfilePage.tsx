@@ -27,6 +27,7 @@ import { listingHasVideo } from "../features/explore/services/explore.service";
 import { AppImage } from "./AppImage";
 import { resolveListingImageUrl } from "@/shared/utils/listing-image";
 import { PlayIcon } from "./Icons";
+import { APP_LOGO_URL } from "@/shared/constants/images";
 
 interface ProfilePageProps {
   onListingClick?: (listing: Listing) => void;
@@ -47,24 +48,18 @@ const EditIcon = ({ className }: { className?: string }) => (
 const ListingCard: React.FC<{
   listing: Listing;
   onClick?: () => void;
-  isOwner?: boolean;
-  onDelete?: (e: React.MouseEvent) => void;
-  isDeleting?: boolean;
 }> = ({
   listing,
   onClick,
-  isOwner,
-  onDelete,
-  isDeleting,
 }) => {
   const hasVideo = listingHasVideo(listing);
 
   return (
     <div
       onClick={onClick}
-      className={`flex flex-col bg-white dark:bg-slate-900 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-pale/50 dark:border-slate-800 overflow-hidden active:scale-98 transition-all duration-300 cursor-pointer ${listing.status === 0 ? "opacity-60" : ""}`}
+      className={`flex flex-col h-full min-h-[290px] bg-white dark:bg-slate-900 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-pale/50 dark:border-slate-800 overflow-hidden active:scale-98 transition-all duration-300 cursor-pointer ${listing.status === 0 ? "opacity-60" : ""}`}
     >
-      <div className="aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative">
+      <div className="relative w-full aspect-[4/3] bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
         <AppImage
           src={resolveListingImageUrl(listing)}
           alt={listing.title}
@@ -82,41 +77,16 @@ const ListingCard: React.FC<{
           </div>
         )}
 
-        {isOwner && (
-          <div className="absolute top-2 right-2 z-20">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onDelete) onDelete(e);
-              }}
-              disabled={isDeleting}
-              className="w-8 h-8 rounded-full bg-red-500/90 text-white flex items-center justify-center backdrop-blur-sm active:scale-90 transition-all font-bold disabled:opacity-50"
-            >
-              {isDeleting ? (
-                "..."
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                </svg>
-              )}
-            </button>
-          </div>
-        )}
       </div>
-      <div className="p-3 flex flex-col gap-1">
-        <span className="text-blue dark:text-blue/80 font-bold text-sm text-right font-sans">
+      <div className="p-3 flex flex-col gap-1.5 flex-1">
+        <span className="text-blue dark:text-blue/80 font-bold text-sm text-right font-sans leading-tight min-h-[1.25rem]">
           {listing.price}
         </span>
-        <h4 className="text-navy dark:text-slate-200 font-semibold text-xs truncate text-right font-sans">
+        <h4 className="text-navy dark:text-slate-200 font-semibold text-xs text-right font-sans leading-[1.4] line-clamp-2 min-h-[2.2rem]">
           {listing.title}
         </h4>
-        <div className="flex items-center justify-end gap-1 opacity-60">
-          <span className="text-[13px] text-navy dark:text-slate-400 font-medium font-sans">
+        <div className="flex items-center justify-end gap-1 opacity-60 min-h-[1.25rem]">
+          <span className="text-[13px] text-navy dark:text-slate-400 font-medium font-sans truncate max-w-full">
             {listing.area}
           </span>
           <div className="w-1 h-1 rounded-full bg-navy dark:bg-slate-500"></div>
@@ -184,15 +154,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   );
   const { data: officeAdsData = [], isLoading: officeAdsLoading } =
     useOfficeAds(viewedUserId || "");
-  const deleteAdMutation = useDeleteAd();
-
   const isLoading = isMe
     ? myAdsLoading || myFavsLoading || profileLoading
     : officeLoading || officeAdsLoading;
 
   let profileName = "مستخدم";
   let profileBio = "";
-  let profileAvatar: string | null = null;
+  let profileAvatar: string | null = APP_LOGO_URL;
   let isVerified = false;
   let stats = { ads: "0", likes: "0", views: "0" };
   let displayList: Listing[] = [];
@@ -208,12 +176,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     };
     profileName = profile?.name || profile?.country_code || "مستخدم";
     profileBio = profile?.caption || "";
-    profileAvatar = profile?.image || null;
+    profileAvatar = profile?.image || APP_LOGO_URL;
     isVerified = false;
   } else {
     if (officeData) {
       profileName = officeData.officeName || "شركة";
-      profileAvatar = officeData.logo || null;
+      profileAvatar = officeData.logo || APP_LOGO_URL;
       profileBio = officeData.bio || "";
       isVerified = false;
       stats = {
@@ -244,6 +212,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
             className="w-full h-full"
             coverClassName="object-cover"
             containOnFallback
+            fallback={APP_LOGO_URL}
           />
         </div>
         <div className="flex flex-col gap-1 flex-1">
@@ -254,18 +223,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
             {isVerified && (
               <VerifiedIcon className="w-5 h-5 text-blue shrink-0" />
             )}
-            {isMe && (
-              <button
-                onClick={() => setIsEditProfileOpen(true)}
-                className="mr-auto w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300"
-              >
-                <EditIcon className="w-4 h-4" />
-              </button>
-            )}
           </div>
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-snug font-sans font-normal whitespace-pre-line">
             {profileBio}
           </p>
+          {isMe && (
+            <button
+              onClick={() => setIsEditProfileOpen(true)}
+              className="mr-auto w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300"
+            >
+              <EditIcon className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -342,12 +311,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
                 key={`${item.id}-${idx}`}
                 listing={item}
                 onClick={() => onListingClick && onListingClick(item)}
-                isOwner={isMe && activeSubTab === "ads"}
-                onDelete={() => deleteAdMutation.mutate(item.id)}
-                isDeleting={
-                  deleteAdMutation.isPending &&
-                  deleteAdMutation.variables === item.id
-                }
               />
             ))
           )}

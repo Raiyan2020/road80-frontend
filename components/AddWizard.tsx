@@ -328,6 +328,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     setShowErrors(false);
     resetVideoUpload();
     setStep(1);
+    window.location.replace(`/post-ad?step=1&restart=${Date.now()}`);
   }, [resetVideoUpload]);
 
   // Allow starting a new ad via bottom-nav "+" without visiting profile first.
@@ -642,7 +643,6 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             <button
               onClick={() => {
                 resetWizard();
-                goTo(1);
               }}
               className="w-full py-4 rounded-2xl bg-navy dark:bg-blue text-white font-bold transition-all active:scale-95 shadow-lg shadow-navy/20"
             >

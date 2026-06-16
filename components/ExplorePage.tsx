@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useExploreListings } from '../features/explore/hooks/useExploreListings';
 import { Listing } from '../types';
 import { SpinnerIcon, SlidersIcon, SearchIcon } from './Icons';
@@ -7,6 +7,8 @@ import { useNavigate, useLocation } from '@tanstack/react-router';
 import { ExploreFilterDrawer, ExploreFilters } from './ExploreFilterDrawer';
 import { AppImage } from './AppImage';
 import { resolveListingImageUrl } from '@/shared/utils/listing-image';
+import { useCountries, useStates, useCities } from '@/shared/hooks/useLocation';
+import { useFilterOptions } from '@/features/home/hooks/useFilterOptions';
 
 const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +28,14 @@ const ExplorePage: React.FC = () => {
       }
       sp = new URLSearchParams(record);
     }
+    const categoryParam = sp.get('category_value_id') || '';
+    const categoryIds = categoryParam
+      ? categoryParam
+          .split(',')
+          .flatMap((v) => v.split('|'))
+          .map((v) => Number(v))
+          .filter((v) => !Number.isNaN(v))
+      : [];
     return {
       name: sp.get('name') || '',
       country_id: sp.get('country_id') || '',
@@ -33,7 +43,7 @@ const ExplorePage: React.FC = () => {
       city_id: sp.get('city_id') || '',
       min_price: Number(sp.get('min_price')) || 0,
       max_price: Number(sp.get('max_price')) || undefined,
-      category_value_id: sp.get('category_value_id') ? [Number(sp.get('category_value_id'))] : []
+      category_value_id: categoryIds
     };
   };
 
@@ -41,6 +51,14 @@ const ExplorePage: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchText, setSearchText] = useState(filters.name || '');
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const { data: filterOptionsRes } = useFilterOptions();
+  const filterOptions = (filterOptionsRes as any)?.data || filterOptionsRes || [];
+  const { data: countriesRes } = useCountries();
+  const countries = (countriesRes as any)?.data || countriesRes || [];
+  const { data: statesRes } = useStates(filters.country_id);
+  const states = (statesRes as any)?.data || statesRes || [];
+  const { data: citiesRes } = useCities(filters.state_id);
+  const cities = (citiesRes as any)?.data || citiesRes || [];
 
   // Re-sync filters when the URL changes (e.g. navigating from home page with a pre-selected category)
   // Re-sync filters when the URL changes (e.g. navigating from home page with a pre-selected category)
@@ -53,7 +71,72 @@ const ExplorePage: React.FC = () => {
     }
   }, [location.search]);
 
+  useEffect(() => {
+    sessionStorage.setItem('explore-filters', JSON.stringify(filters));
+  }, [filters]);
+
+  useEffect(() => {
+    if (!location.search) {
+      const saved = sessionStorage.getItem('explore-filters');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setFilters(parsed);
+          setSearchText(parsed.name || '');
+        } catch {}
+      }
+    }
+  }, []);
+
   const { data: listings = [], isLoading: loading } = useExploreListings(filters);
+
+  const filteredListings = useMemo(() => {
+    const countryId = String(filters.country_id || '').replace(/^"|"$/g, '');
+    const stateId = String(filters.state_id || '').replace(/^"|"$/g, '');
+    const cityId = String(filters.city_id || '').replace(/^"|"$/g, '');
+
+    const selectedCountry = countries.find((c: any) => String(c.id) === countryId);
+    const selectedState = states.find((s: any) => String(s.id) === stateId);
+    const selectedCity = cities.find((c: any) => String(c.id) === cityId);
+    const selectedCategoryIds = new Set((filters.category_value_id || []).map((v) => Number(v)));
+    const selectedCategoryLabels = filterOptions.flatMap((cat: any) =>
+      (cat.values || [])
+        .filter((v: any) => selectedCategoryIds.has(Number(v.id)))
+        .map((v: any) => String(v.value ?? '').trim().toLowerCase())
+    );
+
+    const normalize = (value: any) => String(value ?? '').trim().toLowerCase();
+
+    return listings.filter((item: any) => {
+      const itemCountry = normalize(item.country_name || item.country || item.country_code);
+      const itemState = normalize(item.governorate || item.state_name || item.state);
+      const itemCity = normalize(item.area || item.city_name || item.city);
+      const itemListingType = normalize(item.listingType);
+      const itemPropertyType = normalize(item.propertyType);
+      const itemText = normalize(
+        [item.title, item.listingType, item.propertyType, item.description]
+          .filter(Boolean)
+          .join(' ')
+      );
+
+      if (selectedCountry && itemCountry && itemCountry !== normalize(selectedCountry.name)) {
+        return false;
+      }
+      if (selectedState && itemState && itemState !== normalize(selectedState.name)) {
+        return false;
+      }
+      if (selectedCity && itemCity && itemCity !== normalize(selectedCity.name)) {
+        return false;
+      }
+      if (selectedCategoryLabels.length > 0) {
+        const matched = selectedCategoryLabels.some((label) =>
+          itemText.includes(label) || [itemListingType, itemPropertyType].some((field) => field && (field.includes(label) || label.includes(field)))
+        );
+        if (!matched) return false;
+      }
+      return true;
+    });
+  }, [listings, filters.country_id, filters.state_id, filters.city_id, filters.category_value_id, countries, states, cities, filterOptions]);
 
   // Restore scroll position after listings load
   useEffect(() => {
@@ -72,6 +155,7 @@ const ExplorePage: React.FC = () => {
 
   const applyFilters = (newFilters: ExploreFilters) => {
     setFilters(newFilters);
+    sessionStorage.setItem('explore-filters', JSON.stringify(newFilters));
     // Sync to URL
     const params = new URLSearchParams();
     if (newFilters.name) params.set('name', newFilters.name);
@@ -81,7 +165,7 @@ const ExplorePage: React.FC = () => {
     if (newFilters.min_price) params.set('min_price', String(newFilters.min_price));
     if (newFilters.max_price && newFilters.max_price !== 50000) params.set('max_price', String(newFilters.max_price));
     if (newFilters.category_value_id && newFilters.category_value_id.length > 0) {
-      params.set('category_value_id', String(newFilters.category_value_id[0]));
+      params.set('category_value_id', newFilters.category_value_id.map(String).join(','));
     }
     
     navigate({ search: Object.fromEntries(params) as any });
@@ -102,6 +186,7 @@ const ExplorePage: React.FC = () => {
   };
 
   const handleClick = (id: number) => {
+    sessionStorage.setItem('explore-filters', JSON.stringify(filters));
     navigate({ to: `/ad/${id}` });
   };
 
@@ -147,7 +232,7 @@ const ExplorePage: React.FC = () => {
            <>
              {/* Grid */}
              <div className="grid grid-cols-2 gap-0.5">
-         {listings.map(item => {
+             {filteredListings.map(item => {
            const poster = getPoster(item);
            return (
            <div 
@@ -178,7 +263,7 @@ const ExplorePage: React.FC = () => {
          })}
       </div>
 
-      {listings.length === 0 && (
+      {filteredListings.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-slate-500">
              <SearchIcon className="w-12 h-12 mb-2 opacity-20" />
              <p className="text-sm font-bold">لا توجد اعلانات تطابق هذا البحث</p>

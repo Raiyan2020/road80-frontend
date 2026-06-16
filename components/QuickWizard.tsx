@@ -7,6 +7,7 @@ import { homeService } from '@/shared/services/home.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@/lib/types';
 import { SpinnerIcon } from './Icons';
+import { AppImage } from './AppImage';
 
 interface QuickWizardProps {
     onComplete: () => void;
@@ -181,7 +182,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                             }`}
                                     >
                                         <div className="w-12 h-12 relative flex items-center justify-center">
-                                            {c.image && <img src={c.image} alt={c.name} className="w-full h-full object-contain" />}
+                                            <AppImage src={c.image} alt={c.name} className="w-full h-full" coverClassName="object-contain" />
                                         </div>
                                         <span className="font-bold text-sm">{c.name}</span>
                                     </button>

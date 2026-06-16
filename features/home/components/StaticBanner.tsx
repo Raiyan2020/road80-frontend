@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { AppImage } from '@/components/AppImage';
 
 export const StaticBanner: React.FC<{ images?: string[], isLoading?: boolean }> = ({ images, isLoading }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -53,11 +54,11 @@ export const StaticBanner: React.FC<{ images?: string[], isLoading?: boolean }> 
         onTouchEnd={handleTouchEnd}
       >
         {images.map((src, index) => (
-          <img
+          <AppImage
             key={index}
             src={src}
             alt="Footer Banner"
-            className="w-full h-full object-cover pointer-events-none select-none opacity-90 dark:opacity-80 flex-shrink-0"
+            className="w-full h-full pointer-events-none select-none opacity-90 dark:opacity-80 flex-shrink-0"
           />
         ))}
       </div>

@@ -4,6 +4,7 @@ import { Route } from '../routes/companies/index';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api-client';
 import { StarIcon, SpinnerIcon } from './Icons';
+import { AppImage } from './AppImage';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -90,12 +91,12 @@ const CategoryCarousel: React.FC<CategoryCarouselProps> = ({ departments, active
             {/* Icon */}
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden
               ${isActive ? 'bg-white/20' : 'bg-gray-100 dark:bg-slate-800'}`}>
-              {dept.icon && dept.icon.startsWith('http') ? (
-                <img
+              {dept.icon ? (
+                <AppImage
                   src={dept.icon}
                   alt={dept.name}
-                  className="w-6 h-6 object-contain"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  className="w-6 h-6"
+                  coverClassName="object-contain"
                 />
               ) : (
                 <span className="text-xl">🏢</span>
@@ -202,13 +203,10 @@ const OfficesPage: React.FC = () => {
               {/* Logo area */}
               <div className="relative h-28 bg-gray-50 dark:bg-slate-800 flex items-center justify-center p-4">
                 <div className="w-[68px] h-[68px] rounded-full border-4 border-white dark:border-slate-700 shadow-md overflow-hidden bg-white dark:bg-slate-900">
-                  <img
-                    src={company.image || ''}
+                  <AppImage
+                    src={company.image}
                     alt={company.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) =>
-                      (e.currentTarget.src = 'https://raiyansoft.com/wp-content/uploads/2026/01/1.png')
-                    }
+                    className="w-full h-full"
                   />
                 </div>
 

@@ -1,5 +1,7 @@
 import api from '@/lib/api-client';
 import { Listing, ListingSchema } from '@/lib/types';
+import { APP_LOGO_URL } from '@/shared/constants/images';
+import { resolveMediaUrl } from '@/shared/utils/media-url';
 import { ExploreFilters, ExploreResponse, ExploreRawAd } from '../types';
 
 /**
@@ -74,14 +76,17 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
   const hasVideo =
     raw.image?.type === 'video' || isVideoFile(raw.image?.file);
 
+  const imageFile = raw.image?.file ? resolveMediaUrl(raw.image.file) : '';
+
   return ListingSchema.parse({
     id: raw.id,
     title: raw.title,
     price: formattedPrice,
     governorate: raw.state_name,
     area: raw.city_name,
-    images: raw.image?.file ? [raw.image.file] : [],
-    video: hasVideo && raw.image?.file ? raw.image.file : undefined,
+    images: imageFile ? [imageFile] : [APP_LOGO_URL],
+    imageUrl: imageFile || APP_LOGO_URL,
+    video: hasVideo && imageFile ? imageFile : undefined,
     listingType: listingType,
     propertyType: propertyType,
     isLiked: Boolean(raw.is_liked),

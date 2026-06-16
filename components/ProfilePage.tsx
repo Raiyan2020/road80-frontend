@@ -19,12 +19,13 @@ import {
   useUserFavorites,
   useProfile,
   useDeleteAd,
-  useToggleAdStatus,
 } from "../features/account/hooks/useProfile";
 import { UpdateProfileDialog } from "./UpdateProfileDialog";
 import { useOffice } from "../features/companies/hooks/useOffices";
 import { useOfficeAds } from "../features/companies/hooks/useOfficeAds";
 import { listingHasVideo } from "../features/explore/services/explore.service";
+import { AppImage } from "./AppImage";
+import { resolveListingImageUrl } from "@/shared/utils/listing-image";
 import { PlayIcon } from "./Icons";
 
 interface ProfilePageProps {
@@ -43,45 +44,19 @@ const EditIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const FALLBACK_IMAGE =
-  "https://raiyansoft.com/wp-content/uploads/2026/01/1.png";
-
 const ListingCard: React.FC<{
   listing: Listing;
   onClick?: () => void;
   isOwner?: boolean;
   onDelete?: (e: React.MouseEvent) => void;
-  onToggleStatus?: (e: React.MouseEvent) => void;
   isDeleting?: boolean;
-  isToggling?: boolean;
 }> = ({
   listing,
   onClick,
   isOwner,
   onDelete,
-  onToggleStatus,
   isDeleting,
-  isToggling,
 }) => {
-  const [imgSrc, setImgSrc] = useState<string>("");
-
-  useEffect(() => {
-    if (listing.imageUrl instanceof Blob || listing.imageUrl instanceof File) {
-      setImgSrc(URL.createObjectURL(listing.imageUrl));
-    } else if (typeof listing.imageUrl === "string") {
-      setImgSrc(listing.imageUrl);
-    } else if (listing.images && listing.images.length > 0) {
-      const first = listing.images[0];
-      if (first instanceof Blob || first instanceof File) {
-        setImgSrc(URL.createObjectURL(first));
-      } else {
-        setImgSrc(first as string);
-      }
-    } else {
-      setImgSrc(FALLBACK_IMAGE);
-    }
-  }, [listing]);
-
   const hasVideo = listingHasVideo(listing);
 
   return (
@@ -90,11 +65,10 @@ const ListingCard: React.FC<{
       className={`flex flex-col bg-white dark:bg-slate-900 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-pale/50 dark:border-slate-800 overflow-hidden active:scale-98 transition-all duration-300 cursor-pointer ${listing.status === 0 ? "opacity-60" : ""}`}
     >
       <div className="aspect-square bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative">
-        <img
-          src={imgSrc}
+        <AppImage
+          src={resolveListingImageUrl(listing)}
           alt={listing.title}
-          className="w-full h-full object-cover"
-          onError={() => setImgSrc(FALLBACK_IMAGE)}
+          className="w-full h-full"
         />
         <span className="absolute top-2 left-2 bg-navy/80 dark:bg-blue/80 text-white text-[13px] px-2 py-0.5 rounded-full z-10 font-bold">
           جديد
@@ -109,7 +83,7 @@ const ListingCard: React.FC<{
         )}
 
         {isOwner && (
-          <div className="absolute top-2 right-2 flex gap-1 z-20">
+          <div className="absolute top-2 right-2 z-20">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -128,45 +102,6 @@ const ListingCard: React.FC<{
                   className="w-4 h-4"
                 >
                   <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                </svg>
-              )}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onToggleStatus) onToggleStatus(e);
-              }}
-              disabled={isToggling}
-              className={`w-8 h-8 rounded-full text-white flex items-center justify-center backdrop-blur-sm active:scale-90 transition-all font-bold disabled:opacity-50 ${listing.status === 0 ? "bg-green-500/90" : "bg-gray-800/90"}`}
-            >
-              {isToggling ? (
-                "..."
-              ) : listing.status === 0 ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
-                  <path
-                    fillRule="evenodd"
-                    d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.588 1.587-.213 3.335-1.848 4.118a1.627 1.627 0 01-1.848 0zM10 5.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-4 h-4"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"
-                    clipRule="evenodd"
-                  />
                 </svg>
               )}
             </button>
@@ -250,7 +185,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   const { data: officeAdsData = [], isLoading: officeAdsLoading } =
     useOfficeAds(viewedUserId || "");
   const deleteAdMutation = useDeleteAd();
-  const toggleStatusMutation = useToggleAdStatus();
 
   const isLoading = isMe
     ? myAdsLoading || myFavsLoading || profileLoading
@@ -304,15 +238,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     <div className="flex flex-col p-4 gap-6 animate-fade-in transition-colors duration-300">
       <div className="flex items-center gap-4">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pale to-white dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-navy dark:text-slate-200 shrink-0 border-2 border-white dark:border-slate-800 shadow-md overflow-hidden relative">
-          {profileAvatar ? (
-            <img
-              src={profileAvatar}
-              alt={profileName}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <UserIcon className="w-10 h-10 opacity-80" />
-          )}
+          <AppImage
+            src={profileAvatar}
+            alt={profileName}
+            className="w-full h-full"
+            coverClassName="object-cover"
+            containOnFallback
+          />
         </div>
         <div className="flex flex-col gap-1 flex-1">
           <div className="flex items-center gap-1">
@@ -412,14 +344,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
                 onClick={() => onListingClick && onListingClick(item)}
                 isOwner={isMe && activeSubTab === "ads"}
                 onDelete={() => deleteAdMutation.mutate(item.id)}
-                onToggleStatus={() => toggleStatusMutation.mutate(item.id)}
                 isDeleting={
                   deleteAdMutation.isPending &&
                   deleteAdMutation.variables === item.id
-                }
-                isToggling={
-                  toggleStatusMutation.isPending &&
-                  toggleStatusMutation.variables === item.id
                 }
               />
             ))

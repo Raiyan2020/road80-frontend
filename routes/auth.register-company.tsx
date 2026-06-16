@@ -12,6 +12,7 @@ import {
   MailIcon,
 } from "../components/Icons";
 import { toast } from "sonner";
+import { AppImage } from "@/components/AppImage";
 
 const PHONE_DIGITS: Record<string, number> = {
   KW: 8,
@@ -185,10 +186,11 @@ function RegisterCompanyPage() {
           </button>
 
           <div className="w-24 h-24 mb-2">
-            <img
-              src="https://raiyansoft.com/wp-content/uploads/2026/02/sg54.png"
+            <AppImage
+              src="/logo.webp"
               alt="80road"
-              className="w-full h-full object-contain drop-shadow-xl"
+              className="w-full h-full drop-shadow-xl"
+              coverClassName="object-contain"
             />
           </div>
 
@@ -214,17 +216,11 @@ function RegisterCompanyPage() {
                 className="w-28 h-28 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-600 flex items-center justify-center overflow-hidden cursor-pointer relative active:scale-95 transition-all"
                 onClick={() => fileInputRef.current?.click()}
               >
-                {previewImage ? (
-                  <img
-                    src={previewImage}
-                    alt="Logo"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xs font-bold text-gray-400">
-                    اختر صورة
-                  </span>
-                )}
+                <AppImage
+                  src={previewImage}
+                  alt="Logo"
+                  className="w-full h-full"
+                />
                 <input
                   type="file"
                   ref={fileInputRef}

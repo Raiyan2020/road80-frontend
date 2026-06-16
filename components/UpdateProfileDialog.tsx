@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useProfile } from '../features/account/hooks/useProfile';
 import { SpinnerIcon, CloseIcon } from './Icons';
+import { AppImage } from './AppImage';
 import { toast } from 'sonner';
 
 export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => void; profileData: any }> = ({ isOpen, onClose, profileData }) => {
@@ -75,11 +76,11 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
               className="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-gray-300 overflow-hidden cursor-pointer flex items-center justify-center relative group"
               onClick={() => fileInputRef.current?.click()}
             >
-              {previewImage ? (
-                <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                 <span className="text-xs text-gray-400">اختر صورة</span>
-              )}
+              <AppImage
+                src={previewImage}
+                alt="Preview"
+                className="w-full h-full"
+              />
               <div className="absolute inset-0 bg-black/30 items-center justify-center hidden group-hover:flex">
                  <span className="text-white text-xs font-bold">تغيير</span>
               </div>

@@ -19,14 +19,15 @@ import {
   WhatsappIcon,
 } from "./Icons";
 import MyFatoorahPayment from "./MyFatoorahPayment";
+import { FALLBACK_LISTING_IMAGE } from "@/shared/constants/images";
+import { resolveMediaUrl } from "@/shared/utils/media-url";
+import { AppImage } from "./AppImage";
 
 interface ListingDetailsPageProps {
   listingId: number;
   onBack: () => void;
 }
 
-const FALLBACK_IMAGE =
-  "https://raiyansoft.com/wp-content/uploads/2026/01/1.png";
 const UNLOCK_FEE = "١٥٠ فلس";
 const KNET_LOGO =
   "https://media.licdn.com/dms/image/v2/D4D0BAQFazp_I3lLeQg/company-logo_200_200/company-logo_200_200/0/1715599858189/the_shared_electronic_banking_services_co_knet_logo?e=2147483647&v=beta&t=FfjCLbNIUGrTCTi-tI5nXSNP9B4AcOJbWsFqV0bSWcM";
@@ -59,8 +60,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   // Ad Data
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isMediaFullscreen, setIsMediaFullscreen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
+  const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
 
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showUnlockPopup, setShowUnlockPopup] = useState(false);
@@ -122,6 +125,26 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     }
   }, [listing, loading, onBack, mergeFavoriteIds]);
 
+  useEffect(() => {
+    if (!isMediaFullscreen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        fullscreenVideoRef.current?.pause();
+        setIsMediaFullscreen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isMediaFullscreen]);
+
   if (loading || !listing) {
     return (
       <div className="absolute inset-0 bg-bg dark:bg-slate-950 z-50 flex items-center justify-center transition-colors duration-300">
@@ -141,36 +164,52 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
         att.file.toLowerCase().endsWith(".mov");
       mediaItems.push({
         type: isVideo ? "video" : "image",
-        src: att.file,
+        src: resolveMediaUrl(att.file),
         id: `att-${idx}`,
       });
     });
   } else {
-    // Fallback to images/imageUrl/video
-    const rawImages =
-      listing.images && listing.images.length > 0
-        ? listing.images
-        : [listing.imageUrl || FALLBACK_IMAGE];
+    const rawListing = listing as {
+      images?: Array<string | File | Blob>;
+      imageUrl?: string;
+      image?: { file?: string; type?: string };
+      video?: string;
+    };
 
-    rawImages.forEach((img, idx) => {
+    const primaryImage =
+      rawListing.images?.length
+        ? rawListing.images
+        : rawListing.imageUrl
+          ? [rawListing.imageUrl]
+          : rawListing.image?.file
+            ? [resolveMediaUrl(rawListing.image.file)]
+            : [FALLBACK_LISTING_IMAGE];
+
+    primaryImage.forEach((img, idx) => {
       mediaItems.push({ type: "image", src: img, id: `img-${idx}` });
     });
 
-    if (listing.video) {
-      mediaItems.push({ type: "video", src: listing.video, id: "vid-main" });
+    const videoSrc =
+      rawListing.video ||
+      (rawListing.image?.type === "video"
+        ? resolveMediaUrl(rawListing.image.file)
+        : undefined);
+
+    if (videoSrc) {
+      mediaItems.push({ type: "video", src: videoSrc, id: "vid-main" });
     }
   }
 
   // Ensure we have at least one image if no media items
   if (mediaItems.length === 0) {
-    mediaItems.push({ type: "image", src: FALLBACK_IMAGE, id: "fallback" });
+    mediaItems.push({ type: "image", src: FALLBACK_LISTING_IMAGE, id: "fallback" });
   }
 
   const getSrc = (src: string | File | Blob) => {
     if (src instanceof File || src instanceof Blob) {
       return URL.createObjectURL(src);
     }
-    return src;
+    return resolveMediaUrl(src) || src;
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -203,6 +242,30 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
       }
     }
   };
+
+  const openMediaFullscreen = () => {
+    setIsMediaFullscreen(true);
+  };
+
+  const closeMediaFullscreen = () => {
+    fullscreenVideoRef.current?.pause();
+    setIsMediaFullscreen(false);
+  };
+
+  const showPrevMedia = () => {
+    if (mediaItems.length <= 1) return;
+    const nextIndex =
+      (activeImageIndex - 1 + mediaItems.length) % mediaItems.length;
+    scrollToMedia(nextIndex);
+  };
+
+  const showNextMedia = () => {
+    if (mediaItems.length <= 1) return;
+    const nextIndex = (activeImageIndex + 1) % mediaItems.length;
+    scrollToMedia(nextIndex);
+  };
+
+  const activeMedia = mediaItems[activeImageIndex];
 
   const handlePublisherClick = () => {
     // Prefer raw API user.id, fall back to mapped publisherId
@@ -495,13 +558,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                       controls
                       playsInline
                       className="w-full h-full object-contain"
-                      poster={FALLBACK_IMAGE}
+                      poster={FALLBACK_LISTING_IMAGE}
                     />
                   ) : (
-                    <img
+                    <AppImage
                       src={getSrc(item.src)}
-                      className="w-full h-full object-cover"
-                      onError={(e) => (e.currentTarget.src = FALLBACK_IMAGE)}
+                      className="w-full h-full"
                       alt={`Slide ${idx}`}
                     />
                   )}
@@ -512,6 +574,28 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
             <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[13px] font-bold px-2.5 py-1 rounded-full border border-white/10 z-10 pointer-events-none">
               {activeImageIndex + 1} / {mediaItems.length}
             </div>
+            <button
+              type="button"
+              onClick={openMediaFullscreen}
+              className="absolute bottom-4 left-4 z-10 w-10 h-10 bg-black/60 backdrop-blur-md text-white rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-all"
+              aria-label="ملء الشاشة"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5"
+              >
+                <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+                <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+                <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+              </svg>
+            </button>
           </div>
 
           {/* Thumbnails */}
@@ -532,10 +616,9 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                       <div className="absolute inset-0 bg-black/20"></div>
                     </div>
                   ) : (
-                    <img
+                    <AppImage
                       src={getSrc(item.src)}
-                      className="w-full h-full object-cover"
-                      onError={(e) => (e.currentTarget.src = FALLBACK_IMAGE)}
+                      className="w-full h-full"
                       alt={`Thumb ${idx}`}
                     />
                   )}
@@ -569,17 +652,13 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                 onClick={handlePublisherClick}
               >
                 <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-400 overflow-hidden shadow-sm border border-pale dark:border-slate-700">
-                  {(listing as any).user?.image || listing.publisherAvatar ? (
-                    <img
-                      src={
-                        (listing as any).user?.image || listing.publisherAvatar
-                      }
-                      className="w-full h-full object-cover"
-                      alt={(listing as any).user?.name || listing.publisherName}
-                    />
-                  ) : (
-                    <UserIcon className="w-5 h-5" />
-                  )}
+                  <AppImage
+                    src={
+                      (listing as any).user?.image || listing.publisherAvatar
+                    }
+                    className="w-full h-full"
+                    alt={(listing as any).user?.name || listing.publisherName}
+                  />
                 </div>
                 <div className="flex flex-col">
                   <span
@@ -865,6 +944,81 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               )}
             </div>
             <div className="h-[env(safe-area-inset-bottom)] sm:hidden" />
+          </div>
+        </div>
+      )}
+
+      {isMediaFullscreen && activeMedia && (
+        <div
+          className="fixed inset-0 z-[250] bg-black flex flex-col"
+          style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="flex items-center justify-between px-4 py-3 shrink-0">
+            <button
+              type="button"
+              onClick={closeMediaFullscreen}
+              className="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-95 transition-all"
+              aria-label="إغلاق"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-5 h-5"
+              >
+                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+              </svg>
+            </button>
+            <span className="text-white/80 text-sm font-bold">
+              {activeImageIndex + 1} / {mediaItems.length}
+            </span>
+          </div>
+
+          <div className="relative flex-1 flex items-center justify-center px-4 min-h-0">
+            {mediaItems.length > 1 && (
+              <button
+                type="button"
+                onClick={showPrevMedia}
+                className="absolute right-2 z-10 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-95 transition-all"
+                aria-label="السابق"
+              >
+                <ChevronRightIcon className="w-6 h-6" />
+              </button>
+            )}
+
+            <div className="w-full h-full flex items-center justify-center">
+              {activeMedia.type === "video" ? (
+                <video
+                  key={activeMedia.id}
+                  ref={fullscreenVideoRef}
+                  src={getSrc(activeMedia.src)}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-w-full max-h-full w-full object-contain"
+                  poster={FALLBACK_LISTING_IMAGE}
+                />
+              ) : (
+                <AppImage
+                  key={activeMedia.id}
+                  src={getSrc(activeMedia.src)}
+                  alt={listing.title}
+                  className="max-w-full max-h-full"
+                  coverClassName="object-contain"
+                />
+              )}
+            </div>
+
+            {mediaItems.length > 1 && (
+              <button
+                type="button"
+                onClick={showNextMedia}
+                className="absolute left-2 z-10 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-95 transition-all"
+                aria-label="التالي"
+              >
+                <ChevronRightIcon className="w-6 h-6 rotate-180" />
+              </button>
+            )}
           </div>
         </div>
       )}

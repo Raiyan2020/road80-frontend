@@ -8,6 +8,7 @@ import { useUserStore } from "@/stores/user.store";
 import { useCountries } from "@/shared/hooks/useCountries";
 import { getDeviceId } from "@/shared/utils/notifications";
 import { User } from "@/shared/types/auth";
+import { AppImage } from "./AppImage";
 
 // Number of local phone digits (without country code) per country_code
 const PHONE_DIGITS: Record<string, number> = {
@@ -207,10 +208,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       <div className="w-full max-w-[340px] flex flex-col items-center z-10">
         {/* Logo */}
         <div className="mb-8">
-          <img
-            src="https://raiyansoft.com/wp-content/uploads/2026/02/sg54.png"
+          <AppImage
+            src="/logo.webp"
+            alt="80road"
             className="w-32 h-auto drop-shadow-sm"
-            alt="Logo"
+            coverClassName="object-contain"
           />
         </div>
 

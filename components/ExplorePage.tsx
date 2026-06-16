@@ -2,12 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useExploreListings } from '../features/explore/hooks/useExploreListings';
 import { Listing } from '../types';
-import { PlayIcon, SpinnerIcon, SlidersIcon, SearchIcon } from './Icons';
+import { SpinnerIcon, SlidersIcon, SearchIcon } from './Icons';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import { ExploreFilterDrawer, ExploreFilters } from './ExploreFilterDrawer';
-import { listingHasVideo } from '../features/explore/services/explore.service';
-
-const FALLBACK_IMAGE = 'https://raiyansoft.com/wp-content/uploads/2026/01/1.png';
+import { AppImage } from './AppImage';
+import { resolveListingImageUrl } from '@/shared/utils/listing-image';
 
 const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
@@ -106,23 +105,7 @@ const ExplorePage: React.FC = () => {
     navigate({ to: `/ad/${id}` });
   };
 
-  const getPoster = (l: Listing) => {
-    // Use first image as poster
-    if (l.images && l.images.length > 0) {
-       const first = l.images[0];
-       if (first instanceof File || first instanceof Blob) {
-           return URL.createObjectURL(first);
-       }
-       return first as string;
-    }
-    if (l.imageUrl) {
-        if (l.imageUrl instanceof File || l.imageUrl instanceof Blob) {
-           return URL.createObjectURL(l.imageUrl);
-        }
-        return l.imageUrl as string;
-    }
-    return FALLBACK_IMAGE;
-  };
+  const getPoster = (l: Listing) => resolveListingImageUrl(l);
 
   return (
     <div className="w-full h-full bg-bg dark:bg-slate-950 overflow-hidden flex flex-col animate-fade-in transition-colors duration-300 relative">
@@ -164,31 +147,23 @@ const ExplorePage: React.FC = () => {
            <>
              {/* Grid */}
              <div className="grid grid-cols-2 gap-0.5">
-         {listings.map(item => (
+         {listings.map(item => {
+           const poster = getPoster(item);
+           return (
            <div 
              key={item.id}
              onClick={() => handleClick(item.id)}
              className="relative aspect-square bg-gray-200 cursor-pointer overflow-hidden group"
            >
              {/* Thumbnail */}
-             <img 
-               src={getPoster(item)} 
+             <AppImage
+               src={poster}
                alt={item.title}
-               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-               onError={(e) => e.currentTarget.src = FALLBACK_IMAGE}
+               className="w-full h-full transition-transform duration-500 group-hover:scale-105"
              />
 
              {/* Dark Gradient Overlay */}
              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
-
-             {/* Play Icon Center — video ads only */}
-             {listingHasVideo(item) && (
-               <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                      <PlayIcon className="w-5 h-5 text-white ml-0.5" />
-                  </div>
-               </div>
-             )}
 
              {/* Meta Info (Bottom) */}
              <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col justify-end text-white">
@@ -199,12 +174,13 @@ const ExplorePage: React.FC = () => {
                 </div>
              </div>
            </div>
-         ))}
+         );
+         })}
       </div>
 
       {listings.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-slate-500">
-             <PlayIcon className="w-12 h-12 mb-2 opacity-20" />
+             <SearchIcon className="w-12 h-12 mb-2 opacity-20" />
              <p className="text-sm font-bold">لا توجد اعلانات تطابق هذا البحث</p>
           </div>
       )}

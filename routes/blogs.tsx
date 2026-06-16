@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import { useBlogs, useBlogDetail } from '../features/blogs/hooks/useBlogs';
 import { useUIStore } from '../stores/ui.store';
 import { SpinnerIcon, ChevronRightIcon } from '../components/Icons';
+import { AppImage } from '../components/AppImage';
 
 type BlogsSearch = {
   id?: number | string;
@@ -48,14 +49,12 @@ function BlogsPage() {
             </div>
           ) : (
              <article className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl shadow-navy/5 border border-pale dark:border-slate-800 overflow-hidden mb-6">
-                {blog.image && (
-                  <div className="relative h-64 sm:h-80 w-full">
-                    <img src={blog.image} alt={blog.title} className="w-full h-full object-cover" />
-                    <div className="absolute top-4 right-4 px-3 py-1 bg-navy/80 backdrop-blur-md text-white rounded-full text-xs font-bold border border-white/20">
-                       {blog.category_name}
-                    </div>
+                <div className="relative h-64 sm:h-80 w-full">
+                  <AppImage src={blog.image} alt={blog.title} className="w-full h-full" />
+                  <div className="absolute top-4 right-4 px-3 py-1 bg-navy/80 backdrop-blur-md text-white rounded-full text-xs font-bold border border-white/20">
+                     {blog.category_name}
                   </div>
-                )}
+                </div>
                 
                 <div className="p-6 flex flex-col gap-6 text-right">
                    <div className="flex flex-col gap-3">
@@ -108,9 +107,11 @@ function BlogsPage() {
                  onClick={() => navigate({ to: '/blogs', search: { id: blog.id } })}
                  className="bg-white dark:bg-slate-900 rounded-3xl shadow-md shadow-navy/5 border border-pale dark:border-slate-800 overflow-hidden flex flex-col group active:scale-98 transition-all duration-300 cursor-pointer"
               >
-                 {blog.image && (
-                    <img src={blog.image} alt={blog.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" />
-                 )}
+                 <AppImage
+                   src={blog.image}
+                   alt={blog.title}
+                   className="w-full h-48 group-hover:scale-105 transition-transform duration-500"
+                 />
                  <div className="p-5 flex flex-col gap-3 text-right">
                     <h3 className="text-xl font-black text-navy dark:text-slate-100 line-clamp-2 leading-tight">{blog.title}</h3>
                     <p className="text-[14px] text-gray-500 dark:text-slate-400 line-clamp-3 leading-relaxed">{blog.short_description || blog.content?.replace(/<[^>]+>/g, '')}</p>

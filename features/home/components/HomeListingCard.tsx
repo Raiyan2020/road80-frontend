@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Listing } from '../../../types';
 import { useNavigate } from '@tanstack/react-router';
+import { AppImage } from '@/components/AppImage';
+import { resolveListingImageUrl } from '@/shared/utils/listing-image';
 
 export const HomeListingCard: React.FC<{ listing: Listing }> = ({ listing }) => {
   const navigate = useNavigate();
@@ -8,37 +10,16 @@ export const HomeListingCard: React.FC<{ listing: Listing }> = ({ listing }) => 
     navigate({ to: `/ad/${listing.id}` });
   };
 
-  const [imgSrc, setImgSrc] = useState<string>('');
-  const FALLBACK_IMAGE = 'https://raiyansoft.com/wp-content/uploads/2026/01/1.png';
-
-  useEffect(() => {
-    if (listing.imageUrl instanceof Blob || listing.imageUrl instanceof File) {
-      setImgSrc(URL.createObjectURL(listing.imageUrl));
-    } else if (typeof listing.imageUrl === 'string') {
-      setImgSrc(listing.imageUrl);
-    } else if (listing.images && listing.images.length > 0) {
-      const first = listing.images[0];
-      if (first instanceof Blob || first instanceof File) {
-        setImgSrc(URL.createObjectURL(first));
-      } else {
-        setImgSrc(first as string);
-      }
-    } else {
-      setImgSrc(FALLBACK_IMAGE);
-    }
-  }, [listing]);
-
   return (
     <div
       onClick={handleClick}
       className="flex flex-col bg-white dark:bg-slate-900 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-pale/50 dark:border-slate-800 overflow-hidden active:scale-95 transition-all duration-300 cursor-pointer"
     >
       <div className="aspect-square bg-gray-100 dark:bg-slate-800 relative">
-        <img
-          src={imgSrc}
+        <AppImage
+          src={resolveListingImageUrl(listing)}
           alt={listing.title}
-          className="w-full h-full object-cover"
-          onError={(e) => e.currentTarget.src = FALLBACK_IMAGE}
+          className="w-full h-full"
         />
       </div>
       <div className="p-3 flex flex-col gap-1">

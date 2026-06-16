@@ -28,6 +28,8 @@ import {
   isAllowedAdVideo,
 } from "../shared/utils/media-validation";
 import MyFatoorahPayment from "./MyFatoorahPayment";
+import { AppImage } from "./AppImage";
+import { dismissKeyboard, useKeyboardOpen } from "@/shared/hooks/useKeyboardOpen";
 import { paymentService } from "../shared/services/payment.service";
 
 interface AddWizardProps {
@@ -88,8 +90,15 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const priceInputRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
+  const wizardScrollRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const descriptionScrollTimerRef = useRef<number | null>(null);
   const [showErrors, setShowErrors] = useState(false);
-  const [keyboardPadding, setKeyboardPadding] = useState(0);
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+  const isKeyboardOpen = useKeyboardOpen();
 
   // ── Location Data ────────────────────────────────────────────────────────
   const { data: states = [] } = useExploreStates(countryId || undefined);
@@ -165,54 +174,82 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
   const currentStepInfo = steps[step - 1];
   const isDetailsStep = currentStepInfo?.type === "details";
+  const descriptionLength = description.trim().length;
 
-  const scrollInputIntoView = useCallback((element: HTMLElement) => {
-    const container = document.getElementById("wizard-scroll-area");
+  const ensureDescriptionVisible = useCallback(() => {
+    if (descriptionScrollTimerRef.current) {
+      window.clearTimeout(descriptionScrollTimerRef.current);
+    }
 
-    setTimeout(() => {
-      if (!container) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
-        return;
-      }
+    const run = () => {
+      const container = wizardScrollRef.current;
+      const field = descriptionInputRef.current;
+      if (!container || !field) return;
+
+      const section = field.closest(".description-field") as HTMLElement | null;
+      const target = section ?? field;
 
       const containerRect = container.getBoundingClientRect();
-      const elementRect = element.getBoundingClientRect();
-      const offset =
-        elementRect.top -
-        containerRect.top -
-        containerRect.height / 2 +
-        elementRect.height / 2;
+      const targetRect = target.getBoundingClientRect();
+      const relativeTop =
+        targetRect.top - containerRect.top + container.scrollTop;
+      const topInset = 12;
 
-      container.scrollBy({ top: offset, behavior: "smooth" });
-    }, 350);
+      container.scrollTo({
+        top: Math.max(0, relativeTop - topInset),
+        behavior: "smooth",
+      });
+    };
+
+    requestAnimationFrame(run);
+    descriptionScrollTimerRef.current = window.setTimeout(run, 180);
   }, []);
 
   useEffect(() => {
-    if (!isDetailsStep) {
-      setKeyboardPadding(0);
-      return;
-    }
+    return () => {
+      if (descriptionScrollTimerRef.current) {
+        window.clearTimeout(descriptionScrollTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isDetailsStep || !descriptionFocused) return;
 
     const viewport = window.visualViewport;
     if (!viewport) return;
 
-    const updateKeyboardPadding = () => {
-      const keyboardHeight = Math.max(
-        0,
-        window.innerHeight - viewport.height - viewport.offsetTop,
-      );
-      setKeyboardPadding(keyboardHeight);
-    };
+    const onViewportChange = () => ensureDescriptionVisible();
+    viewport.addEventListener("resize", onViewportChange);
+    return () => viewport.removeEventListener("resize", onViewportChange);
+  }, [isDetailsStep, descriptionFocused, ensureDescriptionVisible]);
 
-    updateKeyboardPadding();
-    viewport.addEventListener("resize", updateKeyboardPadding);
-    viewport.addEventListener("scroll", updateKeyboardPadding);
+  const focusDescriptionField = useCallback(() => {
+    descriptionInputRef.current?.focus();
+    ensureDescriptionVisible();
+  }, [ensureDescriptionVisible]);
 
-    return () => {
-      viewport.removeEventListener("resize", updateKeyboardPadding);
-      viewport.removeEventListener("scroll", updateKeyboardPadding);
-    };
-  }, [isDetailsStep]);
+  const focusNextField = (
+    event: React.KeyboardEvent,
+    nextRef: React.RefObject<HTMLElement | null>,
+  ) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (nextRef === descriptionInputRef) {
+      focusDescriptionField();
+      return;
+    }
+    nextRef.current?.focus();
+  };
+
+  const handleDescriptionFocus = () => {
+    setDescriptionFocused(true);
+    ensureDescriptionVisible();
+  };
+
+  const handleDescriptionBlur = () => {
+    setDescriptionFocused(false);
+  };
 
   // ── Validation ───────────────────────────────────────────────────────────
   const isCurrentStepValid = (): boolean => {
@@ -242,10 +279,13 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       if (currentStepInfo?.type === "details") {
         if (!price || Number(price) <= 0) {
           toast.error("يرجى إدخال السعر");
+          priceInputRef.current?.focus();
         } else if (title.trim().length === 0) {
           toast.error("يرجى إدخال عنوان الإعلان");
+          titleInputRef.current?.focus();
         } else if (description.trim().length < 10) {
           toast.error("وصف الإعلان يجب أن يتكون من 10 حروف على الأقل");
+          focusDescriptionField();
         }
       } else {
         toast.error("يرجى تعبئة الخيارات المطلوبة قبل المتابعة");
@@ -727,13 +767,12 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                     : "border-pale bg-white dark:bg-slate-900 dark:border-slate-700"
                 }`}
               >
-                {c.image && (
-                  <img
-                    src={c.image}
-                    alt={c.name}
-                    className="w-10 h-10 object-contain"
-                  />
-                )}
+                <AppImage
+                  src={c.image}
+                  alt={c.name}
+                  className="w-10 h-10"
+                  coverClassName="object-contain"
+                />
                 <span
                   className={`font-bold text-sm ${countryId === c.id ? "text-navy dark:text-blue" : "text-navy dark:text-slate-200"}`}
                 >
@@ -938,89 +977,118 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       const isDescInvalid = showErrors && description.trim().length < 10;
 
       return (
-        <div className="flex flex-col gap-5" dir="rtl">
+        <div className="flex flex-col gap-5 pb-2" dir="rtl">
           {renderTitle("تفاصيل الإعلان")}
+          <p className="text-xs text-gray-400 -mt-2 text-right">
+            أدخل تفاصيل إعلانك — يمكنك الانتقال بين الحقول من لوحة المفاتيح
+          </p>
           <div className="flex flex-col gap-2">
-            <label className="font-bold text-navy dark:text-slate-200 text-sm flex items-center justify-between">
+            <label
+              htmlFor="ad-price"
+              className="font-bold text-navy dark:text-slate-200 text-sm flex items-center justify-between"
+            >
               السعر (د.ك) <span className="text-red-500">*</span>
             </label>
             <input
+              id="ad-price"
+              ref={priceInputRef}
               type="text"
               inputMode="numeric"
               pattern="[0-9]*"
+              enterKeyHint="next"
+              autoComplete="off"
               placeholder="0"
               value={price ? Number(price).toLocaleString("en") : ""}
-              onFocus={(e) => scrollInputIntoView(e.currentTarget)}
+              onKeyDown={(e) => focusNextField(e, titleInputRef)}
               onChange={(e) => {
-                // Strip every character that is not a digit (blocks e, +, -, letters, dots)
                 const raw = e.target.value.replace(/[^0-9]/g, "");
-                // Limit to 9 digits → max 999,999,999
                 setPrice(raw.slice(0, 9));
               }}
-              className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-xl font-black text-blue focus:border-navy focus:outline-none transition-all text-right ${
+              className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-xl font-black text-blue focus:border-navy focus:outline-none transition-colors text-right scroll-mt-3 ${
                 isPriceInvalid
                   ? "border-red-500"
                   : "border-pale dark:border-slate-700"
               }`}
             />
+            {isPriceInvalid && (
+              <p className="text-xs text-red-500 text-right">يرجى إدخال السعر</p>
+            )}
           </div>
           <div className="flex flex-col gap-2">
-            <label className="font-bold text-navy dark:text-slate-200 text-sm flex items-center justify-between">
+            <label
+              htmlFor="ad-title"
+              className="font-bold text-navy dark:text-slate-200 text-sm flex items-center justify-between"
+            >
               عنوان الإعلان <span className="text-red-500">*</span>
             </label>
             <input
+              id="ad-title"
+              ref={titleInputRef}
               type="text"
+              enterKeyHint="next"
+              autoComplete="off"
               placeholder="مثال: شقة للإيجار في السالمية"
               value={title}
-              onFocus={(e) => scrollInputIntoView(e.currentTarget)}
+              onKeyDown={(e) => focusNextField(e, descriptionInputRef)}
               onChange={(e) => setTitle(e.target.value)}
-              className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-base font-bold text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all ${
+              className={`w-full h-14 rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 text-base font-bold text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-colors scroll-mt-3 ${
                 isTitleInvalid
                   ? "border-red-500"
                   : "border-pale dark:border-slate-700"
               }`}
             />
+            {isTitleInvalid && (
+              <p className="text-xs text-red-500 text-right">يرجى إدخال عنوان الإعلان</p>
+            )}
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="font-bold text-navy dark:text-slate-200 text-sm flex items-center justify-between">
-              وصف الإعلان <span className="text-red-500">*</span>
-            </label>
+          <div className="description-field flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className={`text-xs font-bold tabular-nums ${
+                  descriptionLength >= 10
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-gray-400"
+                }`}
+              >
+                {descriptionLength}/10
+              </span>
+              <label
+                htmlFor="ad-description"
+                className="font-bold text-navy dark:text-slate-200 text-sm flex items-center gap-1"
+              >
+                وصف الإعلان <span className="text-red-500">*</span>
+              </label>
+            </div>
             <textarea
-              rows={5}
-              placeholder="اكتب وصفاً تفصيلياً للعقار (10 حروف على الأقل)..."
+              id="ad-description"
+              ref={descriptionInputRef}
+              rows={4}
+              inputMode="text"
+              enterKeyHint="done"
+              autoCapitalize="sentences"
+              autoCorrect="on"
+              placeholder="اكتب وصفاً تفصيلياً للعقار..."
               value={description}
-              onFocus={(e) => scrollInputIntoView(e.currentTarget)}
+              onFocus={handleDescriptionFocus}
+              onBlur={handleDescriptionBlur}
               onChange={(e) => setDescription(e.target.value)}
-              className={`w-full rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 py-4 text-base font-medium text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-all resize-none ${
+              className={`w-full rounded-2xl border-2 bg-white dark:bg-slate-900 px-5 py-4 text-base font-medium text-navy dark:text-slate-200 focus:border-navy focus:outline-none transition-colors resize-none scroll-mt-3 ${
                 isDescInvalid
                   ? "border-red-500"
                   : "border-pale dark:border-slate-700"
               }`}
             />
-          </div>
-
-          <div className="flex flex-col gap-3 pt-2 pb-4">
-            <button
-              onClick={prev}
-              disabled={step === 1}
-              className={`w-full py-4 rounded-xl font-bold border border-pale dark:border-slate-700 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 transition-all shadow-sm ${
-                step === 1
-                  ? "opacity-40 cursor-not-allowed"
-                  : "active:scale-95 hover:bg-pale/30"
-              }`}
-            >
-              رجوع
-            </button>
-            <button
-              onClick={next}
-              className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all ${
-                isCurrentStepValid()
-                  ? "bg-navy dark:bg-blue text-white shadow-navy/20 active:scale-95"
-                  : "bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              التالي
-            </button>
+            {isDescInvalid ? (
+              <p className="text-xs text-red-500 text-right">
+                الوصف يجب أن يكون 10 حروف على الأقل
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400 text-right">
+                {descriptionLength >= 10
+                  ? "ممتاز — يمكنك المتابعة"
+                  : "10 حروف على الأقل"}
+              </p>
+            )}
           </div>
         </div>
       );
@@ -1132,7 +1200,6 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   // ── Footer buttons ───────────────────────────────────────────────────────
   const renderFooter = () => {
     if (showEmbedded) return null;
-    if (currentStepInfo?.type === "details") return null;
 
     const backBtn = (
       <button
@@ -1172,10 +1239,36 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     const needsManualNext =
       currentStepInfo?.type === "video" ||
       currentStepInfo?.type === "images" ||
+      currentStepInfo?.type === "details" ||
       (currentStepInfo?.type === "category" &&
         currentStepInfo.data.type === "range");
 
     if (needsManualNext) {
+      if (currentStepInfo?.type === "details" && isKeyboardOpen) {
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={dismissKeyboard}
+              className="shrink-0 px-5 py-3.5 rounded-xl font-bold border border-pale dark:border-slate-700 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 active:scale-95 transition-all"
+            >
+              تم
+            </button>
+            <button
+              type="button"
+              onClick={next}
+              className={`flex-1 py-3.5 rounded-xl font-bold shadow-lg transition-all ${
+                isCurrentStepValid()
+                  ? "bg-navy dark:bg-blue text-white shadow-navy/20 active:scale-95"
+                  : "bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              التالي
+            </button>
+          </div>
+        );
+      }
+
       return (
         <div className="flex flex-col gap-3">
           {backBtn}
@@ -1231,22 +1324,34 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       {/* Scrollable content */}
       <div
         id="wizard-scroll-area"
+        ref={wizardScrollRef}
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar px-5 py-4"
         style={{
           WebkitOverflowScrolling: "touch",
-          touchAction: "pan-y",
+          touchAction: "manipulation",
           overscrollBehavior: "contain",
-          paddingBottom: isDetailsStep
-            ? `${Math.max(keyboardPadding, 24) + 16}px`
-            : "24px",
+          paddingBottom:
+            descriptionFocused && isKeyboardOpen ? "140px" : isDetailsStep && isKeyboardOpen ? "12px" : "24px",
+          scrollPaddingTop: "12px",
+          scrollPaddingBottom: descriptionFocused ? "140px" : "12px",
         }}
       >
-        <div className="animate-fade-in">{renderStep()}</div>
+        <div>{renderStep()}</div>
       </div>
 
-      {/* Footer */}
       {footerContent && (
-        <div className="shrink-0 px-5 pb-8 pt-3 bg-gradient-to-t from-bg dark:from-slate-950 via-bg/90 dark:via-slate-950/90 to-transparent">
+        <div
+          ref={footerRef}
+          className={`shrink-0 px-5 pt-3 bg-gradient-to-t from-bg dark:from-slate-950 via-bg/95 dark:via-slate-950/95 to-transparent transition-[padding] duration-200 ${
+            isDetailsStep && isKeyboardOpen ? "pb-3" : "pb-8"
+          }`}
+          style={{
+            paddingBottom:
+              isDetailsStep && isKeyboardOpen
+                ? "max(0.75rem, env(safe-area-inset-bottom))"
+                : undefined,
+          }}
+        >
           {footerContent}
         </div>
       )}

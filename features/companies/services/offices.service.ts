@@ -1,5 +1,7 @@
 import api from '@/lib/api-client';
 import { Office, OfficeSchema, Listing, ListingSchema } from '@/lib/types';
+import { APP_LOGO_URL } from '@/shared/constants/images';
+import { resolveMediaUrl } from '@/shared/utils/media-url';
 import { CompanyDepartment, DepartmentsResponse } from '../types';
 
 // ── Service functions ─────────────────────────────────────────
@@ -41,14 +43,14 @@ export async function fetchOffices(category?: string | number): Promise<Office[]
       return resp.data.map((raw) => {
         try {
           const logoUrl = typeof raw.image === 'string'
-            ? raw.image
-            : (raw.image?.file ?? undefined);
+            ? resolveMediaUrl(raw.image)
+            : resolveMediaUrl(raw.image?.file);
           const governorate = typeof raw.state === 'object' && raw.state !== null ? raw.state?.name : (raw.state ?? undefined);
-          
+
           return OfficeSchema.parse({
             id: raw.id,
             officeName: raw.name ?? "مكتب عقاري",
-            logo: logoUrl,
+            logo: logoUrl || APP_LOGO_URL,
             governorate,
             activeListingsCount: raw.ads_count,
             rating: raw.rate,
@@ -97,6 +99,8 @@ export async function fetchOfficeAds(id: string | number): Promise<Listing[]> {
           const propertyType = raw.categories.find(c => c.category_name === 'نوع العقار')?.category_value_name;
           const listingType = raw.categories.find(c => c.category_name === 'نوع الإعلان')?.category_value_name;
           
+          const imageFile = raw.image?.file ? resolveMediaUrl(raw.image.file) : '';
+
           return {
              id: raw.id,
              title: raw.title,
@@ -106,7 +110,8 @@ export async function fetchOfficeAds(id: string | number): Promise<Listing[]> {
              area: raw.city_name,
              propertyType,
              listingType,
-             images: raw.image?.file ? [raw.image.file] : [],
+             images: imageFile ? [imageFile] : [APP_LOGO_URL],
+             imageUrl: imageFile || APP_LOGO_URL,
              views: raw.watch_count,
           };
        }).map(item => ListingSchema.parse(item));
@@ -136,8 +141,8 @@ export async function fetchOfficeById(id: string | number): Promise<Office | nul
       const raw = response.data;
 
       const logo = typeof raw.image === 'string'
-        ? raw.image
-        : (raw.image?.file ?? undefined);
+        ? resolveMediaUrl(raw.image)
+        : resolveMediaUrl(raw.image?.file) || APP_LOGO_URL;
 
       return OfficeSchema.parse({
         id: raw.id,

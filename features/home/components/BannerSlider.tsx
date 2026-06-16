@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { AppImage } from '@/components/AppImage';
 
 export const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> = ({ images, isLoading }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -53,11 +54,11 @@ export const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> 
         onTouchEnd={handleTouchEnd}
       >
         {images.map((src, index) => (
-          <img
+          <AppImage
             key={index}
             src={src}
             alt="Banner"
-            className="w-full h-full object-cover flex-shrink-0 select-none pointer-events-none"
+            className="w-full h-full flex-shrink-0 select-none pointer-events-none"
           />
         ))}
       </div>

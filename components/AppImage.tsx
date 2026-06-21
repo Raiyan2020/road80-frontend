@@ -20,6 +20,9 @@ function isUsingFallback(url: string, fallback: string): boolean {
 function normalizeSrc(src?: string | null): string {
   if (!src?.trim()) return '';
   const trimmed = src.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower === 'null' || lower === 'undefined' || lower === 'false') return '';
+
   if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) {
     return trimmed;
   }
@@ -38,16 +41,44 @@ export const AppImage: React.FC<AppImageProps> = ({
   ...props
 }) => {
   const normalized = normalizeSrc(src);
-  const [currentSrc, setCurrentSrc] = useState(normalized || fallback);
+  const [currentSrc, setCurrentSrc] = useState(fallback);
   const [isFallback, setIsFallback] = useState(!normalized);
+  const [isLoading, setIsLoading] = useState(Boolean(normalized));
 
   useEffect(() => {
     const next = normalizeSrc(src);
-    setCurrentSrc(next || fallback);
-    setIsFallback(!next);
+    if (!next) {
+      setCurrentSrc(fallback);
+      setIsFallback(true);
+      setIsLoading(false);
+      return;
+    }
+
+    setCurrentSrc(fallback);
+    setIsFallback(false);
+    setIsLoading(true);
+
+    const image = new Image();
+    image.onload = () => {
+      setCurrentSrc(next);
+      setIsFallback(false);
+      setIsLoading(false);
+    };
+    image.onerror = () => {
+      setCurrentSrc(fallback);
+      setIsFallback(true);
+      setIsLoading(false);
+    };
+    image.src = next;
+
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+    };
   }, [src, fallback]);
 
-  const displayClass = containOnFallback && isFallback
+  const shouldUseFallbackStyle = isFallback || isLoading;
+  const displayClass = containOnFallback && shouldUseFallbackStyle
     ? `${className} ${getListingImageClassName(fallback, coverClassName)}`.trim()
     : `${className} ${coverClassName}`.trim();
 
@@ -56,6 +87,7 @@ export const AppImage: React.FC<AppImageProps> = ({
       setCurrentSrc(fallback);
       setIsFallback(true);
     }
+    setIsLoading(false);
     onError?.(e);
   };
 

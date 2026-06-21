@@ -5,6 +5,9 @@ export function resolveMediaUrl(url?: string | null): string {
   if (!url?.trim()) return '';
 
   const trimmed = url.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower === 'null' || lower === 'undefined' || lower === 'false') return '';
+
   if (
     trimmed.startsWith('http://') ||
     trimmed.startsWith('https://') ||

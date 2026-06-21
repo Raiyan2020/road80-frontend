@@ -136,11 +136,14 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     };
 
     const previousOverflow = document.body.style.overflow;
+    const previousOverscroll = document.body.style.overscrollBehavior;
     document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscroll;
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [isMediaFullscreen]);
@@ -266,6 +269,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   const activeMedia = mediaItems[activeImageIndex];
+  const isActiveVideo = activeMedia?.type === "video";
 
   const handlePublisherClick = () => {
     // Prefer raw API user.id, fall back to mapped publisherId
@@ -510,13 +514,20 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 bg-bg dark:bg-slate-950 z-50 flex flex-col h-full overflow-hidden animate-fade-in transition-colors duration-300">
+    <div
+      className="absolute inset-0 bg-bg dark:bg-slate-950 z-50 flex flex-col h-full overflow-hidden animate-fade-in transition-colors duration-300"
+      style={{ overscrollBehavior: "none" }}
+    >
       {/* Header */}
       <div
         className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4"
         style={{
-          height: "calc(var(--header-h) + env(safe-area-inset-top))",
-          paddingTop: "env(safe-area-inset-top)",
+          height: isActiveVideo
+            ? "calc(var(--header-h) + env(safe-area-inset-top) + 56px)"
+            : "calc(var(--header-h) + env(safe-area-inset-top))",
+          paddingTop: isActiveVideo
+            ? "calc(env(safe-area-inset-top) + 56px)"
+            : "env(safe-area-inset-top)",
           background:
             "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 100%)",
         }}
@@ -537,7 +548,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 no-scrollbar bg-bg dark:bg-slate-950 transition-colors duration-300">
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden pb-24 no-scrollbar bg-bg dark:bg-slate-950 transition-colors duration-300"
+        style={{ overscrollBehaviorY: "contain" }}
+      >
         <div className="relative bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
           {/* Main Carousel - Responsive frame that preserves natural media proportions */}
           <div className="relative w-full min-h-[280px] max-h-[72vh] bg-gray-200 dark:bg-slate-800 overflow-hidden group">
@@ -545,7 +559,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               ref={scrollRef}
               className="absolute inset-0 w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar"
               onScroll={handleScroll}
-              style={{ WebkitOverflowScrolling: "touch" }}
+              style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-x" }}
             >
               {mediaItems.map((item, idx) => (
                 <div
@@ -572,13 +586,13 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               ))}
             </div>
             {/* Count Badge */}
-            <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[13px] font-bold px-2.5 py-1 rounded-full border border-white/10 z-10 pointer-events-none">
+            <div className={`absolute right-4 bg-black/60 backdrop-blur-md text-white text-[13px] font-bold px-2.5 py-1 rounded-full border border-white/10 z-10 pointer-events-none ${isActiveVideo ? "bottom-16" : "bottom-4"}`}>
               {activeImageIndex + 1} / {mediaItems.length}
             </div>
             <button
               type="button"
               onClick={openMediaFullscreen}
-              className="absolute bottom-4 left-4 z-10 w-10 h-10 bg-black/60 backdrop-blur-md text-white rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-all"
+              className={`absolute left-4 z-10 w-10 h-10 bg-black/60 backdrop-blur-md text-white rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-all ${isActiveVideo ? "bottom-16" : "bottom-4"}`}
               aria-label="ملء الشاشة"
             >
               <svg
@@ -952,7 +966,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
       {isMediaFullscreen && activeMedia && (
         <div
           className="fixed inset-0 z-[250] bg-black flex flex-col"
-          style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+          style={{
+            paddingTop: "env(safe-area-inset-top)",
+            paddingBottom: "env(safe-area-inset-bottom)",
+            overscrollBehavior: "none",
+            touchAction: "none",
+          }}
         >
           <div className="flex items-center justify-between px-4 py-3 shrink-0">
             <button

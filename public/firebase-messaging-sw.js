@@ -17,6 +17,64 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+const getNotificationCopy = (notif) => {
+  const data = notif?.data || notif || {};
+  const type = data.type || notif?.type;
+  const adTitle = data.ad_title || data.adTitle || data.listing_title || data.title;
+
+  if (type === 'ad_approved') {
+    return {
+      title: 'تمت الموافقة على نشر إعلانك',
+      body: adTitle
+        ? `تمت الموافقة على إعلان "${adTitle}" ويمكن للمستخدمين مشاهدته الآن`
+        : 'تمت الموافقة على إعلانك ويمكن للمستخدمين مشاهدته الآن',
+    };
+  }
+
+  return {
+    title:
+      data.title ||
+      data.subject ||
+      notif?.notification?.title ||
+      notif?.title ||
+      'إشعار جديد',
+    body:
+      data.message ||
+      data.body ||
+      data.content ||
+      data.description ||
+      notif?.notification?.body ||
+      notif?.body ||
+      '',
+  };
+};
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const data = event.notification?.data || {};
+  const adId = data.ad_id || data.adId;
+  const targetUrl = adId ? `/ad/${adId}` : '/notifications';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client) {
+            client.navigate(targetUrl);
+          }
+          return;
+        }
+      }
+
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
 // Handle background notifications (when the browser tab is hidden or closed)
 messaging.onBackgroundMessage((payload) => {
   const type = payload.data && payload.data.type;
@@ -45,9 +103,10 @@ messaging.onBackgroundMessage((payload) => {
   }
 
   // ── Normal notification ───────────────────────────────────────────────────
-  const notificationTitle = payload.notification?.title || 'إشعار جديد';
+  const copy = getNotificationCopy(payload);
+  const notificationTitle = copy.title || payload.notification?.title || 'إشعار جديد';
   const notificationOptions = {
-    body: payload.notification?.body || '',
+    body: copy.body || payload.notification?.body || '',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
     data: payload.data,

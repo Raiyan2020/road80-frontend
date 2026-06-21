@@ -8,6 +8,7 @@ export const ListingSchema = z.object({
   listingType: z.string().optional(),
   propertyType: z.string().optional(),
   price: z.string(),
+  country: z.string().optional(),
   governorate: z.string().optional(),
   area: z.string().optional(),
   title: z.string(),
@@ -94,4 +95,3 @@ export const QUERY_KEYS = {
     detail: (id: number | string) => ['blogs', id] as const,
   },
 } as const;
-

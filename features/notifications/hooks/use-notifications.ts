@@ -5,6 +5,7 @@ export function useNotifications(page: number = 1) {
   return useQuery({
     queryKey: ['notifications', page],
     queryFn: () => notificationsService.getNotifications(page),
+    refetchInterval: 15000,
   });
 }
 
@@ -12,16 +13,28 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ['notifications-unread-count'],
     queryFn: () => notificationsService.getUnreadCount(),
-    // Poll for unread count every minute or so, 
-    // though real-time is handled by FCM
-    refetchInterval: 60000, 
+    select: (res: any) => Number(
+      res?.data?.unread_count ??
+      res?.data?.data?.unread_count ??
+      res?.unread_count ??
+      res?.count ??
+      (Array.isArray(res?.data) ? res.data.length : 0)
+    ),
+    // Poll often enough to keep notification badges fresh.
+    refetchInterval: 15000,
   });
 }
 
 export function useUnreadNotifications() {
   return useQuery({
     queryKey: ['notifications-unread'],
-    queryFn: () => notificationsService.getUnreadCount(), // Assuming it returns the list as per the postman JSON
+    queryFn: () => notificationsService.getUnreadCount(),
+    refetchInterval: 15000,
+    select: (res: any) => {
+      if (Array.isArray(res?.data)) return res.data;
+      if (Array.isArray(res?.data?.data)) return res.data.data;
+      return [];
+    },
   });
 }
 

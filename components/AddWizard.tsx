@@ -308,7 +308,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     }
   };
 
-  const resetWizard = useCallback(() => {
+  const resetWizardState = useCallback(() => {
     setCategoryValues({});
     setCountryId(null);
     setStateId(null);
@@ -328,20 +328,17 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     setShowErrors(false);
     resetVideoUpload();
     setStep(1);
-    window.location.replace(`/post-ad?step=1&restart=${Date.now()}`);
   }, [resetVideoUpload]);
 
-  // Allow starting a new ad via bottom-nav "+" without visiting profile first.
-  useEffect(() => {
-    if (!published) return;
+  const resetWizard = useCallback(() => {
+    resetWizardState();
+    window.location.replace(`/post-ad?step=1&restart=${Date.now()}`);
+  }, [resetWizardState]);
 
-    const params = new URLSearchParams(window.location.search);
-    const requestedStep = parseInt(params.get("step") || "1", 10);
-
-    if (requestedStep === 1) {
-      resetWizard();
-    }
-  }, [location.search, published, resetWizard]);
+  const goToMyAds = useCallback(() => {
+    setPublished(false);
+    onComplete();
+  }, [onComplete]);
 
   // ── Video Upload ─────────────────────────────────────────────────────────
   const handleVideoSelect = async (file: File) => {
@@ -641,6 +638,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         ) : (
           <div className="flex flex-col items-center gap-4 mt-4 w-full max-w-xs">
             <button
+              type="button"
               onClick={() => {
                 resetWizard();
               }}
@@ -649,10 +647,8 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               نشر إعلان جديد
             </button>
             <button
-              onClick={() => {
-                resetWizard();
-                onComplete();
-              }}
+              type="button"
+              onClick={goToMyAds}
               className="w-full py-4 rounded-2xl border-2 border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold transition-all active:scale-95"
             >
               الذهاب إلى إعلاناتي

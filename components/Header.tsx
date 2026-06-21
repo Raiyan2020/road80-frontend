@@ -14,7 +14,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
   const navigate = useNavigate();
   const { isMenuOpen, setMenuOpen: setIsMenuOpen } = useUIStore();
-  const { data: unreadCount = 0 } = useUnreadCount();
+  const unreadCount = useUnreadCount().data ?? 0;
   const { mutate: logoutMutation } = useLogout();
 
   return (

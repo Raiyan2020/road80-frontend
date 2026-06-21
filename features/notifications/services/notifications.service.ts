@@ -42,7 +42,6 @@ export const notificationsService = {
    * Delete all notifications
    */
   deleteAllNotifications: async (): Promise<{ status: boolean; message: string }> => {
-    return api.delete<{ status: boolean; message: string }>('/notifications/');
+    return api.delete<{ status: boolean; message: string }>('/notifications');
   },
 };
-

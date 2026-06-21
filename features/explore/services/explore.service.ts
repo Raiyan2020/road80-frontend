@@ -82,6 +82,7 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
     id: raw.id,
     title: raw.title,
     price: formattedPrice,
+    country: raw.country_name,
     governorate: raw.state_name,
     area: raw.city_name,
     images: imageFile ? [imageFile] : [APP_LOGO_URL],

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import {
   SlidersIcon,
   SunIcon,
@@ -26,35 +26,21 @@ const HomePage: React.FC<{
   // homeData loaded
 
   const displayAds = homeListings.slice(0, 6);
+  const firstSuggestedAd = homeListings[0];
+  const currentCountryName = firstSuggestedAd?.country || "الكويت";
+  const searchText = useMemo(() => {
+    if (!firstSuggestedAd) return "";
 
-  const [searchText, setSearchText] = useState("");
-  const [currentCountryName, setCurrentCountryName] = useState("الكويت");
-
-  const readPrefs = () => {
-    try {
-      const prefs = localStorage.getItem("road80_preferences");
-      if (!prefs) return;
-      const p = JSON.parse(prefs);
-      if (p.countryName) setCurrentCountryName(p.countryName);
-      const parts = [
-        ...((p.categoryValueNames as string[]) || []),
-        p.cityName,
-        p.stateName,
-        p.countryName,
-      ].filter(Boolean) as string[];
-
-      if (parts.length > 0) setSearchText(parts.join(" / "));
-    } catch (e) {
-      // Failed to parse preferences
-    }
-  };
-
-  useEffect(() => {
-    readPrefs();
-    // Re-read when user returns from QuickWizard
-    window.addEventListener("focus", readPrefs);
-    return () => window.removeEventListener("focus", readPrefs);
-  }, []);
+    return [
+      firstSuggestedAd.propertyType,
+      firstSuggestedAd.listingType,
+      firstSuggestedAd.area,
+      firstSuggestedAd.governorate,
+      firstSuggestedAd.country,
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }, [firstSuggestedAd]);
 
   return (
     <div className="flex flex-col p-4 gap-6 animate-fade-in pt-2">

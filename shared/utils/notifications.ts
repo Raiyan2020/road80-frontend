@@ -17,6 +17,28 @@ export const getFcmToken = (): string | null => {
 
 const FALLBACK_DEVICE_ID_KEY = 'FALLBACK_DEVICE_ID';
 
+export const getNotificationCopy = (notif: any) => {
+  const data = notif?.data || notif || {};
+  return {
+    title:
+      data.title ||
+      data.subject ||
+      data.notification_title ||
+      notif?.notification?.title ||
+      notif?.title ||
+      'إشعار',
+    body:
+      data.message ||
+      data.description ||
+      data.body ||
+      data.content ||
+      data.text ||
+      notif?.notification?.body ||
+      notif?.body ||
+      '',
+  };
+};
+
 /**
  * Returns the FCM token if available, otherwise returns a unique fallback device ID.
  * This ensures the backend always receives a unique identifier per device even if push is disabled.
@@ -129,8 +151,9 @@ export const initializePushNotifications = async (): Promise<void> => {
       }
 
       // Normal notification
-      const title = payload.notification?.title || 'إشعار جديد';
-      const body = payload.notification?.body;
+      const copy = getNotificationCopy(payload);
+      const title = copy.title || payload.notification?.title || 'إشعار جديد';
+      const body = copy.body || payload.notification?.body;
       toast.info(title, { description: body, duration: 10000 });
       const queryClient = getQueryClient();
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

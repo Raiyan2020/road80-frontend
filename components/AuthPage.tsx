@@ -402,26 +402,26 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             <ChevronRightIcon className="w-4 h-4 rtl:rotate-180 ltr:rotate-0" />
           </button>
 
-            <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20">
-              بتسجيل الدخول فإنك توافق على
+            <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+              <span>بتسجيل الدخول فإنك تقبل</span>
               <span
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setPageDialog("terms");
               }}
-              className="underline cursor-pointer hover:text-navy dark:hover:text-blue mx-1 relative z-30 pointer-events-auto"
+              className="underline cursor-pointer hover:text-navy dark:hover:text-blue relative z-30 pointer-events-auto"
             >
               الشروط والأحكام
             </span>
-            و
+            <span>و</span>
             <span
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setPageDialog("privacy");
               }}
-              className="underline cursor-pointer hover:text-navy dark:hover:text-blue mx-1 relative z-30 pointer-events-auto"
+              className="underline cursor-pointer hover:text-navy dark:hover:text-blue relative z-30 pointer-events-auto"
             >
               سياسة الخصوصية
             </span>

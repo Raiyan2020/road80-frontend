@@ -14,6 +14,7 @@ export function useProfile() {
 
   const updateProfileMutation = useMutation({
     mutationFn: profileService.updateProfile,
+    meta: { hideToast: true },
     onSuccess: (response: ProfileResponse) => {
        queryClient.invalidateQueries({ queryKey: ['profile'] });
        

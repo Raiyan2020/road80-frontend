@@ -15,6 +15,22 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
   const [showErrors, setShowErrors] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const getBackendErrorMessage = (error: unknown) => {
+    const fetchError = error as {
+      data?: {
+        message?: string;
+        errors?: Record<string, string[]>;
+      };
+      message?: string;
+    };
+    const response = fetchError?.data;
+    const firstFieldError = response?.errors
+      ? Object.values(response.errors).flat().find(Boolean)
+      : undefined;
+
+    return response?.message || firstFieldError || fetchError?.message || 'حدث خطأ أثناء التحديث';
+  };
+
   useEffect(() => {
     if (!isOpen) return;
     setName(profileData?.name || '');
@@ -62,7 +78,7 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
       toast.success('تم تحديث الملف الشخصي بنجاح', { closeButton: true });
       onClose();
     } catch (err) {
-      toast.error("حدث خطأ أثناء التحديث");
+      toast.error(getBackendErrorMessage(err), { closeButton: true });
     }
   };
 

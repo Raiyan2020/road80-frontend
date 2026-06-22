@@ -71,14 +71,24 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
 
   if (!isOpen) return null;
 
-  const toggleCategory = (id: number) => {
+  const selectCategory = (category: any, id: number) => {
     setFilters(prev => {
       const current = prev.category_value_id || [];
       const numId = Number(id);
-      if (current.includes(numId)) {
-        return { ...prev, category_value_id: current.filter(x => x !== numId) };
-      }
-      return { ...prev, category_value_id: [...current, numId] };
+      const categoryValueIds = new Set(
+        (category.values || []).map((value: any) => Number(value.id)),
+      );
+      const isAlreadySelected = current.some(value => Number(value) === numId);
+      const selectionsOutsideCategory = current.filter(
+        value => !categoryValueIds.has(Number(value)),
+      );
+
+      return {
+        ...prev,
+        category_value_id: isAlreadySelected
+          ? selectionsOutsideCategory
+          : [...selectionsOutsideCategory, numId],
+      };
     });
   };
 
@@ -125,11 +135,13 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
               <h3 className="text-sm font-bold text-gray-500 dark:text-slate-400">{cat.name}</h3>
               <div className="flex flex-wrap gap-2">
                 {cat.values?.map((v: any) => {
-                  const isSelected = (filters.category_value_id || []).includes(v.id);
+                  const isSelected = (filters.category_value_id || []).some(
+                    id => Number(id) === Number(v.id),
+                  );
                   return (
                     <button
                       key={v.id}
-                      onClick={() => toggleCategory(v.id)}
+                      onClick={() => selectCategory(cat, v.id)}
                       className={`px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border ${isSelected
                           ? 'border-navy bg-navy/5 text-navy dark:border-blue dark:bg-blue/10 dark:text-blue'
                           : 'border-pale dark:border-slate-700 text-navy dark:text-slate-300 bg-white dark:bg-slate-900 active:bg-gray-50'

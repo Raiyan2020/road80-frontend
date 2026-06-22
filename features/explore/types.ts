@@ -27,9 +27,12 @@ export interface ExploreRawAd {
     range: unknown;
   }>;
   categories: Array<{
-    id: number;
-    name: string;
-    value: string;
+    id?: number;
+    name?: string;
+    value?: string;
+    category_name?: string;
+    category_value_name?: string;
+    range?: unknown;
   }>;
   image: {
     file: string;

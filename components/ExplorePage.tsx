@@ -41,7 +41,7 @@ const ExplorePage: React.FC = () => {
       country_id: sp.get('country_id') || '',
       state_id: sp.get('state_id') || '',
       city_id: sp.get('city_id') || '',
-      min_price: Number(sp.get('min_price')) || 0,
+      min_price: Number(sp.get('min_price')) || undefined,
       max_price: Number(sp.get('max_price')) || undefined,
       category_value_id: categoryIds
     };

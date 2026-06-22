@@ -18,7 +18,7 @@ export interface ProfileResponse {
   status: boolean;
   message: string;
   data: ProfileData;
-  errors: unknown[];
+  errors: Record<string, string[]> | unknown[];
 }
 
 export interface ProfileListingsResponse {

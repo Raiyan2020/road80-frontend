@@ -56,16 +56,27 @@ export function listingHasVideo(
 }
 
 export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
+  const categoryName = (category: ExploreRawAd['categories'][number]) =>
+    category.name || category.category_name || '';
+  const categoryValue = (category: ExploreRawAd['categories'][number]) =>
+    category.value || category.category_value_name || '';
+  const propertyCategory = raw.categories?.find(
+    (category) => categoryName(category).trim() === 'نوع العقار',
+  );
+  const listingCategory = raw.categories?.find((category) =>
+    ['نوع الإعلان', 'نوع التعاقد'].includes(categoryName(category).trim()),
+  );
+
   // Broad search for property type in answers or categories
   const propertyType = 
     raw.answers?.find((a) => a.category_name?.trim() === 'نوع العقار')?.category_value_name ||
-    raw.categories?.find((c) => c.name?.trim() === 'نوع العقار')?.value ||
-    raw.categories?.[0]?.value ||
+    (propertyCategory ? categoryValue(propertyCategory) : '') ||
+    (raw.categories?.[0] ? categoryValue(raw.categories[0]) : '') ||
     '';
 
   const listingType = 
     raw.answers?.find((a) => a.category_name?.trim() === 'نوع الإعلان')?.category_value_name ||
-    raw.categories?.find((c) => c.name?.trim() === 'نوع الإعلان')?.value ||
+    (listingCategory ? categoryValue(listingCategory) : '') ||
     '';
 
   // Format price with regex commas (Source Parity)
@@ -93,7 +104,7 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
     description:
       [
         raw.answers?.map((a) => `${a.category_name}: ${a.category_value_name}`).join(' | '),
-        raw.categories?.map((c) => `${c.name}: ${c.value}`).join(' | '),
+        raw.categories?.map((c) => `${categoryName(c)}: ${categoryValue(c)}`).join(' | '),
       ]
         .filter(Boolean)
         .join(' || ') || undefined,

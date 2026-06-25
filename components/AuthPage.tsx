@@ -8,7 +8,7 @@ import { useUserStore } from "@/stores/user.store";
 
 import { useCountries } from "@/shared/hooks/useCountries";
 import { usePrivacy, useTerms } from "@/features/pages/hooks/usePages";
-import { getDeviceId } from "@/shared/utils/notifications";
+import { getDevicePushToken, getDeviceType, registerCurrentDevice } from "@/shared/utils/notifications";
 import { User } from "@/shared/types/auth";
 import { AppImage } from "./AppImage";
 
@@ -148,15 +148,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     setError("");
 
     try {
-      const device_id = getDeviceId();
+      const device_id = getDevicePushToken();
       // Sending OTP Verification payload
 
       const response = await authService.verifyOtp({
         phone,
         code,
         country_id: countryId,
-        device_id: device_id,
-        device_type: "web",
+        device_id: device_id ?? undefined,
+        device_type: device_id ? getDeviceType() : undefined,
       });
 
       if (response.status && response.data) {
@@ -172,6 +172,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           avatar: user.image,
           token,
         });
+        void registerCurrentDevice(undefined, token).catch(() => undefined);
         onLoginSuccess(user);
       } else {
         setError(response.message || "رمز التفعيل غير صحيح");

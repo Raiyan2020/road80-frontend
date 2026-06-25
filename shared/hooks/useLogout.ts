@@ -3,7 +3,7 @@ import { authService } from '../services/auth.service';
 import { useUserStore } from '@/stores/user.store';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
-import { getFcmToken } from '../utils/notifications';
+import { getDevicePushToken } from '../utils/notifications';
 
 export const useLogout = () => {
   const queryClient = useQueryClient();
@@ -12,7 +12,7 @@ export const useLogout = () => {
 
   return useMutation({
     mutationFn: async () => {
-      const device_id = getFcmToken();
+      const device_id = getDevicePushToken();
       return authService.logout(device_id || '');
     },
     // We don't clear the store in onMutate anymore to ensure the 

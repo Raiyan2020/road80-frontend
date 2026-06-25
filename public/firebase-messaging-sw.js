@@ -7,12 +7,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: 'AIzaSyC-Acd0GoIo3SG27JE_JKIG-Hdb3_SG35c',
+  apiKey: 'AIzaSyC6ZAwuIGCrkSZrGn26HTJK3V1Ktllz7Dc',
   authDomain: 'road-d5491.firebaseapp.com',
   projectId: 'road-d5491',
   storageBucket: 'road-d5491.firebasestorage.app',
   messagingSenderId: '188664861433',
-  appId: 'REPLACE_WITH_WEB_APP_ID', // ← Must match firebase.config.ts
+  appId: '1:188664861433:web:8592a8c84726e535678828',
+  measurementId: 'G-KDMP9FJPRT',
 });
 
 const messaging = firebase.messaging();

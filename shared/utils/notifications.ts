@@ -2,10 +2,64 @@ import { toast } from 'sonner';
 import { getApps, initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { firebaseConfig, VAPID_KEY } from '@/lib/firebase.config';
+import { API_BASE_URL } from '@/lib/api-base-url';
 import { getQueryClient } from '@/lib/query-client';
 import { useUserStore } from '@/stores/user.store';
 
 const FCM_TOKEN_KEY = 'FCM_TOKEN';
+const NATIVE_FCM_TOKEN_KEY = 'NATIVE_FCM_TOKEN';
+const NATIVE_FCM_PLATFORM_KEY = 'NATIVE_FCM_PLATFORM';
+let nativeBridgeInitialized = false;
+
+type PushPlatform = 'android' | 'ios' | 'web';
+
+declare global {
+  interface Window {
+    __FCM_TOKEN__?: string;
+    __FCM_PLATFORM__?: PushPlatform;
+    ReactNativeWebView?: {
+      postMessage: (message: string) => void;
+    };
+  }
+}
+
+const isNativePushPlatform = (platform: unknown): platform is 'android' | 'ios' =>
+  platform === 'android' || platform === 'ios';
+
+const getStoredAuthToken = (): string | null => {
+  try {
+    const userStr = localStorage.getItem('road80_user');
+    if (!userStr) return null;
+
+    const parsed = JSON.parse(userStr);
+    return parsed?.state?.user?.token || parsed?.token || null;
+  } catch {
+    return null;
+  }
+};
+
+const storeNativePushToken = (token: string, platform: 'android' | 'ios') => {
+  localStorage.setItem(NATIVE_FCM_TOKEN_KEY, token);
+  localStorage.setItem(NATIVE_FCM_PLATFORM_KEY, platform);
+};
+
+const syncNativePushTokenFromBridge = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const token = typeof window.__FCM_TOKEN__ === 'string' ? window.__FCM_TOKEN__ : null;
+  const platform = window.__FCM_PLATFORM__;
+
+  if (token && isNativePushPlatform(platform)) {
+    storeNativePushToken(token, platform);
+    return token;
+  }
+
+  return localStorage.getItem(NATIVE_FCM_TOKEN_KEY);
+};
+
+export const getNativeFcmToken = (): string | null => syncNativePushTokenFromBridge();
 
 /**
  * Returns the stored FCM registration token from localStorage.
@@ -13,6 +67,77 @@ const FCM_TOKEN_KEY = 'FCM_TOKEN';
  */
 export const getFcmToken = (): string | null => {
   return localStorage.getItem(FCM_TOKEN_KEY);
+};
+
+export const getDevicePushToken = (): string | null => {
+  return getNativeFcmToken() || getFcmToken();
+};
+
+export const getDeviceType = (): PushPlatform => {
+  syncNativePushTokenFromBridge();
+  const nativePlatform = localStorage.getItem(NATIVE_FCM_PLATFORM_KEY);
+  return isNativePushPlatform(nativePlatform) ? nativePlatform : 'web';
+};
+
+export const registerCurrentDevice = async (
+  token = getDevicePushToken(),
+  authToken = getStoredAuthToken()
+): Promise<void> => {
+  if (!token) {
+    return;
+  }
+
+  if (!authToken) {
+    return;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/notifications/register-device`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({
+      device_id: token,
+      device_type: getDeviceType(),
+      lang: document.documentElement.lang || 'ar',
+    }),
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text().catch(() => '');
+    throw new Error(`Device registration failed with ${response.status}: ${responseText}`);
+  }
+};
+
+export const initializeNativePushBridge = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const registerBridgeToken = (token: string, platform: 'android' | 'ios') => {
+    storeNativePushToken(token, platform);
+    void registerCurrentDevice(token).catch(() => undefined);
+  };
+
+  syncNativePushTokenFromBridge();
+
+  if (nativeBridgeInitialized) {
+    window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'REQUEST_FCM_TOKEN' }));
+    return;
+  }
+
+  nativeBridgeInitialized = true;
+
+  window.addEventListener('fcm-token', (event) => {
+    const detail = (event as CustomEvent<{ token?: string; platform?: PushPlatform }>).detail;
+    if (detail?.token && isNativePushPlatform(detail.platform)) {
+      registerBridgeToken(detail.token, detail.platform);
+    }
+  });
+
+  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'REQUEST_FCM_TOKEN' }));
 };
 
 const FALLBACK_DEVICE_ID_KEY = 'FALLBACK_DEVICE_ID';
@@ -44,7 +169,7 @@ export const getNotificationCopy = (notif: any) => {
  * This ensures the backend always receives a unique identifier per device even if push is disabled.
  */
 export const getDeviceId = (): string => {
-  const fcmToken = getFcmToken();
+  const fcmToken = getDevicePushToken();
   if (fcmToken) return fcmToken;
 
   let fallbackId = localStorage.getItem(FALLBACK_DEVICE_ID_KEY);
@@ -105,6 +230,12 @@ export const forceLogout = (reason: 'block' | 'delete' | 'session_expired') => {
  *  - firebaseConfig.appId and VAPID_KEY must be filled in lib/firebase.config.ts.
  */
 export const initializePushNotifications = async (): Promise<void> => {
+  initializeNativePushBridge();
+
+  if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+    return;
+  }
+
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
     return;
   }
@@ -138,6 +269,7 @@ export const initializePushNotifications = async (): Promise<void> => {
 
     if (token) {
       localStorage.setItem(FCM_TOKEN_KEY, token);
+      void registerCurrentDevice(token).catch(() => undefined);
     }
 
     // ── Foreground message handler (app tab is open & visible) ──────────────

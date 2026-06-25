@@ -1,9 +1,8 @@
 import { ofetch, type FetchOptions } from 'ofetch';
-
-const BASE_URL = 'https://portal.road-80.com/api';
+import { API_BASE_URL } from '@/lib/api-base-url';
 
 export const apiClient = ofetch.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

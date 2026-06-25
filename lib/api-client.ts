@@ -1,7 +1,6 @@
 import { ofetch, type FetchOptions } from 'ofetch';
 import { forceLogout } from '@/shared/utils/notifications';
-
-const BASE_URL = 'https://portal.road-80.com/api';
+import { API_BASE_URL } from '@/lib/api-base-url';
 
 // Auth endpoints that should never trigger a force-logout on failure
 // (e.g. wrong OTP returns status:"needLogin" but user is not logged in yet)
@@ -11,7 +10,7 @@ const isAuthPath = (url: string) =>
   AUTH_PATHS.some((p) => url.includes(p));
 
 export const apiClient = ofetch.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

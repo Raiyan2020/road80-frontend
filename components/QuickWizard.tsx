@@ -16,11 +16,12 @@ interface QuickWizardProps {
 const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     const searchParams = new URLSearchParams(window.location.search);
     const mode = searchParams.get('mode');
+    const isLocationMode = mode === 'location';
     let initialStep = 1;
     if (mode === 'edit') initialStep = 3;
-    else if (mode === 'location') initialStep = 2;
+    else if (isLocationMode) initialStep = 2;
 
-    const isEditMode = mode === 'edit' || mode === 'location';
+    const isEditMode = mode === 'edit' || isLocationMode;
 
     const [step, setStep] = useState(initialStep);
     const [data, setData] = useState(() => {
@@ -173,7 +174,12 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                     <button
                                         key={c.id}
                                         onClick={() => {
-                                            setData({ ...data, countryId: c.id, countryName: c.name, governorateId: null, governorateName: '', areaId: null, areaName: '' });
+                                            const updated = { ...data, countryId: c.id, countryName: c.name, governorateId: null, governorateName: '', areaId: null, areaName: '' };
+                                            setData(updated);
+                                            if (isLocationMode) {
+                                                setTimeout(() => saveAndComplete(updated), 150);
+                                                return;
+                                            }
                                             setTimeout(() => setStep(3), 150);
                                         }}
                                         className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 active:scale-95 ${data.countryId === c.id 

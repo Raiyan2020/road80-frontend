@@ -6,7 +6,7 @@ import {
   ChevronDownIcon,
   SpinnerIcon,
 } from "../../../components/Icons";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useHomeListings } from "../hooks/useHomeListings";
 import { useHomeData } from "../hooks/useHomeData";
 import { BannerSlider } from "./BannerSlider";
@@ -19,6 +19,7 @@ const HomePage: React.FC<{
   onToggleTheme: () => void;
 }> = ({ theme, onToggleTheme }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: homeListings = [], isLoading: isListingsLoading } =
     useHomeListings();
   const { data: homeData, isLoading: isHomeDataLoading } = useHomeData();
@@ -27,7 +28,18 @@ const HomePage: React.FC<{
 
   const displayAds = homeListings.slice(0, 6);
   const firstSuggestedAd = homeListings[0];
-  const currentCountryName = firstSuggestedAd?.country || "الكويت";
+  const currentCountryName = useMemo(() => {
+    try {
+      const prefs = localStorage.getItem("road80_preferences");
+      if (prefs) {
+        const parsed = JSON.parse(prefs);
+        if (parsed.countryName) return parsed.countryName;
+      }
+    } catch {
+      // ignore invalid preferences
+    }
+    return firstSuggestedAd?.country || "الكويت";
+  }, [location.pathname, firstSuggestedAd?.country]);
   const searchText = useMemo(() => {
     if (!firstSuggestedAd) return "";
 

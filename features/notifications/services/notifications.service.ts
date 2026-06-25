@@ -12,8 +12,8 @@ export const notificationsService = {
    */
   registerDevice: async (token: string, platform: string): Promise<{ status: boolean; message: string }> => {
     return api.post<{ status: boolean; message: string }>('/notifications/register-device', {
-      token,
-      platform,
+      device_id: token,
+      device_type: platform,
     });
   },
 

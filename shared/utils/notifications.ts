@@ -111,6 +111,41 @@ export const registerCurrentDevice = async (
   }
 };
 
+export function requestNativeDeviceRegistration(authToken: string): void {
+  if (!authToken || typeof window === 'undefined') {
+    return;
+  }
+
+  window.ReactNativeWebView?.postMessage(
+    JSON.stringify({
+      type: 'REGISTER_PUSH_DEVICE',
+      authToken,
+    })
+  );
+}
+
+export async function registerCurrentDeviceWithRetry(
+  authToken: string,
+  options?: { maxAttempts?: number; delayMs?: number }
+): Promise<void> {
+  const maxAttempts = options?.maxAttempts ?? 12;
+  const delayMs = options?.delayMs ?? 1500;
+
+  requestNativeDeviceRegistration(authToken);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const token = getDevicePushToken();
+    if (token) {
+      await registerCurrentDevice(token, authToken);
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+
+  console.warn('Push device registration skipped: FCM token was not available.');
+}
+
 export const initializeNativePushBridge = () => {
   if (typeof window === 'undefined') {
     return;
@@ -118,7 +153,14 @@ export const initializeNativePushBridge = () => {
 
   const registerBridgeToken = (token: string, platform: 'android' | 'ios') => {
     storeNativePushToken(token, platform);
-    void registerCurrentDevice(token).catch(() => undefined);
+    void registerCurrentDevice(token).catch((error) => {
+      console.warn('Failed to register push device from native bridge.', error);
+    });
+
+    const authToken = getStoredAuthToken();
+    if (authToken) {
+      requestNativeDeviceRegistration(authToken);
+    }
   };
 
   syncNativePushTokenFromBridge();

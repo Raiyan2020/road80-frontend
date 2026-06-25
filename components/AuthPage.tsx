@@ -8,7 +8,7 @@ import { useUserStore } from "@/stores/user.store";
 
 import { useCountries } from "@/shared/hooks/useCountries";
 import { usePrivacy, useTerms } from "@/features/pages/hooks/usePages";
-import { getDevicePushToken, getDeviceType, registerCurrentDevice } from "@/shared/utils/notifications";
+import { getDevicePushToken, getDeviceType, registerCurrentDeviceWithRetry } from "@/shared/utils/notifications";
 import { User } from "@/shared/types/auth";
 import { AppImage } from "./AppImage";
 
@@ -172,7 +172,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           avatar: user.image,
           token,
         });
-        void registerCurrentDevice(undefined, token).catch(() => undefined);
+        void registerCurrentDeviceWithRetry(token).catch((error) => {
+          console.warn("Failed to register push device after login.", error);
+        });
         onLoginSuccess(user);
       } else {
         setError(response.message || "رمز التفعيل غير صحيح");

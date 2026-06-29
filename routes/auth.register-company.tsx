@@ -269,7 +269,7 @@ function RegisterCompanyPage() {
 
           <div className="w-24 h-24 mb-2">
             <AppImage
-              src="/logo.webp"
+              src="/road-logo.png"
               alt="80road"
               className="w-full h-full drop-shadow-xl"
               coverClassName="object-contain"

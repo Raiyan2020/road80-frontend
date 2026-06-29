@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import FirebaseCore
 
 // ============================================================
 // FIREBASE MESSAGING INTEGRATION
@@ -31,8 +32,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // ✅ Step 1: Configure Firebase BEFORE anything else.
-        FirebaseApp.configure()
+        // Configure Firebase when the iOS service plist is present.
+        if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+            FirebaseApp.configure()
+        }
 
         return true
     }

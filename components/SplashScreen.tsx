@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { SpinnerIcon } from './Icons';
 import { AppImage } from './AppImage';
+import roadLogo from '../assets/road-logo.png';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -25,9 +26,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-bg to-pale ${isFading ? 'animate-fade-out' : ''}`}>
       <div className="flex flex-col items-center gap-8">
         <AppImage
-          src="/logo.webp"
+          src={roadLogo}
           alt="80road Logo"
-          className="w-40 h-auto animate-fade-in"
+          className="w-40 h-40 animate-fade-in"
           coverClassName="object-contain"
         />
         <SpinnerIcon className="w-8 h-8 text-navy animate-spin" />

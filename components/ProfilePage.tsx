@@ -11,6 +11,7 @@ import {
   VerifiedIcon,
   WhatsappIcon,
   PhoneIcon,
+  CloseIcon,
 } from "./Icons";
 import { Listing } from "../types";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -129,6 +130,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     activeTabParam === "favorites" && isMe ? "favorites" : "ads",
   );
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
 
   useEffect(() => {
     const p = getParams();
@@ -202,17 +204,31 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     { id: "link", icon: LinkIcon, url: "https://example.com/link" },
   ];
 
+  const openAvatarPreview = () => {
+    setIsAvatarPreviewOpen(true);
+  };
+
   return (
     <div className="flex flex-col p-4 gap-6 animate-fade-in transition-colors duration-300">
       <div className="flex items-center gap-4">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pale to-white dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-navy dark:text-slate-200 shrink-0 border-2 border-white dark:border-slate-800 shadow-md overflow-hidden relative">
-          <AppImage
-            src={profileAvatar}
-            alt={profileName}
-            className="w-full h-full"
-            coverClassName="object-cover"
-            containOnFallback
-            fallback={APP_LOGO_URL}
+        <div className="relative z-20 w-20 h-20 shrink-0">
+          <div className="w-full h-full rounded-full bg-gradient-to-br from-pale to-white dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-navy dark:text-slate-200 border-2 border-white dark:border-slate-800 shadow-md overflow-hidden">
+            <AppImage
+              src={profileAvatar}
+              alt={profileName}
+              className="pointer-events-none !w-full !h-full !object-cover !p-0"
+              coverClassName="!object-cover !p-0"
+              containOnFallback={false}
+              fallback={APP_LOGO_URL}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={openAvatarPreview}
+            onPointerDown={openAvatarPreview}
+            onTouchStart={openAvatarPreview}
+            className="absolute inset-0 z-30 rounded-full cursor-pointer touch-manipulation bg-transparent active:scale-95 transition-transform"
+            aria-label="عرض صورة الملف الشخصي"
           />
         </div>
         <div className="flex flex-col gap-1 flex-1">
@@ -328,6 +344,40 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           onClose={() => setIsEditProfileOpen(false)}
           profileData={profile}
         />
+      )}
+
+      {isAvatarPreviewOpen && (
+        <div className="fixed inset-0 z-[260] flex items-center justify-center p-6" dir="rtl">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            onClick={() => setIsAvatarPreviewOpen(false)}
+            aria-label="إغلاق معاينة الصورة"
+          />
+          <div className="relative w-full max-w-sm rounded-[28px] bg-white dark:bg-slate-900 p-5 shadow-2xl animate-fade-in">
+            <button
+              type="button"
+              onClick={() => setIsAvatarPreviewOpen(false)}
+              className="absolute left-4 top-4 z-10 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 text-navy dark:text-slate-200 flex items-center justify-center shadow-md active:scale-95 transition-transform"
+              aria-label="إغلاق"
+            >
+              <CloseIcon className="w-5 h-5" />
+            </button>
+            <div className="aspect-square w-full overflow-hidden rounded-[24px] bg-slate-100 dark:bg-slate-800">
+              <AppImage
+                src={profileAvatar}
+                alt={profileName}
+                className="!w-full !h-full !object-cover !p-0"
+                coverClassName="!object-cover !p-0"
+                containOnFallback={false}
+                fallback={APP_LOGO_URL}
+              />
+            </div>
+            <div className="mt-4 text-center text-navy dark:text-slate-200 text-lg font-bold font-sans truncate">
+              {profileName}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

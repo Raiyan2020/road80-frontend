@@ -226,7 +226,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         {/* Logo */}
         <div className="mb-8">
           <AppImage
-            src="/logo.webp"
+            src="/road-logo.png"
             alt="80road"
             className="w-32 h-auto drop-shadow-sm"
             coverClassName="object-contain"

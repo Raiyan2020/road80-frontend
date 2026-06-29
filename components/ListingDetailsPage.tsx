@@ -399,6 +399,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   const handleContactAction = (type: "WHATSAPP" | "CALL") => {
+    if (paymentStatus !== "IDLE") return;
+
     const isPaid = (listing as any).is_paid === 1;
     const phone = (listing as any).owner_phone || (unlockedContact as any)?.phone;
     const whatsapp = (listing as any).owner_whatsapp || (unlockedContact as any)?.whatsapp;
@@ -436,6 +438,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
         if (response.data?.phone) {
           // Already unlocked — backend gave us the number directly
           setPaymentStatus("IDLE");
+          setPendingContactType(null);
           const phone = response.data.phone.replace(/\D/g, "");
           // Phone number received directly
 
@@ -478,6 +481,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
       },
       onError: (err) => {
         setPaymentStatus("IDLE");
+        setPendingContactType(null);
         toast.error("حدث خطأ أثناء محاولة الاتصال");
       },
     });
@@ -512,6 +516,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
         return "فتح التواصل مع ناشر الإعلان";
     }
   };
+
+  const isStartingContact = paymentStatus === "STARTING" && pendingContactType !== null;
+  const isWhatsappStarting = isStartingContact && pendingContactType === "WHATSAPP";
+  const isCallStarting = isStartingContact && pendingContactType === "CALL";
 
   return (
     <div
@@ -790,10 +798,11 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           <div className="flex-1 flex gap-1">
             <button
               onClick={() => handleContactAction("WHATSAPP")}
-              disabled={paymentStatus !== "IDLE"}
+              disabled={isWhatsappStarting}
+              aria-disabled={paymentStatus !== "IDLE"}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-navy/20 dark:border-slate-700 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-500 font-semibold text-sm active:scale-95 transition-all disabled:opacity-50"
             >
-              {paymentStatus === "STARTING" ? (
+              {isWhatsappStarting ? (
                 <SpinnerIcon className="w-5 h-5 animate-spin" />
               ) : (
                 <WhatsappIcon className="w-5 h-5" />
@@ -805,10 +814,11 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           <div className="flex-1 flex gap-1">
             <button
               onClick={() => handleContactAction("CALL")}
-              disabled={paymentStatus !== "IDLE"}
+              disabled={isCallStarting}
+              aria-disabled={paymentStatus !== "IDLE"}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-navy dark:bg-blue text-white font-semibold text-sm shadow-lg shadow-navy/20 dark:shadow-blue/20 active:scale-95 transition-all disabled:opacity-50"
             >
-              {paymentStatus === "STARTING" ? (
+              {isCallStarting ? (
                 <SpinnerIcon className="w-5 h-5 animate-spin" />
               ) : (
                 <PhoneIcon className="w-5 h-5" />

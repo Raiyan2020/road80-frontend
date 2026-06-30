@@ -8,7 +8,11 @@ import { useUserStore } from "@/stores/user.store";
 
 import { useCountries } from "@/shared/hooks/useCountries";
 import { usePrivacy, useTerms } from "@/features/pages/hooks/usePages";
-import { getDevicePushToken, getDeviceType, registerCurrentDeviceWithRetry } from "@/shared/utils/notifications";
+import {
+  getDevicePushToken,
+  getDeviceType,
+  registerCurrentDeviceWithRetry,
+} from "@/shared/utils/notifications";
 import { User } from "@/shared/types/auth";
 import { AppImage } from "./AppImage";
 
@@ -40,7 +44,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(30);
-  const [pageDialog, setPageDialog] = useState<"terms" | "privacy" | null>(null);
+  const [pageDialog, setPageDialog] = useState<"terms" | "privacy" | null>(
+    null,
+  );
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Real API hooks
@@ -214,9 +220,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   };
 
   const closeDialog = () => setPageDialog(null);
-  const dialogTitle = pageDialog === "terms" ? "الشروط والأحكام" : "سياسة الخصوصية";
+  const dialogTitle =
+    pageDialog === "terms" ? "الشروط والأحكام" : "سياسة الخصوصية";
   const dialogData = pageDialog === "terms" ? termsData : privacyData;
-  const dialogLoading = pageDialog === "terms" ? isTermsLoading : isPrivacyLoading;
+  const dialogLoading =
+    pageDialog === "terms" ? isTermsLoading : isPrivacyLoading;
 
   return (
     <div className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in p-6">
@@ -231,7 +239,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           <AppImage
             src="/logo-road.png"
             alt="80road"
-            className="w-32 h-auto drop-shadow-sm"
+            className="w-36 h-auto drop-shadow-sm"
             coverClassName="object-contain"
           />
         </div>
@@ -273,12 +281,21 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     >
                       {countries.length > 0 ? (
                         countries.map((c) => (
-                          <option key={c.id} value={c.id} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">
+                          <option
+                            key={c.id}
+                            value={c.id}
+                            className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold"
+                          >
                             {c.country_code || "KW"} {c.phone_code}
                           </option>
                         ))
                       ) : (
-                        <option value={1} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">KW +965</option>
+                        <option
+                          value={1}
+                          className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold"
+                        >
+                          KW +965
+                        </option>
                       )}
                     </select>
                     <div className="pointer-events-none flex items-center gap-1 text-navy dark:text-blue font-semibold text-sm tracking-wide">
@@ -405,9 +422,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             <ChevronRightIcon className="w-4 h-4 rtl:rotate-180 ltr:rotate-0" />
           </button>
 
-            <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-              <span>بتسجيل الدخول فإنك تقبل</span>
-              <span
+          <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            <span>بتسجيل الدخول فإنك تقبل</span>
+            <span
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -433,11 +450,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
       </div>
 
       {pageDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" dir="rtl">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeDialog} />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          dir="rtl"
+        >
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeDialog}
+          />
           <div className="relative w-full max-w-[420px] max-h-[85dvh] bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl border border-white/60 dark:border-slate-800 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-800">
-              <h2 className="text-lg font-bold text-navy dark:text-slate-200">{dialogTitle}</h2>
+              <h2 className="text-lg font-bold text-navy dark:text-slate-200">
+                {dialogTitle}
+              </h2>
               <button
                 onClick={closeDialog}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-navy dark:hover:text-white transition-all active:scale-90"
@@ -457,7 +482,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   </h3>
                   <div
                     className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-line Prose"
-                    dangerouslySetInnerHTML={{ __html: dialogData?.description || "" }}
+                    dangerouslySetInnerHTML={{
+                      __html: dialogData?.description || "",
+                    }}
                   />
                 </div>
               )}

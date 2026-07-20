@@ -2,6 +2,7 @@ import api from '@/lib/api-client';
 import { Office, OfficeSchema, Listing, ListingSchema } from '@/lib/types';
 import { APP_LOGO_URL } from '@/shared/constants/images';
 import { resolveMediaUrl } from '@/shared/utils/media-url';
+import { normalizeSocials } from '@/shared/services/social-platforms.service';
 import { CompanyDepartment, DepartmentsResponse } from '../types';
 
 // ── Service functions ─────────────────────────────────────────
@@ -153,6 +154,7 @@ export async function fetchOfficeById(id: string | number): Promise<Office | nul
         totalViews: raw.total_ads_watch ?? 0,
         totalLikes: raw.total_ads_likes ?? 0,
         rating: raw.rate ?? 0,
+        socials: normalizeSocials(raw.socials),
         sampleListings: [],
       });
     }

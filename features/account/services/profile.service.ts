@@ -1,6 +1,7 @@
 import { apiClient, api } from '@/lib/api-client';
 import { Listing } from '@/lib/types';
 import { mapRawExploreToListing } from '@/features/explore/services/explore.service';
+import type { UserSocials } from '@/shared/services/social-platforms.service';
 
 export interface ProfileData {
   id: number;
@@ -12,6 +13,7 @@ export interface ProfileData {
   total_ads_watch?: number;
   total_active_ads?: number;
   first_login?: number | null;
+  socials?: UserSocials;
 }
 
 export interface ProfileResponse {
@@ -31,7 +33,7 @@ export interface ProfileListingsResponse {
 export const profileService = {
   getProfile: () => api.get<ProfileResponse>('/profile'),
   
-  updateProfile: (formData: FormData) => 
+  updateProfile: (formData: FormData) =>
     apiClient<ProfileResponse>('/profile', {
       method: 'POST',
       body: formData,
@@ -39,6 +41,25 @@ export const profileService = {
         'Accept': 'application/json',
       }
     }),
+
+  /**
+   * Partial update of the user's social links only.
+   * Keys are platform slugs; an empty string removes that link. Slugs left out
+   * of the payload are kept untouched by the backend.
+   */
+  updateSocials: (socials: Record<string, string>) => {
+    const formData = new FormData();
+    Object.entries(socials).forEach(([slug, link]) => {
+      formData.append(`socials[${slug}]`, link);
+    });
+    return apiClient<ProfileResponse>('/profile', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+  },
 
   getMyAds: async (): Promise<Listing[]> => {
     const response = await api.get<ProfileListingsResponse>('/profile/my-ads');

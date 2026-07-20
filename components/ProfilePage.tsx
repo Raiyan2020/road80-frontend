@@ -21,6 +21,9 @@ import {
   useDeleteAd,
 } from "../features/account/hooks/useProfile";
 import { UpdateProfileDialog } from "./UpdateProfileDialog";
+import { SocialLinksDialog } from "./SocialLinksDialog";
+import { SocialLinksRow } from "./SocialLinksRow";
+import type { UserSocials } from "@/shared/services/social-platforms.service";
 import { useOffice } from "../features/companies/hooks/useOffices";
 import { useOfficeAds } from "../features/companies/hooks/useOfficeAds";
 import { listingHasVideo } from "../features/explore/services/explore.service";
@@ -129,6 +132,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     activeTabParam === "favorites" && isMe ? "favorites" : "ads",
   );
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isSocialLinksOpen, setIsSocialLinksOpen] = useState(false);
 
   useEffect(() => {
     const p = getParams();
@@ -164,6 +168,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   let isVerified = false;
   let stats = { ads: "0", likes: "0", views: "0" };
   let displayList: Listing[] = [];
+  let socials: UserSocials = {};
 
   if (isMe) {
     const myAds = myAdsData;
@@ -178,6 +183,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     profileBio = profile?.caption || "";
     profileAvatar = profile?.image || APP_LOGO_URL;
     isVerified = false;
+    socials = profile?.socials || {};
   } else {
     if (officeData) {
       profileName = officeData.officeName || "شركة";
@@ -190,6 +196,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
         views: officeData.totalViews?.toString() || "0",
       };
       displayList = officeAdsData as Listing[];
+      socials = (officeData.socials || {}) as UserSocials;
     }
   }
 
@@ -215,7 +222,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
             fallback={APP_LOGO_URL}
           />
         </div>
-        <div className="flex flex-col gap-1 flex-1">
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <h2 className="text-xl font-bold text-navy dark:text-slate-200 font-sans line-clamp-1">
               {profileName}
@@ -227,16 +234,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-snug font-sans font-normal whitespace-pre-line">
             {profileBio}
           </p>
-          {isMe && (
+        </div>
+
+        {/* Pinned so they stay reachable no matter how many social links exist */}
+        {isMe && (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsSocialLinksOpen(true)}
+              title="روابط التواصل"
+              aria-label="تعديل روابط التواصل"
+              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
+            >
+              <LinkIcon className="w-4 h-4" />
+            </button>
             <button
               onClick={() => setIsEditProfileOpen(true)}
-              className="mr-auto w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300"
+              title="تعديل الملف الشخصي"
+              aria-label="تعديل الملف الشخصي"
+              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
             >
               <EditIcon className="w-4 h-4" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      <SocialLinksRow socials={socials} className="-mt-2 flex-wrap" />
 
       <div className="flex justify-between items-center px-4 py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-pale dark:border-slate-800 transition-colors duration-300">
         <StatItem label="الإعلانات" value={stats.ads} />
@@ -327,6 +350,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           isOpen={isEditProfileOpen}
           onClose={() => setIsEditProfileOpen(false)}
           profileData={profile}
+        />
+      )}
+
+      {isMe && (
+        <SocialLinksDialog
+          isOpen={isSocialLinksOpen}
+          onClose={() => setIsSocialLinksOpen(false)}
+          socials={socials}
         />
       )}
     </div>

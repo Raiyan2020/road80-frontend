@@ -3,7 +3,11 @@ import { useEffect } from 'react';
 import { useProfile } from '../features/account/hooks/useProfile';
 import { SpinnerIcon, CloseIcon } from './Icons';
 import { AppImage } from './AppImage';
+import { ModalPortal } from './ModalPortal';
 import { toast } from 'sonner';
+
+const MIN_NAME_LENGTH = 3;
+const MIN_BIO_LENGTH = 4;
 
 export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => void; profileData: any }> = ({ isOpen, onClose, profileData }) => {
   const { updateProfile, isUpdating } = useProfile();
@@ -50,18 +54,18 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
     }
   };
 
+  const isNameValid = name.trim().length >= MIN_NAME_LENGTH;
+  const isBioValid = bio.trim().length >= MIN_BIO_LENGTH;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const isNameValid = name.trim().length >= 3;
-    const isBioValid = bio.trim().length >= 10;
 
     if (!isNameValid || !isBioValid) {
       setShowErrors(true);
       if (!isNameValid) {
-        toast.error('يجب أن يكون طول الاسم 3 حروف على الأقل');
+        toast.error(`يجب أن يكون طول الاسم ${MIN_NAME_LENGTH} حروف على الأقل`);
       } else if (!isBioValid) {
-        toast.error('يجب أن يكون طول الوصف 10 حروف على الأقل');
+        toast.error(`يجب أن يكون طول الوصف ${MIN_BIO_LENGTH} حروف على الأقل`);
       }
       return;
     }
@@ -83,9 +87,14 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] p-6 shadow-2xl animate-in slide-in-from-bottom duration-300" dir="rtl">
+    <ModalPortal>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="relative bg-white dark:bg-slate-900 w-full max-w-sm overflow-y-auto overscroll-contain rounded-[32px] p-6 shadow-2xl animate-in slide-in-from-bottom duration-300"
+        style={{ maxHeight: 'calc(var(--vh, 1vh) * 90)' }}
+        dir="rtl"
+      >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-navy dark:text-slate-200">تحديث الملف الشخصي</h2>
           <button 
@@ -116,29 +125,39 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center justify-between">
-              الاسم <span className="text-red-500 text-[10px]">* 3 حروف على الأقل</span>
+              الاسم
+              {showErrors && !isNameValid && (
+                <span className="text-red-500 text-[10px] font-normal">
+                  {MIN_NAME_LENGTH} حروف على الأقل
+                </span>
+              )}
             </label>
-            <input 
-              type="text" 
-              value={name} 
-              onChange={e => setName(e.target.value)} 
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
               className={`h-12 px-4 rounded-xl border bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200 transition-all ${
-                showErrors && name.trim().length < 3 ? 'border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'border-pale dark:border-slate-800 focus:border-navy dark:focus:border-blue'
-              }`} 
+                showErrors && !isNameValid ? 'border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'border-pale dark:border-slate-800 focus:border-navy dark:focus:border-blue'
+              }`}
               placeholder="أدخل اسمك"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center justify-between">
-              البايو (الوصف) <span className="text-red-500 text-[10px]">* 10 حروف على الأقل</span>
+              البايو (الوصف)
+              {showErrors && !isBioValid && (
+                <span className="text-red-500 text-[10px] font-normal">
+                  {MIN_BIO_LENGTH} حروف على الأقل
+                </span>
+              )}
             </label>
-            <textarea 
-              value={bio} 
-              onChange={e => setBio(e.target.value)} 
+            <textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
               className={`px-4 py-3 rounded-xl border bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200 min-h-[100px] transition-all ${
-                showErrors && bio.trim().length < 10 ? 'border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'border-pale dark:border-slate-800 focus:border-navy dark:focus:border-blue'
-              }`} 
+                showErrors && !isBioValid ? 'border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'border-pale dark:border-slate-800 focus:border-navy dark:focus:border-blue'
+              }`}
               placeholder="اكتب شيئاً عن نفسك..."
             />
           </div>
@@ -153,5 +172,6 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 };

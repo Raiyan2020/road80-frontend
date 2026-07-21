@@ -1,0 +1,86 @@
+<!doctype html>
+<!-- TEMPORARY DIAGNOSTIC — delete this file once the watermark is confirmed working. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Watermark diagnostic</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 20px; background: #f8fafc; }
+      #log { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px;
+             white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 13px; }
+      .ok { color: #4ade80; } .bad { color: #f87171; }
+      img, canvas { max-width: 320px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    </style>
+  </head>
+  <body>
+    <h2>Watermark diagnostic</h2>
+    <div id="log">running…</div>
+    <h3>Result (should show the logo top-right at 30%)</h3>
+    <div id="out"></div>
+
+    <script type="module">
+      const LOGO_WIDTH_RATIO = 0.18;
+      const MARGIN_RATIO = 0.03;
+      const OPACITY = 0.3;
+
+      const log = document.getElementById('log');
+      log.textContent = '';
+      const say = (msg, cls = '') =>
+        log.insertAdjacentHTML('beforeend', `<span class="${cls}">${msg}</span>\n`);
+
+      const loadImage = (src) =>
+        new Promise((res, rej) => {
+          const i = new Image();
+          i.onload = () => res(i);
+          i.onerror = () => rej(new Error('load failed: ' + src));
+          i.src = src;
+        });
+
+      try {
+        // 1. Can the logo be fetched at the exact URL the app uses?
+        const LOGO = '/road-logo-watermark.png';
+        const r = await fetch(LOGO);
+        say(`fetch ${LOGO} -> ${r.status} ${r.headers.get('content-type')}`,
+            r.ok ? 'ok' : 'bad');
+
+        // 2. Does it decode as an image?
+        const logo = await loadImage(LOGO);
+        say(`logo decoded: ${logo.naturalWidth}x${logo.naturalHeight}`, 'ok');
+
+        // 3. Build a fake "photo" and run the real compositing math.
+        const photo = document.createElement('canvas');
+        photo.width = 1200; photo.height = 800;
+        const pctx = photo.getContext('2d');
+        pctx.fillStyle = '#6b7280';
+        pctx.fillRect(0, 0, 1200, 800);
+        pctx.fillStyle = '#fff';
+        pctx.font = '40px sans-serif';
+        pctx.fillText('test photo', 40, 420);
+
+        const w = photo.width, h = photo.height;
+        const ctx = photo.getContext('2d');
+        const lw = Math.round(w * LOGO_WIDTH_RATIO);
+        const lh = Math.round(lw * (logo.naturalHeight / logo.naturalWidth));
+        const margin = Math.round(Math.min(w, h) * MARGIN_RATIO);
+        say(`drawing logo ${lw}x${lh} at x=${w - lw - margin} y=${margin}`);
+
+        ctx.globalAlpha = OPACITY;
+        ctx.drawImage(logo, w - lw - margin, margin, lw, lh);
+        ctx.globalAlpha = 1;
+
+        // 4. Does toBlob work (this is what actually produces the upload File)?
+        const blob = await new Promise((res) => photo.toBlob(res, 'image/jpeg', 0.9));
+        if (!blob) throw new Error('toBlob returned null');
+        say(`toBlob ok: ${blob.type}, ${Math.round(blob.size / 1024)} KB`, 'ok');
+
+        const img = new Image();
+        img.src = URL.createObjectURL(blob);
+        document.getElementById('out').appendChild(img);
+        say('\nPIPELINE OK — if you see the logo above, the browser side works.', 'ok');
+      } catch (e) {
+        say('\nFAILED: ' + e.message, 'bad');
+        say('This is why no watermark appears.', 'bad');
+      }
+    </script>
+  </body>
+</html>

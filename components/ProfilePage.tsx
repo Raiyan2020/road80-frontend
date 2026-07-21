@@ -12,6 +12,7 @@ import {
   WhatsappIcon,
   PhoneIcon,
   CloseIcon,
+  ShareIcon,
 } from "./Icons";
 import { Listing } from "../types";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -29,6 +30,7 @@ import { AppImage } from "./AppImage";
 import { resolveListingImageUrl } from "@/shared/utils/listing-image";
 import { PlayIcon } from "./Icons";
 import { APP_LOGO_URL } from "@/shared/constants/images";
+import { buildShareUrl, shareContent } from "@/shared/utils/share";
 
 interface ProfilePageProps {
   onListingClick?: (listing: Listing) => void;
@@ -208,6 +210,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     setIsAvatarPreviewOpen(true);
   };
 
+  // A shareable profile link needs a concrete user id — "current_user" only
+  // resolves for the signed-in viewer, so hide the button until we have one.
+  const shareableUserId = isMe ? profile?.id?.toString() : viewedUserId;
+
+  const handleShare = () => {
+    if (!shareableUserId) return;
+    shareContent({
+      title: profileName,
+      text: profileBio || profileName,
+      url: buildShareUrl(`/profile?user=${shareableUserId}`),
+    });
+  };
+
   return (
     <div className="flex flex-col p-4 gap-6 animate-fade-in transition-colors duration-300">
       <div className="flex items-center gap-4">
@@ -243,14 +258,25 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-snug font-sans font-normal whitespace-pre-line">
             {profileBio}
           </p>
-          {isMe && (
-            <button
-              onClick={() => setIsEditProfileOpen(true)}
-              className="mr-auto w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300"
-            >
-              <EditIcon className="w-4 h-4" />
-            </button>
-          )}
+          <div className="mr-auto flex items-center gap-2">
+            {isMe && (
+              <button
+                onClick={() => setIsEditProfileOpen(true)}
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300"
+              >
+                <EditIcon className="w-4 h-4" />
+              </button>
+            )}
+            {shareableUserId && (
+              <button
+                onClick={handleShare}
+                aria-label="مشاركة الملف الشخصي"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-95 transition-transform"
+              >
+                <ShareIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

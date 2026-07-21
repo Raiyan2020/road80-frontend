@@ -27,6 +27,7 @@ import {
   isAllowedAdImage,
   isAllowedAdVideo,
 } from "../shared/utils/media-validation";
+import { watermarkImages } from "../shared/utils/watermark";
 import MyFatoorahPayment from "./MyFatoorahPayment";
 import { AppImage } from "./AppImage";
 import { dismissKeyboard, useKeyboardOpen } from "@/shared/hooks/useKeyboardOpen";
@@ -75,6 +76,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [images, setImages] = useState<File[]>([]);
+  const [isWatermarking, setIsWatermarking] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [published, setPublished] = useState(false);
@@ -358,7 +360,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     }
   };
 
-  const handleImageSelect = (files: FileList | null) => {
+  const handleImageSelect = async (files: FileList | null) => {
     if (!files?.length) return;
 
     const validFiles: File[] = [];
@@ -379,13 +381,32 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       }
     }
 
-    if (validFiles.length) {
-      setImages((prev) => [...prev, ...validFiles]);
+    if (!validFiles.length) return;
+
+    // Burn the app logo into each photo before it enters `images`, so whatever
+    // we upload is already watermarked.
+    setIsWatermarking(true);
+    try {
+      const { files: watermarked, failed } = await watermarkImages(validFiles);
+      if (failed > 0) {
+        toast.error(`تعذّرت إضافة العلامة المائية على ${failed} صورة`);
+      }
+      setImages((prev) => [...prev, ...watermarked]);
+    } finally {
+      setIsWatermarking(false);
+      // Allow re-picking the same file after processing.
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+      }
     }
   };
 
   // ── Publish ──────────────────────────────────────────────────────────────
   const handlePublish = async () => {
+    if (isWatermarking) {
+      toast.warning("انتظر حتى تنتهي معالجة الصور");
+      return;
+    }
     if (
       uploadState &&
       (uploadState.status === "uploading" || uploadState.status === "merging")
@@ -938,13 +959,24 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                 </button>
               </div>
             ))}
-            <label className="aspect-square rounded-xl border-2 border-dashed border-pale dark:border-slate-700 flex items-center justify-center cursor-pointer hover:border-navy transition-all">
-              <PlusIcon className="w-8 h-8 text-gray-300" />
+            <label
+              className={`aspect-square rounded-xl border-2 border-dashed border-pale dark:border-slate-700 flex items-center justify-center transition-all ${
+                isWatermarking
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-pointer hover:border-navy"
+              }`}
+            >
+              {isWatermarking ? (
+                <SpinnerIcon className="w-8 h-8 text-gray-300 animate-spin" />
+              ) : (
+                <PlusIcon className="w-8 h-8 text-gray-300" />
+              )}
               <input
                 ref={imageInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/jpg,.jpg,.jpeg,.png"
                 multiple
+                disabled={isWatermarking}
                 className="hidden"
                 onClick={async (e) => {
                   const granted = await checkMediaPermissions();
@@ -960,7 +992,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             </label>
           </div>
           <p className="text-xs text-gray-400 text-center mt-3">
-            {images.length} صورة مختارة · JPG, JPEG, PNG
+            {isWatermarking
+              ? "جاري معالجة الصور..."
+              : `${images.length} صورة مختارة · JPG, JPEG, PNG`}
           </p>
         </>
       );

@@ -14,6 +14,7 @@ import {
   LockIcon,
   PhoneIcon,
   PlayIcon,
+  ShareIcon,
   SpinnerIcon,
   UserIcon,
   WhatsappIcon,
@@ -21,6 +22,7 @@ import {
 import MyFatoorahPayment from "./MyFatoorahPayment";
 import { FALLBACK_LISTING_IMAGE } from "@/shared/constants/images";
 import { resolveMediaUrl } from "@/shared/utils/media-url";
+import { buildShareUrl, shareContent } from "@/shared/utils/share";
 import { AppImage } from "./AppImage";
 
 interface ListingDetailsPageProps {
@@ -89,6 +91,15 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
   const toggleFavorite = () => {
     toggleFavoriteMutation(listingId);
+  };
+
+  const handleShare = () => {
+    const title = listing?.title || "إعلان على طريق 80";
+    shareContent({
+      title,
+      text: listing?.price ? `${title} - ${listing.price}` : title,
+      url: buildShareUrl(`/ad/${listingId}`),
+    });
   };
 
   useEffect(() => {
@@ -547,6 +558,13 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           <ChevronRightIcon className="w-6 h-6 rotate-180 rtl:rotate-0" />
         </button>
         <div className="flex gap-3">
+          <button
+            onClick={handleShare}
+            aria-label="مشاركة الإعلان"
+            className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:scale-95 transition-all"
+          >
+            <ShareIcon className="w-5 h-5" />
+          </button>
           <button
             onClick={toggleFavorite}
             className={`w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-all active:scale-95 ${isFavorite ? "text-red-500" : "text-red-300"}`}

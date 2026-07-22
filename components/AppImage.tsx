@@ -14,7 +14,7 @@ export type AppImageProps = Omit<
 };
 
 function isUsingFallback(url: string, fallback: string): boolean {
-  return url === fallback || url.endsWith('/logo-road.png');
+  return url === fallback || url.endsWith('/road-logo.png');
 }
 
 function normalizeSrc(src?: string | null): string {

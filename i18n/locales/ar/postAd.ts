@@ -66,6 +66,8 @@ export const postAd = {
     // No plural variant: the call site passes {done, total}, not `count`, so
     // resolve() would never pick one up.
     optimizing: 'جاري تحسين الصورة {done} من {total}...',
+    watermarking: 'جاري إضافة العلامة المائية...',
+    watermarkFailed: 'تعذّرت إضافة العلامة المائية على {count} صورة',
     optimized: 'تم تحسين {count} صور · {before} ← {after} (أصغر بنسبة {percent}%)',
     optimized_one: 'تم تحسين الصورة · {before} ← {after} (أصغر بنسبة {percent}%)',
     waitForOptimize: 'انتظر حتى ينتهي تحسين الصور',

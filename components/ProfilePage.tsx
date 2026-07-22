@@ -11,6 +11,8 @@ import {
   VerifiedIcon,
   WhatsappIcon,
   PhoneIcon,
+  CloseIcon,
+  ShareIcon,
 } from "./Icons";
 import { Listing } from "../types";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -32,6 +34,7 @@ import { resolveListingImageUrl } from "@/shared/utils/listing-image";
 import { PlayIcon } from "./Icons";
 import { APP_LOGO_URL } from "@/shared/constants/images";
 import { useTranslation } from "../i18n";
+import { buildShareUrl, shareContent } from "@/shared/utils/share";
 
 interface ProfilePageProps {
   onListingClick?: (listing: Listing) => void;
@@ -136,6 +139,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   );
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isSocialLinksOpen, setIsSocialLinksOpen] = useState(false);
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
 
   useEffect(() => {
     const p = getParams();
@@ -212,17 +216,44 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     { id: "link", icon: LinkIcon, url: "https://example.com/link" },
   ];
 
+  const openAvatarPreview = () => {
+    setIsAvatarPreviewOpen(true);
+  };
+
+  // A shareable profile link needs a concrete user id — "current_user" only
+  // resolves for the signed-in viewer, so hide the button until we have one.
+  const shareableUserId = isMe ? profile?.id?.toString() : viewedUserId;
+
+  const handleShare = () => {
+    if (!shareableUserId) return;
+    shareContent({
+      title: profileName,
+      text: profileBio || profileName,
+      url: buildShareUrl(`/profile?user=${shareableUserId}`),
+    });
+  };
+
   return (
     <div className="flex flex-col p-4 gap-6 animate-fade-in transition-colors duration-300">
       <div className="flex items-center gap-4">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-pale to-white dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-navy dark:text-slate-200 shrink-0 border-2 border-white dark:border-slate-800 shadow-md overflow-hidden relative">
-          <AppImage
-            src={profileAvatar}
-            alt={profileName}
-            className="w-full h-full"
-            coverClassName="object-cover"
-            containOnFallback
-            fallback={APP_LOGO_URL}
+        <div className="relative z-20 w-20 h-20 shrink-0">
+          <div className="w-full h-full rounded-full bg-gradient-to-br from-pale to-white dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-navy dark:text-slate-200 border-2 border-white dark:border-slate-800 shadow-md overflow-hidden">
+            <AppImage
+              src={profileAvatar}
+              alt={profileName}
+              className="pointer-events-none !w-full !h-full !object-cover !p-0"
+              coverClassName="!object-cover !p-0"
+              containOnFallback={false}
+              fallback={APP_LOGO_URL}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={openAvatarPreview}
+            onPointerDown={openAvatarPreview}
+            onTouchStart={openAvatarPreview}
+            className="absolute inset-0 z-30 rounded-full cursor-pointer touch-manipulation bg-transparent active:scale-95 transition-transform"
+            aria-label={t("profile.editDialog.avatarAlt")}
           />
         </div>
         <div className="flex flex-col gap-1 flex-1 min-w-0">
@@ -240,26 +271,38 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
         </div>
 
         {/* Pinned so they stay reachable no matter how many social links exist */}
-        {isMe && (
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          {isMe && (
+            <>
+              <button
+                onClick={() => setIsSocialLinksOpen(true)}
+                title={t("profile.page.socialLinksTitle")}
+                aria-label={t("profile.page.socialLinksAria")}
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
+              >
+                <LinkIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsEditProfileOpen(true)}
+                title={t("profile.page.editProfileTitle")}
+                aria-label={t("profile.page.editProfileAria")}
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
+              >
+                <EditIcon className="w-4 h-4" />
+              </button>
+            </>
+          )}
+          {shareableUserId && (
             <button
-              onClick={() => setIsSocialLinksOpen(true)}
-              title={t("profile.page.socialLinksTitle")}
-              aria-label={t("profile.page.socialLinksAria")}
-              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
+              onClick={handleShare}
+              title={t("common.share")}
+              aria-label={t("common.share")}
+              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-95 transition-transform"
             >
-              <LinkIcon className="w-4 h-4" />
+              <ShareIcon className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => setIsEditProfileOpen(true)}
-              title={t("profile.page.editProfileTitle")}
-              aria-label={t("profile.page.editProfileAria")}
-              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
-            >
-              <EditIcon className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <SocialLinksRow socials={socials} className="-mt-2 flex-wrap" />
@@ -364,6 +407,40 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           onClose={() => setIsSocialLinksOpen(false)}
           socials={socials}
         />
+      )}
+
+      {isAvatarPreviewOpen && (
+        <div className="fixed inset-0 z-[260] flex items-center justify-center p-6" dir="rtl">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            onClick={() => setIsAvatarPreviewOpen(false)}
+            aria-label={t("profile.editDialog.avatarAlt")}
+          />
+          <div className="relative w-full max-w-sm rounded-[28px] bg-white dark:bg-slate-900 p-5 shadow-2xl animate-fade-in">
+            <button
+              type="button"
+              onClick={() => setIsAvatarPreviewOpen(false)}
+              className="absolute left-4 top-4 z-10 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 text-navy dark:text-slate-200 flex items-center justify-center shadow-md active:scale-95 transition-transform"
+              aria-label={t("common.close")}
+            >
+              <CloseIcon className="w-5 h-5" />
+            </button>
+            <div className="aspect-square w-full overflow-hidden rounded-[24px] bg-slate-100 dark:bg-slate-800">
+              <AppImage
+                src={profileAvatar}
+                alt={profileName}
+                className="!w-full !h-full !object-cover !p-0"
+                coverClassName="!object-cover !p-0"
+                containOnFallback={false}
+                fallback={APP_LOGO_URL}
+              />
+            </div>
+            <div className="mt-4 text-center text-navy dark:text-slate-200 text-lg font-bold font-sans truncate">
+              {profileName}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

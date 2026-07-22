@@ -64,6 +64,8 @@ export const postAd = {
     // No plural variant: the call site passes {done, total}, not `count`, so
     // resolve() would never pick one up.
     optimizing: 'Optimising photo {done} of {total}...',
+    watermarking: 'Adding the watermark...',
+    watermarkFailed: 'Could not watermark {count} photos',
     optimized: 'Optimised {count} photos · {before} → {after} ({percent}% smaller)',
     optimized_one: 'Photo optimised · {before} → {after} ({percent}% smaller)',
     waitForOptimize: 'Please wait until your photos finish optimising',

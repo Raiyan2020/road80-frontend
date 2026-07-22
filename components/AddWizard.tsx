@@ -33,6 +33,7 @@ import {
   compressImages,
   formatBytes,
 } from "../shared/utils/media-compression";
+import { watermarkImages } from "../shared/utils/watermark";
 import { useTranslation, pickLocalized } from "../i18n";
 import MyFatoorahPayment from "./MyFatoorahPayment";
 import { AppImage } from "./AppImage";
@@ -88,6 +89,8 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     done: number;
     total: number;
   } | null>(null);
+  /** True during the watermark pass, which runs before compression. */
+  const [isWatermarking, setIsWatermarking] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [published, setPublished] = useState(false);
@@ -415,14 +418,26 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     }
     if (!validFiles.length) return;
 
-    setImageOptimizing({ done: 0, total: validFiles.length });
+    // Watermark first, then compress: burning the logo in re-encodes the photo,
+    // so running compression last is what keeps the uploaded size bounded by
+    // the compression settings instead of letting the watermark pass undo them.
+    setIsWatermarking(true);
     try {
-      const results = await compressImages(validFiles, setImageOptimizing);
+      const { files: watermarked, failed } = await watermarkImages(validFiles);
+      if (failed > 0) {
+        toast.error(t("postAd.images.watermarkFailed", { count: failed }));
+      }
+
+      setIsWatermarking(false);
+      setImageOptimizing({ done: 0, total: watermarked.length });
+      const results = await compressImages(watermarked, setImageOptimizing);
       setImages((prev) => [...prev, ...results.map((r) => r.file)]);
 
-      // Only worth reporting when we actually saved something meaningful —
-      // re-picking three already-small photos shouldn't trigger a toast.
-      const before = results.reduce((sum, r) => sum + r.originalSize, 0);
+      // Measured against what the user actually picked, so the figure covers
+      // watermarking + compression together rather than just the compression
+      // pass over already-re-encoded bytes. Only worth reporting when we saved
+      // something meaningful — re-picking three small photos shouldn't toast.
+      const before = validFiles.reduce((sum, f) => sum + f.size, 0);
       const after = results.reduce((sum, r) => sum + r.compressedSize, 0);
       const saved = before - after;
       if (saved > 0 && saved / before > 0.1) {
@@ -436,11 +451,12 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         );
       }
     } catch {
-      // compressImages falls back to the original file per image and never
-      // rejects; this only fires on something unforeseen, and dropping the
-      // batch silently would be worse than uploading it unoptimised.
+      // Both helpers fall back per-file and never reject in normal operation;
+      // this only fires on something unforeseen, and dropping the batch
+      // silently would be worse than uploading it unprocessed.
       setImages((prev) => [...prev, ...validFiles]);
     } finally {
+      setIsWatermarking(false);
       setImageOptimizing(null);
     }
   };
@@ -453,6 +469,10 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
   // ── Publish ──────────────────────────────────────────────────────────────
   const handlePublish = async () => {
+    if (isWatermarking) {
+      toast.warning("انتظر حتى تنتهي معالجة الصور");
+      return;
+    }
     if (
       uploadState &&
       (uploadState.status === "uploading" || uploadState.status === "merging")
@@ -1074,14 +1094,23 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               <label
                 aria-label={t("postAd.images.addImages")}
                 title={t("postAd.images.addImages")}
-                className="aspect-square rounded-xl border-2 border-dashed border-pale dark:border-slate-700 flex items-center justify-center cursor-pointer hover:border-navy transition-all"
+                className={`aspect-square rounded-xl border-2 border-dashed border-pale dark:border-slate-700 flex items-center justify-center transition-all ${
+                  isWatermarking
+                    ? "opacity-50 cursor-not-allowed"
+                    : "cursor-pointer hover:border-navy"
+                }`}
               >
-                <PlusIcon className="w-8 h-8 text-gray-300" />
+                {isWatermarking ? (
+                  <SpinnerIcon className="w-8 h-8 text-gray-300 animate-spin" />
+                ) : (
+                  <PlusIcon className="w-8 h-8 text-gray-300" />
+                )}
                 <input
                   ref={imageInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/jpg,image/webp,.jpg,.jpeg,.png,.webp"
                   multiple
+                  disabled={isWatermarking}
                   className="hidden"
                   onClick={async (e) => {
                     const granted = await checkMediaPermissions();
@@ -1098,12 +1127,14 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             )}
           </div>
           <p className="text-xs text-gray-400 text-center mt-3">
-            {imageOptimizing
-              ? t("postAd.images.optimizing", {
-                  done: imageOptimizing.done + 1,
-                  total: imageOptimizing.total,
-                })
-              : t("postAd.images.selectedCount", { count: images.length })}
+            {isWatermarking
+              ? t("postAd.images.watermarking")
+              : imageOptimizing
+                ? t("postAd.images.optimizing", {
+                    done: imageOptimizing.done + 1,
+                    total: imageOptimizing.total,
+                  })
+                : t("postAd.images.selectedCount", { count: images.length })}
           </p>
         </>
       );

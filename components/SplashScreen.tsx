@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { SpinnerIcon } from './Icons';
 import { AppImage } from './AppImage';
 import { useTranslation } from '../i18n';
+import roadLogo from '../assets/road-logo.png';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -27,7 +28,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
     <div className={`absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-bg to-pale ${isFading ? 'animate-fade-out' : ''}`}>
       <div className="flex flex-col items-center gap-8">
         <AppImage
-          src="/logo-road.png"
+          src={roadLogo}
           alt={t('quickStart.splash.logoAlt')}
           className="w-40 h-auto animate-fade-in"
           coverClassName="object-contain"

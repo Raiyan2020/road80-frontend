@@ -18,6 +18,14 @@ export function usePrivacy() {
   });
 }
 
+export function useAboutUs() {
+  const lang = useLangStore((s) => s.lang);
+  return useQuery({
+    queryKey: ['pages', 'about-us', lang],
+    queryFn: () => staticPageService.getAboutUs().then(res => res.data),
+  });
+}
+
 export function useFaqs() {
   const lang = useLangStore((s) => s.lang);
   return useQuery({

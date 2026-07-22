@@ -1,6 +1,10 @@
 export const listing = {
   // Header / summary card
   defaultPublisherName: 'مستخدم',
+  defaultTitle: 'إعلان على طريق 80',
+  shareAd: 'مشاركة الإعلان',
+  addToFavorites: 'إضافة إلى المفضلة',
+  removeFromFavorites: 'إزالة من المفضلة',
   // Arabic's bare singular is count-agnostic, so the variants share a form.
   // They exist so the English side can differ — the two dictionaries must
   // stay structurally identical.

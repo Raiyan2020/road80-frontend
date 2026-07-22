@@ -94,7 +94,6 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [published, setPublished] = useState(false);
-  const [isRedirectingToPayment, setIsRedirectingToPayment] = useState(false);
   const [showEmbedded, setShowEmbedded] = useState(false);
   const [sessionInfo, setSessionInfo] = useState<{
     id: string;
@@ -104,6 +103,8 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
   const [transactionId, setTransactionId] = useState<number | null>(null);
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
+  /** Set once the ad exists server-side, so payment can be retried without re-posting it. */
+  const [adId, setAdId] = useState<number | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
@@ -336,11 +337,11 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     setVideoFile(null);
     setIsProcessing(false);
     setPublished(false);
-    setIsRedirectingToPayment(false);
     setShowEmbedded(false);
     setSessionInfo(null);
     setTransactionId(null);
     setEncryptionKey(null);
+    setAdId(null);
     setShowErrors(false);
     resetVideoUpload();
     setStep(1);
@@ -467,10 +468,33 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       ? t("postAd.video.etaMinutes", { minutes: Math.ceil(seconds / 60) })
       : t("postAd.video.etaSeconds", { seconds });
 
+  /**
+   * Open the embedded payment form for a session id.
+   *
+   * MyFatoorah returns the id prefixed with a 3-letter country ("KWT-abc123").
+   * The SDK wants the two split apart, but `/payments/verify` needs the original
+   * string back, so all three are kept.
+   */
+  const applySession = (sessionId: string) => {
+    let id = sessionId;
+    let country = "KWT";
+
+    if (sessionId.includes("-")) {
+      const parts = sessionId.split("-");
+      if (parts[0].length === 3) {
+        country = parts[0];
+        id = parts.slice(1).join("-");
+      }
+    }
+
+    setSessionInfo({ id, country, originalId: sessionId });
+    setShowEmbedded(true);
+  };
+
   // ── Publish ──────────────────────────────────────────────────────────────
   const handlePublish = async () => {
     if (isWatermarking) {
-      toast.warning("انتظر حتى تنتهي معالجة الصور");
+      toast.warning(t("postAd.images.waitForOptimize"));
       return;
     }
     if (
@@ -568,45 +592,23 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
       // Post ad success
 
-      const paymentUrl =
-        (res as any).data?.payment_url || (res as any).payment_url;
+      // The old redirect flow returned `payment_url`; the embedded flow replaced it
+      // with a session triple. `ad_id` matters for retries — without it, a declined
+      // card would force the user to re-submit the whole ad and create a duplicate.
       const sessionId =
         (res as any).data?.session_id || (res as any).session_id;
       const returnedTransactionId =
         (res as any).data?.transaction_id || (res as any).transaction_id;
       const returnedEncryptionKey =
         (res as any).data?.encryption_key || (res as any).encryption_key;
+      const returnedAdId = (res as any).data?.ad_id || (res as any).ad_id;
 
       if (returnedTransactionId) setTransactionId(returnedTransactionId);
       if (returnedEncryptionKey) setEncryptionKey(returnedEncryptionKey);
+      if (returnedAdId) setAdId(returnedAdId);
 
-      if (paymentUrl) {
-        setIsRedirectingToPayment(true);
-        setPublished(true);
-        setTimeout(() => {
-          window.location.href = paymentUrl;
-        }, 1200);
-      } else if (sessionId) {
-        // Parse country code from session string (e.g. "KWT-xxxxxxx") — default KWT
-        let finalSessionId = sessionId as string;
-        let countryCodeStr = "KWT";
-
-        if (typeof sessionId === "string" && sessionId.includes("-")) {
-          const parts = sessionId.split("-");
-          if (parts[0].length === 3) {
-            countryCodeStr = parts[0];
-            finalSessionId = parts.slice(1).join("-");
-          }
-        }
-
-        // Store the original full session_id for use in /payments/verify as payment_id
-        const originalSessionId = sessionId as string;
-        setSessionInfo({
-          id: finalSessionId,
-          country: countryCodeStr,
-          originalId: originalSessionId,
-        });
-        setShowEmbedded(true);
+      if (sessionId) {
+        applySession(sessionId);
       } else if (res.status) {
         setPublished(true);
         // We do not use setTimeout here anymore so the user can read the success message
@@ -635,27 +637,33 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     }
   };
 
-  const handleEmbeddedPay = async () => {
-    setIsProcessing(true);
+  /**
+   * MyFatoorah rejects a session that expired or was already consumed by a
+   * declined card. The SDK calls this once so we can hand it a fresh one; the ad
+   * already exists at this point, so we re-session against its id rather than
+   * re-publishing and creating a duplicate.
+   */
+  const handleRequestNewSession = async () => {
+    if (!adId) {
+      toast.error(t("postAd.payment.sessionFailed"));
+      return;
+    }
+
     try {
-      // 1. In a real scenario, you might call createAd first to get an order ID,
-      // or just initiate a session if the backend handles it.
-      // For now, let's assume we call our new service.
-      const res = await paymentService.initiateSession();
-      if (res.status && res.data.SessionId) {
-        setSessionInfo({
-          id: res.data.SessionId,
-          country: res.data.CountryCode || "KWT",
-        });
-        setShowEmbedded(true);
+      const res = await paymentService.createSession({
+        type: "publish_ad",
+        reference_id: adId,
+      });
+
+      if (res.status && res.data?.session_id) {
+        applySession(res.data.session_id);
+        setTransactionId(res.data.transaction_id);
+        setEncryptionKey(res.data.encryption_key);
       } else {
         toast.error(t("postAd.payment.sessionFailed"));
       }
-    } catch (e) {
-      // Failed to initiate payment session
+    } catch {
       toast.error(t("postAd.payment.gatewayError"));
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -740,33 +748,30 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         <h3 className="text-2xl font-black text-navy dark:text-slate-200">
           {t("postAd.success.title")}
         </h3>
-        {isRedirectingToPayment ? (
-          <p className="text-gray-400 text-sm text-center max-w-xs">
-            {t("postAd.success.redirectingToPayment")}
+        {/* The "redirecting to payment" variant of this screen is gone with the
+            redirect flow — payment now happens inline, so reaching here always
+            means the ad is submitted. */}
+        <div className="flex flex-col items-center gap-4 mt-4 w-full max-w-xs">
+          <button
+            type="button"
+            onClick={() => {
+              resetWizard();
+            }}
+            className="w-full py-4 rounded-2xl bg-navy dark:bg-blue text-white font-bold transition-all active:scale-95 shadow-lg shadow-navy/20"
+          >
+            {t("postAd.success.postAnother")}
+          </button>
+          <button
+            type="button"
+            onClick={goToMyAds}
+            className="w-full py-4 rounded-2xl border-2 border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold transition-all active:scale-95"
+          >
+            {t("postAd.success.goToMyAds")}
+          </button>
+          <p className="text-gray-400 text-sm text-center font-medium">
+            {t("postAd.success.reviewNote")}
           </p>
-        ) : (
-          <div className="flex flex-col items-center gap-4 mt-4 w-full max-w-xs">
-            <button
-              type="button"
-              onClick={() => {
-                resetWizard();
-              }}
-              className="w-full py-4 rounded-2xl bg-navy dark:bg-blue text-white font-bold transition-all active:scale-95 shadow-lg shadow-navy/20"
-            >
-              {t("postAd.success.postAnother")}
-            </button>
-            <button
-              type="button"
-              onClick={goToMyAds}
-              className="w-full py-4 rounded-2xl border-2 border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold transition-all active:scale-95"
-            >
-              {t("postAd.success.goToMyAds")}
-            </button>
-            <p className="text-gray-400 text-sm text-center font-medium">
-              {t("postAd.success.reviewNote")}
-            </p>
-          </div>
-        )}
+        </div>
       </div>
     );
   }
@@ -1105,6 +1110,11 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                 ) : (
                   <PlusIcon className="w-8 h-8 text-gray-300" />
                 )}
+                {/* Deliberately narrower than the backend's `mimetypes:image/*`:
+                    naming concrete formats makes the iOS picker transcode HEIC to
+                    JPEG on selection, and it keeps ad photos to formats that render
+                    everywhere. Widening this would let HEIC through to viewers whose
+                    browser cannot display it. */}
                 <input
                   ref={imageInputRef}
                   type="file"
@@ -1279,6 +1289,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             countryCode={sessionInfo.country}
             encryptionKey={encryptionKey ?? undefined}
             onSuccess={onPaymentSuccess}
+            onRequestNewSession={handleRequestNewSession}
             onError={(err) =>
               toast.error(
                 t("postAd.payment.errorWithMessage", {

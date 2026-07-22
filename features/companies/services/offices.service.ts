@@ -83,8 +83,9 @@ interface RawOfficeAd {
   categories: Array<{
     /** Stable, language-independent key. Optional — older backends omit it. */
     category_slug?: string | null;
-    category_name: string;
-    category_value_name: string;
+    /** Nullable since the backend made category serialization null-safe. */
+    category_name: string | null;
+    category_value_name: string | null;
   }>;
   image?: {
     file: string;

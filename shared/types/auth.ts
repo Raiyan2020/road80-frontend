@@ -33,7 +33,8 @@ export interface VerifyOtpPayload {
 
 export interface RegisterCompanyPayload {
   name: string;
-  email?: string;
+  /** Required by the backend's RegisterCompanyRequest. */
+  email: string;
   caption: string;
   state_id: number | string;
   country_id: number | string;

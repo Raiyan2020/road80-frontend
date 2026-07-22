@@ -122,7 +122,11 @@ const getNotificationCopy = (notif, lang) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const data = event.notification?.data || {};
+  // Two shapes to handle: notifications we raised ourselves carry the data
+  // payload directly, while ones FCM auto-displayed (because the message had a
+  // `notification` block) nest it under FCM_MSG.
+  const raw = event.notification?.data || {};
+  const data = raw.FCM_MSG?.data || raw;
   const adId = data.ad_id || data.adId;
   const targetUrl = adId ? `/ad/${adId}` : '/notifications';
 
@@ -150,6 +154,14 @@ messaging.onBackgroundMessage(async (payload) => {
   const lang = await getLang();
   const type = payload.data && payload.data.type;
 
+  /*
+   * The backend now attaches a `notification` block to every push, including
+   * webpush. When one is present FCM displays the notification itself, so
+   * raising our own on top produces two identical entries in the tray. Only
+   * render our own for data-only messages.
+   */
+  const fcmAlreadyDisplayed = Boolean(payload.notification);
+
   // ── Block / Delete: notify all open tabs to force-logout ─────────────────
   if (type === 'block' || type === 'delete') {
     // Post a message to every open client (tab/window) so the app can logout
@@ -160,22 +172,27 @@ messaging.onBackgroundMessage(async (payload) => {
     });
 
     // Also show a system notification so the user knows even if no tab is open
-    const title = swT(lang, type === 'block' ? 'blockedTitle' : 'deletedTitle');
-    const body  = swT(lang, type === 'block' ? 'blockedBody' : 'deletedBody');
+    if (!fcmAlreadyDisplayed) {
+      const title = swT(lang, type === 'block' ? 'blockedTitle' : 'deletedTitle');
+      const body  = swT(lang, type === 'block' ? 'blockedBody' : 'deletedBody');
 
-    self.registration.showNotification(title, {
-      body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
-    });
+      self.registration.showNotification(title, {
+        body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        data: payload.data,
+      });
+    }
     return;
   }
 
   // ── Normal notification ───────────────────────────────────────────────────
+  if (fcmAlreadyDisplayed) return;
+
   const copy = getNotificationCopy(payload, lang);
-  const notificationTitle = copy.title || payload.notification?.title || swT(lang, 'defaultTitle');
+  const notificationTitle = copy.title || swT(lang, 'defaultTitle');
   const notificationOptions = {
-    body: copy.body || payload.notification?.body || '',
+    body: copy.body || '',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
     data: payload.data,

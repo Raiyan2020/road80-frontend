@@ -54,8 +54,10 @@ export const common = {
   tryAgain: 'حدث خطأ أثناء المحاولة',
   networkError: 'تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت',
   copiedToClipboard: 'تم النسخ للحافظة',
+  copyFailed: 'تعذر نسخ الرابط',
   logoutSuccess: 'تم تسجيل الخروج بنجاح',
   permissionDenied: 'يرجى منح صلاحية الوصول للكاميرا والملفات',
+  poweredBy: 'بدعم من {name}',
 
   // Language switcher
   language: 'اللغة',

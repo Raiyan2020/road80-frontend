@@ -13,17 +13,10 @@ export const otpSchema = z.object({
     .regex(/^\d+$/, { error: () => t('validation.digitsOnly') }),
 });
 
-export const registerCompanySchema = z.object({
-  name: z.string().min(3, { error: () => t('validation.nameMin3') }).max(255),
-  caption: z.string().min(10, { error: () => t('validation.descriptionMin10') }).max(255),
-  country_id: z.union([z.string(), z.number()]).refine(val => !!val, { error: () => t('validation.selectCountry') }),
-  state_id: z.union([z.string(), z.number()]).refine(val => !!val, { error: () => t('validation.selectGovernorate') }),
-  phone: z.string().regex(/^\d{9,15}$/, { error: () => t('validation.phoneRange') }),
-  whatsapp_phone: z.string().regex(/^\d{9,15}$/, { error: () => t('validation.whatsappRange') }),
-  company_department_id: z.union([z.string(), z.number()]).refine(val => !!val, { error: () => t('validation.selectDepartment') }),
-  image: z.any().refine((file) => file instanceof File, { error: () => t('validation.uploadCompanyImage') }),
-});
+// The company-registration schema lives in routes/auth.register-company.tsx —
+// it needs the country's phone-digit count to build its rules, so it is a
+// factory rather than a constant. A stale duplicate here (missing the now-required
+// `email`, among other drift) was shadowed by that local one and never ran.
 
 export type PhoneValues = z.infer<typeof phoneSchema>;
 export type OtpValues = z.infer<typeof otpSchema>;
-export type RegisterCompanyValues = z.infer<typeof registerCompanySchema>;

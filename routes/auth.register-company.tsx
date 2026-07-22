@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 import { AppImage } from "@/components/AppImage";
 import { z } from "zod";
-import { t, useTranslation } from "@/i18n";
+import { LANG_LABELS, t, useTranslation, type TranslationKey } from "@/i18n";
 import { compressImage, AVATAR_OPTIONS } from "@/shared/utils/media-compression";
 import { isWithinImageSizeLimit } from "@/shared/utils/media-validation";
 
@@ -31,15 +31,24 @@ const PHONE_DIGITS: Record<string, number> = {
 };
 const DEFAULT_DIGITS = 10;
 
+const DEPARTMENT_KEYS: Record<number, TranslationKey> = {
+  1: "nav.categories.real-estate",
+  2: "nav.categories.construction",
+  3: "nav.categories.contracting",
+  4: "nav.categories.decor",
+  5: "nav.categories.materials",
+};
+
 const registerCompanySchema = (phoneDigits: number, whatsappDigits: number) =>
   z.object({
     name: z.string().trim().min(3, { error: () => t("validation.nameMin3") }),
+    // Required as of the backend's RegisterCompanyRequest — it was optional here,
+    // so an empty field passed client validation and came back as a 422.
     email: z
-      .union([
-        z.string().trim().email({ error: () => t("auth.validation.emailInvalid") }),
-        z.literal(""),
-      ])
-      .optional(),
+      .string()
+      .trim()
+      .min(1, { error: () => t("auth.validation.emailRequired") })
+      .email({ error: () => t("auth.validation.emailInvalid") }),
     caption: z
       .string()
       .trim()
@@ -97,7 +106,7 @@ export const Route = createFileRoute("/auth/register-company")({
 });
 
 function RegisterCompanyPage() {
-  const { t: tr, dir, isRTL } = useTranslation();
+  const { t: tr, dir, isRTL, lang, toggleLang } = useTranslation();
   const navigate = useNavigate();
 
   // The chevron sits on the trailing edge of the select, so it has to follow the direction.
@@ -185,12 +194,14 @@ function RegisterCompanyPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    // Matches the backend's `mimetypes:image/*` — it deliberately dropped the
+    // jpeg/png/webp allowlist so iPhone HEIC uploads stop being rejected.
+    const isImage = file.type.startsWith('image/');
 
     // Size is no longer a rejection reason — compression brings any reasonable
-    // logo under the backend's 2 MB `max:2048`. Only the type gate remains, plus
+    // logo well under the backend's 8 MB cap. Only the type gate remains, plus
     // an outer bound on what's safe to decode.
-    if (!validTypes.includes(file.type) || !isWithinImageSizeLimit(file)) {
+    if (!isImage || !isWithinImageSizeLimit(file)) {
       toast.error(tr("validation.imageTooLarge"));
       setFieldError("image", tr("auth.validation.imageTypeOrSize"));
       // Clear the input so they can try again
@@ -261,7 +272,9 @@ function RegisterCompanyPage() {
 
     registerMutation.mutate(payload, {
       onSuccess: (response: any) => {
-        if (response.status || response.message === "success") {
+        // Was `response.status || response.message === "success"` — API messages are
+        // localized now, so matching on English text can never be right.
+        if (response.status) {
           toast.success(tr("auth.registerCompany.successToast"), { closeButton: true });
           navigate({ to: "/auth" });
         } else {
@@ -283,6 +296,14 @@ function RegisterCompanyPage() {
       className="absolute inset-0 bg-bg dark:bg-slate-950 overflow-y-auto overflow-x-hidden no-scrollbar animate-fade-in transition-colors duration-300"
       dir={dir}
     >
+      <button
+        type="button"
+        onClick={toggleLang}
+        aria-label={tr("common.language")}
+        className="fixed top-[max(1rem,env(safe-area-inset-top))] rtl:left-4 ltr:right-4 z-20 rounded-full border border-pale dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 px-4 py-2 text-sm font-bold text-navy dark:text-slate-100 shadow-sm backdrop-blur active:scale-95 transition-all"
+      >
+        {LANG_LABELS[lang === "ar" ? "en" : "ar"]}
+      </button>
       <div className="p-4 sm:p-6 pb-24 max-w-lg mx-auto">
         {/* Header */}
         <div className="flex flex-col items-center text-center gap-4 mb-8">
@@ -339,7 +360,7 @@ function RegisterCompanyPage() {
                   type="file"
                   ref={fileInputRef}
                   className="hidden"
-                  accept="image/jpeg, image/png, image/jpg, image/webp"
+                  accept="image/*"
                   onChange={handleImageChange}
                 />
               </div>
@@ -442,7 +463,9 @@ function RegisterCompanyPage() {
                   {!loadingDepts &&
                     departments.map((d: any) => (
                       <option key={d.id} value={d.id}>
-                        {d.name || d.value}
+                        {DEPARTMENT_KEYS[d.id]
+                          ? tr(DEPARTMENT_KEYS[d.id])
+                          : d.name || d.value}
                       </option>
                     ))}
                 </select>

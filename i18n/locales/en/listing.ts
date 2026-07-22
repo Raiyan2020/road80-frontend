@@ -1,6 +1,10 @@
 export const listing = {
   // Header / summary card
   defaultPublisherName: 'User',
+  defaultTitle: 'Listing on 80road',
+  shareAd: 'Share listing',
+  addToFavorites: 'Add to favorites',
+  removeFromFavorites: 'Remove from favorites',
   views: '{count} views',
   views_one: '1 view',
   location: '{city}, {state}',

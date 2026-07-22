@@ -13,6 +13,18 @@ const AUTH_PATHS = ['/v1/auth/login', '/v1/auth/register', '/v1/auth/verify-otp'
 const isAuthPath = (url: string) =>
   AUTH_PATHS.some((p) => url.includes(p));
 
+/** Force a logout when the body carries a terminal account state. */
+const checkForcedLogout = (body: unknown) => {
+  const status = (body as { status?: unknown } | null)?.status;
+
+  if (status === 'block') {
+    forceLogout('block');
+  } else if (status === 'needLogin') {
+    // Token is invalid/expired — treat the same as being kicked out
+    forceLogout('session_expired');
+  }
+};
+
 export const apiClient = ofetch.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -56,37 +68,34 @@ export const apiClient = ofetch.create({
     }
   },
 
-  // ── Body-level status check (HTTP 200 but logically rejected) ─────────────
-  // The backend returns { status: "block" } or { status: "needLogin" }
-  // as a successful HTTP response (200), so onResponseError won't catch these.
+  // ── Body-level status check ───────────────────────────────────────────────
+  // The backend signals these in the body rather than the HTTP status:
+  //   { status: "block" }     — account blocked by an admin
+  //   { status: "needLogin" } — token missing/expired
+  // `status` is a string here, not the usual boolean.
   async onResponse({ request, response }) {
     // Skip auth endpoints — a failed login shouldn't trigger force-logout
     const url = typeof request === 'string' ? request : request.toString();
     if (isAuthPath(url)) return;
 
-    try {
-      const body = response._data as any;
-      const status = body?.status;
-
-      if (status === 'block') {
-        forceLogout('block');
-      } else if (status === 'needLogin') {
-        // Token is invalid/expired — treat the same as being kicked out
-        forceLogout('session_expired');
-      }
-    } catch {
-      // Ignore JSON parse errors (binary responses, etc.)
-    }
+    checkForcedLogout(response._data);
   },
 
-  // ── HTTP-level 401 Unauthorized ───────────────────────────────────────────
+  // ── Error responses ───────────────────────────────────────────────────────
   async onResponseError({ request, response }) {
+    const url = typeof request === 'string' ? request : request.toString();
+    if (isAuthPath(url)) return;
+
     if (response.status === 401) {
-      const url = typeof request === 'string' ? request : request.toString();
-      if (!isAuthPath(url)) {
-        forceLogout('session_expired');
-      }
+      forceLogout('session_expired');
+      return;
     }
+
+    // The `is_blocked` middleware answers 422 (errorResponse's default status),
+    // which lands here rather than in onResponse — ofetch only runs that hook for
+    // 2xx. Without this, a blocked user's "block" body was silently swallowed as
+    // a generic validation error and they stayed logged in.
+    checkForcedLogout(response._data);
   },
 });
 

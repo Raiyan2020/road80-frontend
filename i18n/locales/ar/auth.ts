@@ -39,7 +39,7 @@ export const auth = {
     title: 'تسجيل شركة جديدة',
     subtitle: 'انضم إلى شبكة 80road العقارية وابدأ بعرض عقارات شركتك لجمهور واسع',
     logoLabel: 'شعار الشركة',
-    emailLabel: 'البريد الإلكتروني (اختياري)',
+    emailLabel: 'البريد الإلكتروني',
     nameLabel: 'اسم الشركة',
     namePlaceholder: 'أدخل اسم الشركة',
     departmentLabel: 'القسم',
@@ -63,6 +63,7 @@ export const auth = {
   // Auth-specific validation messages
   validation: {
     emailInvalid: 'البريد الإلكتروني غير صحيح',
+    emailRequired: 'البريد الإلكتروني مطلوب',
     captionRequired: 'يرجى إدخال وصف الشركة',
     phoneDigitsOnly: 'رقم الهاتف يجب أن يحتوي على أرقام فقط',
     whatsappDigitsOnly: 'رقم الواتساب يجب أن يحتوي على أرقام فقط',

@@ -42,7 +42,7 @@ export const auth = {
     subtitle:
       "Join the 80road real estate network and start showcasing your company's properties to a wide audience",
     logoLabel: 'Company logo',
-    emailLabel: 'Email (optional)',
+    emailLabel: 'Email',
     nameLabel: 'Company name',
     namePlaceholder: 'Enter the company name',
     // 'Category', matching nav.categories and the companies-list filter —
@@ -68,6 +68,7 @@ export const auth = {
   // Auth-specific validation messages
   validation: {
     emailInvalid: 'Enter a valid email address',
+    emailRequired: 'Email is required',
     captionRequired: 'Please enter a company description',
     phoneDigitsOnly: 'Phone number must contain digits only',
     whatsappDigitsOnly: 'WhatsApp number must contain digits only',

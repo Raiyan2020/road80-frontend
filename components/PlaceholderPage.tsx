@@ -20,7 +20,7 @@ const PlaceholderPage: React.FC = () => {
             rel="noopener noreferrer"
             className="hover:underline hover:text-blue transition-colors"
           >
-            Powered by Raiyansoft
+            {t('common.poweredBy', { name: 'Raiyansoft' })}
           </a>
         </p>
       </div>

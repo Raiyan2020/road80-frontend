@@ -15,7 +15,7 @@ import {
 } from "@/shared/utils/notifications";
 import { User } from "@/shared/types/auth";
 import { AppImage } from "./AppImage";
-import { useTranslation } from "@/i18n";
+import { LANG_LABELS, useTranslation } from "@/i18n";
 
 // Number of local phone digits (without country code) per country_code
 const PHONE_DIGITS: Record<string, number> = {
@@ -36,7 +36,7 @@ interface AuthPageProps {
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
-  const { t, dir } = useTranslation();
+  const { t, dir, lang, toggleLang } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [step, setStep] = useState<"PHONE" | "OTP">("PHONE");
@@ -229,7 +229,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     pageDialog === "terms" ? isTermsLoading : isPrivacyLoading;
 
   return (
-    <div className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in p-6">
+    <div className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in p-6" dir={dir}>
+      <button
+        type="button"
+        onClick={toggleLang}
+        aria-label={t("common.language")}
+        className="absolute top-[max(1rem,env(safe-area-inset-top))] rtl:left-4 ltr:right-4 z-20 rounded-full border border-pale dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 px-4 py-2 text-sm font-bold text-navy dark:text-slate-100 shadow-sm backdrop-blur active:scale-95 transition-all"
+      >
+        {LANG_LABELS[lang === "ar" ? "en" : "ar"]}
+      </button>
       {/* Soft Background Blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-blue/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[40%] bg-navy/5 rounded-full blur-3xl pointer-events-none" />

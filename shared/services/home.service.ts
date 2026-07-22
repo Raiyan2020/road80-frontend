@@ -63,14 +63,42 @@ export interface HomeFooter {
   url: string | null;
 }
 
+/** Lean ad shape returned inline on /home — not the full explore/detail payload. */
+export interface HomeAd {
+  id: number;
+  title: string;
+  price: string | number;
+  is_liked: boolean | number;
+  country_name: string | null;
+  state_name: string | null;
+  city_name: string | null;
+  image: { file: string; type: string } | null;
+}
+
+/** The ids behind `filter_histories`, for re-running the user's last search. */
+export interface FilterHistoryDetails {
+  category_value_id: number[] | null;
+  country_id: number | null;
+  state_id: number | null;
+  city_id: number | null;
+}
+
 export interface HomeDataResponse {
   status: boolean;
   message: string;
   data: {
     header: HomeHeader[];
     categories: HomeCategory[];
-    blogs: Blog[];
     footer: HomeFooter[];
+    /**
+     * Up to 8 ads matching the user's most recent filter. Serves the same purpose
+     * as /home/ads-by-history but arrives with the page, so prefer it — that
+     * endpoint 500s for users who have no filter history yet.
+     */
+    ads?: HomeAd[];
+    /** Pre-joined summary string like "Apartment/Rent/Kuwait", or null. */
+    filter_histories?: string | null;
+    filter_histories_details?: FilterHistoryDetails | null;
   };
   errors: unknown[];
 }
@@ -90,14 +118,25 @@ export const homeService = {
     return response.data;
   },
 
+  /**
+   * Ads matching the user's saved filter.
+   *
+   * Swallows failures on purpose: the endpoint 500s for any user who has not
+   * saved a filter yet (the service returns null and the controller hands that
+   * to AdResource::collection()), which is exactly the first-run case. An empty
+   * list is the right answer there, and this is a personalisation strip — not
+   * worth failing the whole home screen over.
+   *
+   * `/home` now also returns an `ads` array covering the same ground; prefer it
+   * once the home screen is wired to read from there.
+   */
   getAdsByHistory: async (): Promise<Listing[]> => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const response = await api.get<{ status: boolean; data: any[] }>('/home/ads-by-history');
-    if (response.status && response.data) {
-        // We use the mapper from explore service if available, or a simple one here
-        // For now, let's just return the data and assume it's mapped or we map it in the component
-        return response.data; 
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await api.get<{ status: boolean; data: any[] }>('/home/ads-by-history');
+      return response.status && response.data ? response.data : [];
+    } catch {
+      return [];
     }
-    return [];
   },
 };

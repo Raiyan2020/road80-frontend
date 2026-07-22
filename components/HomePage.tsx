@@ -16,11 +16,12 @@ import { StaticBanner } from "../features/home/components/StaticBanner";
 import { BannerSlider } from "../features/home/components/BannerSlider";
 import { HomeListingCard } from "../features/home/components/HomeListingCard";
 import { AppImage } from "./AppImage";
+import { useTranslation, type TranslationKey } from "../i18n";
 
 const QUICK_ACTIONS = [
-  { id: "rent", label: "إيجار", icon: KeyIcon },
-  { id: "sale", label: "بيع", icon: TagIcon },
-  { id: "hotels", label: "فنادق", icon: BedIcon },
+  { id: "rent", labelKey: "home.quickActions.rent", icon: KeyIcon },
+  { id: "sale", labelKey: "home.quickActions.sale", icon: TagIcon },
+  { id: "hotels", labelKey: "home.quickActions.hotels", icon: BedIcon },
 ];
 
 import { useHomeData } from "../features/home/hooks/useHomeData";
@@ -29,6 +30,7 @@ const HomePage: React.FC<{
   theme: "light" | "dark";
   onToggleTheme: () => void;
 }> = ({ theme, onToggleTheme }) => {
+  const { t, dir } = useTranslation();
   const navigate = useNavigate();
   const { data: homeListings = [], isLoading: isListingsLoading } =
     useHomeListings();
@@ -38,8 +40,8 @@ const HomePage: React.FC<{
 
   const displayAds = homeListings.slice(0, 6);
 
-  const [searchText, setSearchText] = useState("بيت / بيع / الكويت");
-  const [currentCountryName, setCurrentCountryName] = useState("الكويت");
+  const [searchText, setSearchText] = useState("");
+  const [currentCountryName, setCurrentCountryName] = useState("");
 
   useEffect(() => {
     const prefs = localStorage.getItem("road80_preferences");
@@ -61,7 +63,7 @@ const HomePage: React.FC<{
       {/* Country Switcher Header with Theme Toggle */}
       <div className="flex items-center justify-between -mb-2">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-400 font-bold mb-0.5">الدولة</span>
+          <span className="text-xs text-gray-400 font-bold mb-0.5">{t("home.country.label")}</span>
           <button
             onClick={() =>
               navigate({
@@ -72,7 +74,7 @@ const HomePage: React.FC<{
             className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-full pl-3 pr-2 py-1 shadow-sm active:scale-95 transition-all duration-300"
           >
             <span className="text-sm font-bold text-navy dark:text-slate-200">
-              {currentCountryName}
+              {currentCountryName || t("home.country.fallbackName")}
             </span>
             <ChevronDownIcon className="w-3 h-3 text-blue" />
           </button>
@@ -82,7 +84,7 @@ const HomePage: React.FC<{
         <button
           onClick={onToggleTheme}
           className="w-10 h-10 rounded-full bg-pale/30 dark:bg-slate-800 flex items-center justify-center transition-all duration-300 active:scale-95 text-navy dark:text-slate-200 border border-transparent dark:border-slate-700"
-          aria-label="تبديل المظهر"
+          aria-label={t("home.toggleTheme")}
         >
           {theme === "light" ? (
             <SunIcon className="w-5 h-5" />
@@ -107,10 +109,10 @@ const HomePage: React.FC<{
       >
         <div className="flex flex-col gap-1 z-10 flex-1 min-w-0 text-right pr-2">
           <span className="text-[13px] text-gray-400 font-medium group-hover:text-blue transition-colors">
-            عن ماذا تبحث
+            {t("home.search.label")}
           </span>
-          <h3 className="text-sm font-semibold text-navy dark:text-slate-200 leading-tight truncate" dir="rtl">
-            {searchText || "اضغط لتحديد طلبك"}
+          <h3 className="text-sm font-semibold text-navy dark:text-slate-200 leading-tight truncate" dir={dir}>
+            {searchText || t("home.search.placeholder")}
           </h3>
         </div>
 
@@ -166,7 +168,7 @@ const HomePage: React.FC<{
                     <action.icon className="w-6 h-6 text-navy dark:text-blue group-hover:text-white transition-colors duration-300" />
                   </div>
                   <span className="text-sm font-medium text-navy dark:text-slate-200 group-hover:text-navy dark:group-hover:text-blue transition-colors">
-                    {action.label}
+                    {t(action.labelKey as TranslationKey)}
                   </span>
                 </button>
               ))}
@@ -176,7 +178,7 @@ const HomePage: React.FC<{
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-sm font-bold text-navy dark:text-slate-200">
-            احدث الاعلانات المضافة تناسب طلبك
+            {t("home.listings.title")}
           </h2>
         </div>
 
@@ -193,13 +195,13 @@ const HomePage: React.FC<{
         ) : (
           <div className="flex flex-col items-center justify-center text-center p-6 bg-white dark:bg-slate-900 border border-pale/50 dark:border-slate-800 rounded-2xl gap-4">
             <span className="text-gray-500 dark:text-slate-400 text-sm font-medium leading-relaxed font-sans">
-              لا توجد لديك أي مقترحات بناءً على اختيارك، ابدأ الاستكشاف معنا
+              {t("home.listings.empty")}
             </span>
             <button
               onClick={() => navigate({ to: "/explore" })}
               className="px-6 py-2.5 bg-blue text-white rounded-full font-bold text-sm hover:bg-blue/90 active:scale-95 transition-all shadow-md"
             >
-              ابدأ الاستكشاف
+              {t("home.listings.startExploring")}
             </button>
           </div>
         )}
@@ -209,7 +211,7 @@ const HomePage: React.FC<{
             onClick={() => navigate({ to: "/explore" })}
             className="w-full py-3 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 rounded-xl font-semibold text-sm hover:bg-pale/30 dark:hover:bg-slate-800 active:scale-95 transition-all shadow-sm"
           >
-            مشاهدة المزيد
+            {t("common.showMore")}
           </button>
         )}
       </div>

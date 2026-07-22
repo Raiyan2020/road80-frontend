@@ -95,7 +95,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   const handleShare = () => {
-    const title = listing?.title || "إعلان على طريق 80";
+    const title = listing?.title || t("listing.defaultTitle");
     shareContent({
       title,
       text: listing?.price ? `${title} - ${listing.price}` : title,
@@ -307,14 +307,11 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           setMfTransactionId(transactionId ?? null);
           setMfEncryptionKey(response.data.encryption_key ?? null);
           setPaymentStatus("IDLE");
-        } else if (response?.data?.payment_url) {
-          setPaymentStatus("VERIFYING");
-          setTimeout(() => setPaymentStatus("CONFIRMING"), 500);
-          setTimeout(() => {
-            window.location.href = response.data.payment_url;
-          }, 1000);
         } else {
+          // No `payment_url` fallback any more — the redirect flow it belonged to
+          // was removed backend-side, so a response without a session is a failure.
           setPaymentStatus("IDLE");
+          toast.error(t("listing.payment.sessionCreateFailed"));
         }
       },
       onError: (err) => {
@@ -325,11 +322,13 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   /**
-   * Called by MyFatoorahPayment component after the SDK fires its callback.
-   * sessionId here = the SessionId from MyFatoorah's callback response.
-   * We verify it against our backend using the transaction_id from the /call response.
+   * Called by MyFatoorahPayment once the SDK has taken the card.
+   *
+   * The argument is MyFatoorah's numeric `paymentId` — NOT the SessionId. The
+   * backend feeds it straight to `GET /payments/{paymentId}`, so passing a
+   * session id here makes verification fail every time.
    */
-  const onEmbeddedPaymentSuccess = async (mfCallbackSessionId: string) => {
+  const onEmbeddedPaymentSuccess = async (mfPaymentId: string) => {
     if (!mfTransactionId) {
       toast.error(t("listing.payment.cannotVerify"));
       return;
@@ -340,24 +339,32 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     try {
       const verifyRes = await paymentService.verifyPayment({
         transaction_id: mfTransactionId,
-        payment_id: mfCallbackSessionId,
+        payment_id: mfPaymentId,
       });
 
       if (verifyRes.status) {
         setPaymentStatus("SUCCESS");
         setIsUnlocked(true);
-        // Refetch listing so owner_phone/owner_whatsapp are available immediately
-        refetchListing();
         const user = JSON.parse(localStorage.getItem("road80_user") || "{}");
         const userId = user.phone || "guest";
         localStorage.setItem(`unlock_contact_${userId}_${listing.id}`, "true");
 
-        // Extract contact from API response (supports data.contact_info.phone or data.phone)
-        const contactData = verifyRes.data?.contact_info ||
-          (verifyRes as any).contact_info || {
-            phone: verifyRes.data?.phone || (verifyRes as any).phone,
-            whatsapp: verifyRes.data?.whatsapp || (verifyRes as any).whatsapp,
-          };
+        // `/payments/verify` builds contact_info server-side but responds with a
+        // literal [], so the refetched ad is the only reliable source today. The
+        // response is still checked first so this improves automatically if the
+        // backend starts returning it.
+        const fromVerify = !Array.isArray(verifyRes.data)
+          ? verifyRes.data?.contact_info
+          : null;
+
+        const fresh = await refetchListing();
+        const freshListing = (fresh as any)?.data;
+
+        const contactData = fromVerify ?? {
+          phone: freshListing?.owner_phone ?? null,
+          whatsapp: freshListing?.owner_whatsapp ?? null,
+          phone_code: freshListing?.country?.phone_code ?? null,
+        };
 
         if (contactData && contactData.phone) {
           setUnlockedContact(contactData);
@@ -448,33 +455,13 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
     callMutation.mutate(listing.id, {
       onSuccess: (response) => {
-        if (response.data?.phone) {
-          // Already unlocked — backend gave us the number directly
-          setPaymentStatus("IDLE");
-          setPendingContactType(null);
-          const phone = response.data.phone.replace(/\D/g, "");
-          // Phone number received directly
-
-          setIsUnlocked(true);
-          const user = JSON.parse(localStorage.getItem("road80_user") || "{}");
-          const userId = user.phone || "guest";
-          localStorage.setItem(
-            `unlock_contact_${userId}_${listing.id}`,
-            "true",
-          );
-
-          if (type === "WHATSAPP") {
-            window.open(`https://wa.me/${phone}`, "_blank");
-          } else {
-            window.location.href = `tel:${phone}`;
-          }
-        } else if (response.data?.session_id) {
-          // Needs payment — show embedded form
+        // `/payments/call` always opens a fresh session — it never returns a
+        // number directly and never short-circuits for an already-paid ad, so
+        // the old `phone` and `payment_url` branches here were unreachable.
+        if (response.data?.session_id) {
           const sessionId = response.data.session_id;
           const transactionId = response.data.transaction_id;
           const country = sessionId.split("-")[0] || "KWT";
-
-          // Payment required
 
           setMfSessionId(sessionId);
           setMfCountry(country);
@@ -482,14 +469,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           setMfEncryptionKey(response.data.encryption_key ?? null);
           setPaymentStatus("IDLE");
           setShowUnlockPopup(true);
-        } else if (response.data?.payment_url) {
-          setPaymentStatus("IDLE");
-          setShowUnlockPopup(true);
         } else {
           setPaymentStatus("IDLE");
-          if (response.status || response.message === "success") {
-            setShowUnlockPopup(true);
-          }
+          setPendingContactType(null);
+          toast.error(t("listing.payment.sessionCreateFailed"));
         }
       },
       onError: (err) => {
@@ -501,10 +484,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   };
 
   const AttrBadge: React.FC<{
-    label: string;
-    value: string | number | undefined;
+    label: string | null | undefined;
+    value: string | number | null | undefined;
   }> = ({ label, value }) => {
-    if (!value) return null;
+    // Both are nullable now that the backend serializes soft-deleted categories
+    // as null rather than throwing — a badge with a blank label is just noise.
+    if (!value || !label) return null;
     return (
       <div className="bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-xl p-3 flex flex-col gap-1 items-start shadow-sm transition-colors duration-300">
         <span className="text-[13px] text-gray-400 font-medium">{label}</span>
@@ -562,13 +547,14 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
         <div className="flex gap-3">
           <button
             onClick={handleShare}
-            aria-label="مشاركة الإعلان"
+            aria-label={t("listing.shareAd")}
             className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:scale-95 transition-all"
           >
             <ShareIcon className="w-5 h-5" />
           </button>
           <button
             onClick={toggleFavorite}
+            aria-label={t(isFavorite ? "listing.removeFromFavorites" : "listing.addToFavorites")}
             className={`w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-all active:scale-95 ${isFavorite ? "text-red-500" : "text-red-300"}`}
           >
             <HeartIcon className="w-6 h-6" filled={isFavorite} />

@@ -36,5 +36,6 @@ export interface FaqResponse {
 export const staticPageService = {
   getTerms: () => api.get<StaticPageResponse>('/pages/terms-conditions'),
   getPrivacy: () => api.get<StaticPageResponse>('/pages/privacy-policy'),
+  getAboutUs: () => api.get<StaticPageResponse>('/pages/about-us'),
   getFaqs: () => api.get<FaqResponse>('/pages/faqs'),
 };

@@ -123,7 +123,12 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
     propertyType: propertyType,
     description:
       [
-        raw.answers?.map((a) => `${a.category_name}: ${a.category_value_name}`).join(' | '),
+        // Both sides are nullable now — interpolating them raw put a literal
+        // "null: null" into the searchable description.
+        raw.answers
+          ?.filter((a) => a.category_name || a.category_value_name)
+          .map((a) => `${a.category_name ?? ''}: ${a.category_value_name ?? ''}`)
+          .join(' | '),
         raw.categories?.map((c) => `${categoryName(c)}: ${categoryValue(c)}`).join(' | '),
       ]
         .filter(Boolean)

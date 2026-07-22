@@ -54,8 +54,10 @@ export const common = {
   tryAgain: 'The request failed, please try again',
   networkError: 'Could not reach the server, check your internet connection',
   copiedToClipboard: 'Copied to clipboard',
+  copyFailed: 'Could not copy the link',
   logoutSuccess: 'Logged out successfully',
   permissionDenied: 'Please grant access to the camera and files',
+  poweredBy: 'Powered by {name}',
 
   // Language switcher
   language: 'Language',

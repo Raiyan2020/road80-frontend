@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api-client';
 import { SpinnerIcon } from './Icons';
 import { AppImage } from './AppImage';
+import { useTranslation } from '@/i18n';
+import type { TranslationKey } from '@/i18n';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +24,21 @@ interface Company {
   ads_count?: number;
   rate?: string | number;
 }
+
+// ── Department labels ─────────────────────────────────────────────────────────
+
+/**
+ * The API returns department names as the seeded Arabic strings. Map the known
+ * ones onto the shared `nav.categories` keys so the label follows the UI
+ * language; anything the admin added later falls back to the raw API name.
+ */
+const DEPARTMENT_NAME_KEYS: Record<string, TranslationKey> = {
+  'الشركات العقارية': 'nav.categories.real-estate',
+  'الشركات الانشائية': 'nav.categories.construction',
+  'شركات المقاولات': 'nav.categories.contracting',
+  'قسم الديكور': 'nav.categories.decor',
+  'مواد البناء': 'nav.categories.materials',
+};
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -54,6 +71,7 @@ interface CategoryCarouselProps {
 }
 
 const CategoryCarousel: React.FC<CategoryCarouselProps> = ({ departments, activeId, onSelect }) => {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Scroll active card into center on selection change
@@ -73,6 +91,8 @@ const CategoryCarousel: React.FC<CategoryCarouselProps> = ({ departments, active
     >
       {departments.map((dept) => {
         const isActive = activeId === String(dept.id);
+        const nameKey = DEPARTMENT_NAME_KEYS[dept.name];
+        const label = nameKey ? t(nameKey) : dept.name;
         return (
           <button
             key={dept.id}
@@ -94,7 +114,7 @@ const CategoryCarousel: React.FC<CategoryCarouselProps> = ({ departments, active
               {dept.icon ? (
                 <AppImage
                   src={dept.icon}
-                  alt={dept.name}
+                  alt={label}
                   className="w-6 h-6"
                   coverClassName="object-contain"
                 />
@@ -106,7 +126,7 @@ const CategoryCarousel: React.FC<CategoryCarouselProps> = ({ departments, active
             {/* Label */}
             <span className={`text-[11px] font-bold leading-tight text-center px-1 line-clamp-2
               ${isActive ? 'text-white' : 'text-navy dark:text-slate-200'}`}>
-              {dept.name}
+              {label}
             </span>
           </button>
         );
@@ -119,10 +139,11 @@ const CategoryCarousel: React.FC<CategoryCarouselProps> = ({ departments, active
 
 const OfficesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t, lang } = useTranslation();
   const { category } = Route.useSearch();
 
   const { data: departments = [], isLoading: loadingDepts } = useQuery({
-    queryKey: ['companies', 'departments'],
+    queryKey: ['companies', 'departments', lang],
     queryFn: fetchDepartments,
     staleTime: 0,
   });
@@ -139,7 +160,7 @@ const OfficesPage: React.FC = () => {
     isLoading: loadingCompanies,
     isFetching,
   } = useQuery({
-    queryKey: ['companies', 'by-dept', category],
+    queryKey: ['companies', 'by-dept', category, lang],
     queryFn: () => fetchCompaniesByDept(category!),
     enabled: !!category,
     staleTime: 0,
@@ -149,7 +170,7 @@ const OfficesPage: React.FC = () => {
     const aAds = Number(a.ads_count ?? 0);
     const bAds = Number(b.ads_count ?? 0);
     if (bAds !== aAds) return bAds - aAds;
-    return String(a.name ?? '').localeCompare(String(b.name ?? ''), 'ar');
+    return String(a.name ?? '').localeCompare(String(b.name ?? ''), lang);
   });
 
   const handleCompanyClick = (id: number | string) => {
@@ -185,7 +206,12 @@ const OfficesPage: React.FC = () => {
       {/* ── Active category label ── */}
       {category && departments.length > 0 && (
         <h2 className="text-base font-bold text-navy dark:text-slate-200 -mb-2">
-          {departments.find((d) => String(d.id) === category)?.name}
+          {(() => {
+            const activeName = departments.find((d) => String(d.id) === category)?.name;
+            if (!activeName) return null;
+            const nameKey = DEPARTMENT_NAME_KEYS[activeName];
+            return nameKey ? t(nameKey) : activeName;
+          })()}
         </h2>
       )}
 
@@ -197,7 +223,7 @@ const OfficesPage: React.FC = () => {
       ) : sortedCompanies.length === 0 && category ? (
         <div className="flex flex-col items-center justify-center py-16 gap-2">
           <span className="text-3xl">😕</span>
-          <p className="text-gray-400 dark:text-slate-500 font-bold">لا توجد شركات في هذا القسم</p>
+          <p className="text-gray-400 dark:text-slate-500 font-bold">{t('companies.list.empty')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
@@ -234,13 +260,13 @@ const OfficesPage: React.FC = () => {
 
                 <div className="w-full mt-auto">
                   <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-800/50 rounded-xl px-3 py-2 mb-1.5 border border-pale/30 dark:border-slate-700/50">
-                    <span className="text-[12px] font-medium text-gray-600 dark:text-slate-400">إعلانات نشطة</span>
+                    <span className="text-[12px] font-medium text-gray-600 dark:text-slate-400">{t('companies.list.activeAds')}</span>
                     <span className="text-[15px] font-bold text-blue dark:text-blue">
                       {company.ads_count ?? 0}
                     </span>
                   </div>
                   <button className="w-full h-[42px] rounded-xl bg-navy/5 dark:bg-slate-800 text-navy dark:text-slate-200 text-[14px] font-semibold hover:bg-navy/10 dark:hover:bg-slate-700 transition-colors">
-                    عرض الملف
+                    {t('companies.list.viewProfile')}
                   </button>
                 </div>
               </div>

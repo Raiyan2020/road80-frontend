@@ -11,7 +11,8 @@ export enum Tab {
 
 export interface NavItem {
   id: Tab;
-  label?: string;
+  /** i18n key — resolved at render time so the label follows the active language. */
+  labelKey?: string;
   icon: React.FC<{ className?: string }>;
   isSpecial?: boolean;
 }

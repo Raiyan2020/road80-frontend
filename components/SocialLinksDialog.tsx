@@ -6,6 +6,7 @@ import type { UserSocials } from '@/shared/services/social-platforms.service';
 import { SpinnerIcon, CloseIcon } from './Icons';
 import { SocialPlatformIcon } from './SocialPlatformIcon';
 import { ModalPortal } from './ModalPortal';
+import { useTranslation } from '../i18n';
 
 interface SocialLinksDialogProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export const SocialLinksDialog: React.FC<SocialLinksDialogProps> = ({
   onClose,
   socials,
 }) => {
+  const { t, dir } = useTranslation();
   const { data: platforms = [], isLoading, isError } = useSocialPlatforms();
   const { updateSocials, isUpdating } = useUpdateSocials();
 
@@ -46,7 +48,7 @@ export const SocialLinksDialog: React.FC<SocialLinksDialogProps> = ({
       ? Object.values(response.errors).flat().find(Boolean)
       : undefined;
 
-    return response?.message || firstFieldError || fetchError?.message || 'حدث خطأ أثناء الحفظ';
+    return response?.message || firstFieldError || fetchError?.message || t('profile.socialsDialog.saveError');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,13 +73,13 @@ export const SocialLinksDialog: React.FC<SocialLinksDialogProps> = ({
 
     const tooLong = Object.values(payload).some((link) => link.length > MAX_LINK_LENGTH);
     if (tooLong) {
-      toast.error(`الرابط يجب ألا يزيد عن ${MAX_LINK_LENGTH} حرف`);
+      toast.error(t('validation.linkTooLong', { max: MAX_LINK_LENGTH }));
       return;
     }
 
     try {
       await updateSocials(payload);
-      toast.success('تم حفظ روابط التواصل بنجاح', { closeButton: true });
+      toast.success(t('profile.socialsDialog.saveSuccess'), { closeButton: true });
       onClose();
     } catch (err) {
       toast.error(getBackendErrorMessage(err), { closeButton: true });
@@ -91,10 +93,10 @@ export const SocialLinksDialog: React.FC<SocialLinksDialogProps> = ({
       <div
         className="relative bg-white dark:bg-slate-900 w-full max-w-sm overflow-y-auto overscroll-contain rounded-[32px] p-6 shadow-2xl animate-in slide-in-from-bottom duration-300"
         style={{ maxHeight: 'calc(var(--vh, 1vh) * 90)' }}
-        dir="rtl"
+        dir={dir}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-navy dark:text-slate-200">روابط التواصل</h2>
+          <h2 className="text-xl font-bold text-navy dark:text-slate-200">{t('profile.socialsDialog.title')}</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-navy dark:hover:text-white transition-all active:scale-90"
@@ -109,7 +111,7 @@ export const SocialLinksDialog: React.FC<SocialLinksDialogProps> = ({
           </div>
         ) : isError || platforms.length === 0 ? (
           <p className="py-10 text-center text-sm text-gray-400 dark:text-slate-600">
-            تعذر تحميل منصات التواصل
+            {t('profile.socialsDialog.loadError')}
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -136,7 +138,7 @@ export const SocialLinksDialog: React.FC<SocialLinksDialogProps> = ({
                     onChange={(e) =>
                       setLinks((prev) => ({ ...prev, [platform.slug]: e.target.value }))
                     }
-                    placeholder={platform.link || 'https://'}
+                    placeholder={platform.link || t('profile.socialsDialog.linkPlaceholder')}
                     className="h-12 px-4 rounded-xl border border-pale dark:border-slate-800 bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200 text-sm focus:border-navy dark:focus:border-blue transition-all"
                   />
                 </div>
@@ -144,7 +146,7 @@ export const SocialLinksDialog: React.FC<SocialLinksDialogProps> = ({
             </div>
 
             <p className="text-[11px] text-gray-400 dark:text-slate-600">
-              اترك الحقل فارغاً لحذف الرابط
+              {t('profile.socialsDialog.emptyFieldHint')}
             </p>
 
             <button
@@ -152,7 +154,7 @@ export const SocialLinksDialog: React.FC<SocialLinksDialogProps> = ({
               disabled={isUpdating}
               className="h-14 bg-navy dark:bg-blue text-white rounded-xl font-bold flex items-center justify-center disabled:opacity-70 active:scale-95 transition-all"
             >
-              {isUpdating ? <SpinnerIcon className="w-6 h-6 animate-spin" /> : 'حفظ التغييرات'}
+              {isUpdating ? <SpinnerIcon className="w-6 h-6 animate-spin" /> : t('profile.saveChanges')}
             </button>
           </form>
         )}

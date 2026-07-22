@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { profileService, ProfileResponse } from '../services/profile.service';
 import { normalizeSocials } from '@/shared/services/social-platforms.service';
 import { useUserStore } from '@/stores/user.store';
+import { useLangStore } from '@/i18n';
 
 // Kept at module scope so React Query can memoize the result — an inline select
 // would hand out a fresh object on every render and retrigger consumers' effects.
@@ -15,6 +16,8 @@ export function useProfile() {
   const { user, login } = useUserStore();
 
   const profileQuery = useQuery({
+    // Deliberately NOT keyed by language: this is the user's own name, avatar,
+    // phone and social links — the server returns them verbatim, not translated.
     queryKey: ['profile'],
     queryFn: profileService.getProfile,
     select: selectProfile,
@@ -66,14 +69,22 @@ export function useUpdateSocials() {
 }
 
 export function useUserAds() {
+    const lang = useLangStore((s) => s.lang);
     return useQuery({
-        queryKey: ['profile', 'my-ads'],
+        // The user's ads carry server-translated category/location labels.
+        // `lang` last so the `['profile', 'my-ads']` prefix invalidations in
+        // useDeleteAd / useToggleAdStatus still match.
+        queryKey: ['profile', 'my-ads', lang],
         queryFn: profileService.getMyAds,
         staleTime: 5 * 60 * 1000,
     });
 }
 
 export function useUserFavorites() {
+    // Deliberately NOT keyed by language: this exact key is shared with
+    // useSyncFavorites, which only needs the id set. Splitting it per language
+    // would double-fetch the endpoint on the favorites screen. The
+    // language-change invalidation in routes/__root.tsx refreshes it instead.
     return useQuery({
         queryKey: ['profile', 'my-favorites'],
         queryFn: profileService.getMyFavorites,

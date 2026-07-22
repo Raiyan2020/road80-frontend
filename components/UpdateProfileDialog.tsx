@@ -5,11 +5,14 @@ import { SpinnerIcon, CloseIcon } from './Icons';
 import { AppImage } from './AppImage';
 import { ModalPortal } from './ModalPortal';
 import { toast } from 'sonner';
+import { useTranslation } from '../i18n';
+import { compressImage, AVATAR_OPTIONS } from '../shared/utils/media-compression';
 
 const MIN_NAME_LENGTH = 3;
 const MIN_BIO_LENGTH = 4;
 
 export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => void; profileData: any }> = ({ isOpen, onClose, profileData }) => {
+  const { t, dir } = useTranslation();
   const { updateProfile, isUpdating } = useProfile();
   
   const [name, setName] = useState(profileData?.name || '');
@@ -17,6 +20,7 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState(profileData?.image || null);
   const [showErrors, setShowErrors] = useState(false);
+  const [isOptimizingImage, setIsOptimizingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getBackendErrorMessage = (error: unknown) => {
@@ -32,7 +36,7 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
       ? Object.values(response.errors).flat().find(Boolean)
       : undefined;
 
-    return response?.message || firstFieldError || fetchError?.message || 'حدث خطأ أثناء التحديث';
+    return response?.message || firstFieldError || fetchError?.message || t('profile.editDialog.updateError');
   };
 
   useEffect(() => {
@@ -46,11 +50,19 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
 
   if (!isOpen) return null;
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      setPreviewImage(URL.createObjectURL(file));
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Straight from the camera an avatar is easily 8 MB, and the backend caps
+    // it at 2 MB (`max:2048`) — so compress rather than reject.
+    setIsOptimizingImage(true);
+    try {
+      const { file: optimized } = await compressImage(file, AVATAR_OPTIONS);
+      setImageFile(optimized);
+      setPreviewImage(URL.createObjectURL(optimized));
+    } finally {
+      setIsOptimizingImage(false);
     }
   };
 
@@ -63,9 +75,9 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
     if (!isNameValid || !isBioValid) {
       setShowErrors(true);
       if (!isNameValid) {
-        toast.error(`يجب أن يكون طول الاسم ${MIN_NAME_LENGTH} حروف على الأقل`);
+        toast.error(t('validation.nameMinChars', { min: MIN_NAME_LENGTH }));
       } else if (!isBioValid) {
-        toast.error(`يجب أن يكون طول الوصف ${MIN_BIO_LENGTH} حروف على الأقل`);
+        toast.error(t('validation.bioMinChars', { min: MIN_BIO_LENGTH }));
       }
       return;
     }
@@ -79,7 +91,7 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
     
     try {
       await updateProfile(formData);
-      toast.success('تم تحديث الملف الشخصي بنجاح', { closeButton: true });
+      toast.success(t('profile.editDialog.updateSuccess'), { closeButton: true });
       onClose();
     } catch (err) {
       toast.error(getBackendErrorMessage(err), { closeButton: true });
@@ -93,10 +105,10 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
       <div
         className="relative bg-white dark:bg-slate-900 w-full max-w-sm overflow-y-auto overscroll-contain rounded-[32px] p-6 shadow-2xl animate-in slide-in-from-bottom duration-300"
         style={{ maxHeight: 'calc(var(--vh, 1vh) * 90)' }}
-        dir="rtl"
+        dir={dir}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-navy dark:text-slate-200">تحديث الملف الشخصي</h2>
+          <h2 className="text-xl font-bold text-navy dark:text-slate-200">{t('profile.editDialog.title')}</h2>
           <button 
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-navy dark:hover:text-white transition-all active:scale-90"
@@ -113,22 +125,28 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
             >
               <AppImage
                 src={previewImage}
-                alt="Preview"
+                alt={t('profile.editDialog.avatarAlt')}
                 className="w-full h-full"
               />
-              <div className="absolute inset-0 bg-black/30 items-center justify-center hidden group-hover:flex">
-                 <span className="text-white text-xs font-bold">تغيير</span>
-              </div>
+              {isOptimizingImage ? (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <SpinnerIcon className="w-6 h-6 text-white animate-spin" />
+                </div>
+              ) : (
+                <div className="absolute inset-0 bg-black/30 items-center justify-center hidden group-hover:flex">
+                   <span className="text-white text-xs font-bold">{t('profile.editDialog.changeAvatar')}</span>
+                </div>
+              )}
             </div>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center justify-between">
-              الاسم
+              {t('profile.editDialog.nameLabel')}
               {showErrors && !isNameValid && (
                 <span className="text-red-500 text-[10px] font-normal">
-                  {MIN_NAME_LENGTH} حروف على الأقل
+                  {t('profile.editDialog.minCharsHint', { min: MIN_NAME_LENGTH })}
                 </span>
               )}
             </label>
@@ -139,16 +157,16 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
               className={`h-12 px-4 rounded-xl border bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200 transition-all ${
                 showErrors && !isNameValid ? 'border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'border-pale dark:border-slate-800 focus:border-navy dark:focus:border-blue'
               }`}
-              placeholder="أدخل اسمك"
+              placeholder={t('profile.editDialog.namePlaceholder')}
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center justify-between">
-              البايو (الوصف)
+              {t('profile.editDialog.bioLabel')}
               {showErrors && !isBioValid && (
                 <span className="text-red-500 text-[10px] font-normal">
-                  {MIN_BIO_LENGTH} حروف على الأقل
+                  {t('profile.editDialog.minCharsHint', { min: MIN_BIO_LENGTH })}
                 </span>
               )}
             </label>
@@ -158,16 +176,16 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
               className={`px-4 py-3 rounded-xl border bg-gray-50 dark:bg-slate-800/50 text-navy dark:text-slate-200 min-h-[100px] transition-all ${
                 showErrors && !isBioValid ? 'border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'border-pale dark:border-slate-800 focus:border-navy dark:focus:border-blue'
               }`}
-              placeholder="اكتب شيئاً عن نفسك..."
+              placeholder={t('profile.editDialog.bioPlaceholder')}
             />
           </div>
 
           <button 
             type="submit" 
-            disabled={isUpdating}
+            disabled={isUpdating || isOptimizingImage}
             className="h-14 mt-4 bg-navy dark:bg-blue text-white rounded-xl font-bold flex items-center justify-center disabled:opacity-70 active:scale-95 transition-all"
           >
-            {isUpdating ? <SpinnerIcon className="w-6 h-6 animate-spin" /> : 'حفظ التغييرات'}
+            {isUpdating || isOptimizingImage ? <SpinnerIcon className="w-6 h-6 animate-spin" /> : t('profile.saveChanges')}
           </button>
         </form>
       </div>

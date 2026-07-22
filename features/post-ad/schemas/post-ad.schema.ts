@@ -1,10 +1,11 @@
 import * as z from 'zod';
+import { t } from '../../../i18n';
 
 export const postAdSchema = z.object({
   // Optional ad title and description
   title: z.string().optional(),
   description: z.string().optional(),
-  price: z.coerce.number().min(1, 'السعر مطلوب'),
+  price: z.coerce.number().min(1, { error: () => t('validation.priceRequired') }),
 
 
   // Location IDs or Names depending on selection

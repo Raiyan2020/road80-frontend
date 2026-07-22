@@ -8,12 +8,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import { QUERY_KEYS } from '@/lib/types';
 import { SpinnerIcon } from './Icons';
 import { AppImage } from './AppImage';
+import { useTranslation } from '@/i18n';
 
 interface QuickWizardProps {
     onComplete: () => void;
 }
 
 const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
+    const { t, dir } = useTranslation();
     const searchParams = new URLSearchParams(window.location.search);
     const mode = searchParams.get('mode');
     const isLocationMode = mode === 'location';
@@ -38,7 +40,21 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
         try {
             const saved = localStorage.getItem('road80_preferences');
             if (saved) {
-                return { ...defaultData, ...JSON.parse(saved) };
+                // The persisted payload uses stateId/cityId while local state uses
+                // governorateId/areaId — map explicitly, a plain spread silently
+                // dropped the previous governorate/area selection.
+                const p = JSON.parse(saved) || {};
+                return {
+                    ...defaultData,
+                    name: p.name ?? defaultData.name,
+                    countryId: p.countryId ?? defaultData.countryId,
+                    countryName: p.countryName ?? defaultData.countryName,
+                    governorateId: p.stateId ?? defaultData.governorateId,
+                    governorateName: p.stateName ?? defaultData.governorateName,
+                    areaId: p.cityId ?? defaultData.areaId,
+                    areaName: p.cityName ?? defaultData.areaName,
+                    categoryValues: p.categoryValues ?? defaultData.categoryValues,
+                };
             }
         } catch { }
         return defaultData;
@@ -83,18 +99,13 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     };
 
     const saveAndComplete = async (finalData: typeof data) => {
-        // Resolve selected category value IDs → display names
-        const allValues = filters.flatMap((cat) => cat.values);
-        const categoryValueNames = (finalData.categoryValues || [])
-            .map((id) => allValues.find((v) => v.id === id)?.value)
-            .filter(Boolean) as string[];
-
-        // Find deal type specifically (category id=2 "نوع التعاقد")
-        const dealCat = filters.find((c) => c.id === 2);
-        const dealTypeName = dealCat?.values.find((v) =>
-            (finalData.categoryValues || []).includes(v.id)
-        )?.value || '';
-
+        // The *ids* are the source of truth here. The `*Name` fields are
+        // server-localized display strings captured in whatever language was
+        // active during onboarding, so consumers must resolve labels from the id
+        // at render time and treat these purely as a pre-load fallback.
+        // (`categoryValueNames` / `dealTypeName` used to be persisted too; they
+        // were never read anywhere and were frozen in one language, so they are
+        // no longer written.)
         const prefsPayload = {
             countryId: finalData.countryId || undefined,
             countryName: finalData.countryName || '',
@@ -103,8 +114,6 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
             cityId: finalData.areaId || undefined,
             cityName: finalData.areaName || '',
             categoryValues: finalData.categoryValues || [],
-            categoryValueNames,   // ← resolved names saved directly
-            dealTypeName,         // ← e.g. "إيجار" / "بيع" / "فنادق"
             name: finalData.name,
         };
 
@@ -138,7 +147,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     );
 
     return (
-        <div className="w-full h-full bg-white dark:bg-slate-950 flex flex-col relative overflow-hidden text-right transition-colors duration-300" dir="rtl">
+        <div className="w-full h-full bg-white dark:bg-slate-950 flex flex-col relative overflow-hidden rtl:text-right ltr:text-left transition-colors duration-300" dir={dir}>
             <div className="px-6 pt-8 pb-4 shrink-0">
                 <div className="w-full h-1.5 bg-pale dark:bg-slate-800 rounded-full overflow-hidden mb-8">
                     <div
@@ -151,12 +160,12 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
             <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-24">
                 {step === 1 && !isEditMode && (
                     <div className="flex flex-col h-full justify-center -mt-20">
-                        {renderHeader('مرحباً بك 👋', 'الرجاء إدخال اسمك لنبدأ')}
+                        {renderHeader(t('quickStart.name.title'), t('quickStart.name.subtitle'))}
                         <input
                             type="text"
                             value={data.name}
                             onChange={(e) => setData({ ...data, name: e.target.value })}
-                            placeholder="الاسم الكامل"
+                            placeholder={t('quickStart.name.placeholder')}
                             className="w-full h-16 rounded-2xl border border-pale dark:border-slate-800 px-6 text-xl font-bold text-navy dark:text-slate-200 focus:border-navy dark:focus:border-blue focus:outline-none bg-white dark:bg-slate-900 text-center shadow-sm placeholder:text-gray-300 dark:placeholder:text-slate-600 transition-colors"
                             autoFocus
                         />
@@ -165,7 +174,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
 
                 {step === 2 && (
                     <div className="animate-fade-in">
-                        {renderHeader('اختر بلدك', 'أين تبحث عن عقارك القادم؟')}
+                        {renderHeader(t('quickStart.country.title'), t('quickStart.country.subtitle'))}
                         {loadingCountries ? (
                             <div className="flex justify-center p-10"><SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" /></div>
                         ) : (
@@ -200,7 +209,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
 
                 {step === 3 && (
                     <div className="animate-fade-in">
-                        {renderHeader('اختر المنطقة', 'في أي محافظة تود البحث؟')}
+                        {renderHeader(t('quickStart.governorate.title'), t('quickStart.governorate.subtitle'))}
                         {loadingStates ? (
                             <div className="flex justify-center p-10"><SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" /></div>
                         ) : (
@@ -228,7 +237,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
 
                 {step === 4 && (
                     <div className="animate-fade-in">
-                        {renderHeader('اختر المدينة', 'حدد المدينة المفضلة لديك')}
+                        {renderHeader(t('quickStart.city.title'), t('quickStart.city.subtitle'))}
                         {loadingCities ? (
                             <div className="flex justify-center p-10"><SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" /></div>
                         ) : (
@@ -259,7 +268,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
 
                 {step >= 5 && step <= totalSteps && (
                     <div className="animate-fade-in">
-                        {renderHeader(filters[step - 5]?.name || 'تفضيلات البحث', 'ساعدنا في عرض ما يهمك أولاً')}
+                        {renderHeader(filters[step - 5]?.name || t('quickStart.preferences.title'), t('quickStart.preferences.subtitle'))}
                         {loadingFilters ? (
                             <div className="flex justify-center p-10"><SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" /></div>
                         ) : (
@@ -303,7 +312,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                         className={`flex-1 py-4 rounded-xl font-bold text-white shadow-lg transition-all ${data.name.trim() ? 'bg-navy dark:bg-blue shadow-navy/20 dark:shadow-blue/20 active:scale-95 hover:bg-blue' : 'bg-gray-300 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
                             }`}
                     >
-                        التالي
+                        {t('common.next')}
                     </button>
                 ) : null}
 
@@ -311,7 +320,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                     onClick={handleBack}
                     className="w-1/4 min-w-[80px] py-4 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-xl text-navy dark:text-slate-200 font-bold hover:bg-gray-50 dark:hover:bg-slate-800 transition-all active:scale-95"
                 >
-                    {isEditMode && step === 2 ? 'إلغاء' : 'رجوع'}
+                    {isEditMode && step === 2 ? t('common.cancel') : t('common.back')}
                 </button>
             </div>
         </div>

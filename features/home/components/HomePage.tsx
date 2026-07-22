@@ -13,11 +13,39 @@ import { BannerSlider } from "./BannerSlider";
 import { StaticBanner } from "./StaticBanner";
 import { HomeListingCard } from "./HomeListingCard";
 import { QuickActionsRow } from "./QuickActionsRow";
+import { useTranslation } from "../../../i18n";
+import { useCountries } from "../../../shared/hooks/useCountries";
+
+/**
+ * `road80_preferences` is written by QuickWizard. It stores stable ids
+ * (`countryId`, `stateId`, `cityId`) *and* the display names that were current
+ * when the wizard ran. The names are frozen in whatever language the user was
+ * using at the time, so they are only ever a fallback — the id is the source of
+ * truth and the label gets resolved against the (localized) countries payload.
+ */
+function readStoredCountryPref(): { id?: number; staleName?: string } {
+  try {
+    const prefs = localStorage.getItem("road80_preferences");
+    if (!prefs) return {};
+    const parsed = JSON.parse(prefs);
+    return {
+      id: typeof parsed?.countryId === "number" ? parsed.countryId : undefined,
+      staleName:
+        typeof parsed?.countryName === "string" && parsed.countryName
+          ? parsed.countryName
+          : undefined,
+    };
+  } catch {
+    // ignore invalid preferences
+    return {};
+  }
+}
 
 const HomePage: React.FC<{
   theme: "light" | "dark";
   onToggleTheme: () => void;
 }> = ({ theme, onToggleTheme }) => {
+  const { t, dir, lang } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { data: homeListings = [], isLoading: isListingsLoading } =
@@ -28,18 +56,32 @@ const HomePage: React.FC<{
 
   const displayAds = homeListings.slice(0, 6);
   const firstSuggestedAd = homeListings[0];
+  const { data: countries = [] } = useCountries();
+
+  // Re-read on navigation (the wizard writes localStorage and routes back here).
+  const storedCountry = useMemo(
+    () => readStoredCountryPref(),
+    [location.pathname]
+  );
+
   const currentCountryName = useMemo(() => {
-    try {
-      const prefs = localStorage.getItem("road80_preferences");
-      if (prefs) {
-        const parsed = JSON.parse(prefs);
-        if (parsed.countryName) return parsed.countryName;
-      }
-    } catch {
-      // ignore invalid preferences
+    // Preferred: resolve the stable id against the localized countries payload
+    // so the pill follows the current language.
+    if (storedCountry.id !== undefined) {
+      const match = countries.find((c) => c.id === storedCountry.id);
+      if (match?.name) return match.name;
     }
-    return firstSuggestedAd?.country || "الكويت";
-  }, [location.pathname, firstSuggestedAd?.country]);
+    // Fallbacks, in order: the name persisted by the wizard (possibly stale, but
+    // better than an empty pill while `countries` is still loading, and the only
+    // thing available for payloads written before ids were stored), then the
+    // first suggested ad, then the static default.
+    return (
+      storedCountry.staleName ||
+      firstSuggestedAd?.country ||
+      t("home.country.fallbackName")
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedCountry, countries, firstSuggestedAd?.country, lang]);
   const searchText = useMemo(() => {
     if (!firstSuggestedAd) return "";
 
@@ -59,7 +101,9 @@ const HomePage: React.FC<{
       {/* Country Switcher Header with Theme Toggle */}
       <div className="flex items-center justify-between -mb-2">
         <div className="flex flex-col">
-          <span className="text-xs text-gray-400 font-bold mb-0.5">الدولة</span>
+          <span className="text-xs text-gray-400 font-bold mb-0.5">
+            {t("home.country.label")}
+          </span>
           <button
             onClick={() =>
               navigate({
@@ -80,7 +124,7 @@ const HomePage: React.FC<{
         <button
           onClick={onToggleTheme}
           className="w-10 h-10 rounded-full bg-pale/30 dark:bg-slate-800 flex items-center justify-center transition-all duration-300 active:scale-95 text-navy dark:text-slate-200 border border-pale/80 dark:border-slate-600"
-          aria-label="تبديل المظهر"
+          aria-label={t("home.toggleTheme")}
         >
           {theme === "light" ? (
             <SunIcon className="w-5 h-5" />
@@ -103,12 +147,12 @@ const HomePage: React.FC<{
         }
         className="w-full bg-white dark:bg-slate-900 text-navy dark:text-slate-200 rounded-2xl p-4 shadow-lg shadow-navy/5 dark:shadow-black/20 flex items-center justify-between cursor-pointer active:scale-98 transition-all relative overflow-hidden group border border-navy/10 dark:border-slate-800 hover:border-navy/30 dark:hover:border-slate-700"
       >
-        <div className="flex flex-col gap-1 z-10 flex-1 min-w-0 text-right pr-2">
+        <div className="flex flex-col gap-1 z-10 flex-1 min-w-0 rtl:text-right ltr:text-left rtl:pr-2 ltr:pl-2">
           <span className="text-[13px] text-gray-400 font-medium group-hover:text-blue transition-colors">
-            عن ماذا تبحث
+            {t("home.search.label")}
           </span>
-          <h3 className="text-sm font-semibold text-navy dark:text-slate-200 leading-tight truncate" dir="rtl">
-            {searchText || "اضغط لتحديد طلبك"}
+          <h3 className="text-sm font-semibold text-navy dark:text-slate-200 leading-tight truncate" dir={dir}>
+            {searchText || t("home.search.placeholder")}
           </h3>
         </div>
 
@@ -124,7 +168,7 @@ const HomePage: React.FC<{
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-sm font-bold text-navy dark:text-slate-200">
-            احدث الاعلانات المضافة تناسب طلبك
+            {t("home.listings.title")}
           </h2>
         </div>
 
@@ -141,13 +185,13 @@ const HomePage: React.FC<{
         ) : (
           <div className="flex flex-col items-center justify-center text-center p-6 bg-white dark:bg-slate-900 border border-pale/50 dark:border-slate-800 rounded-2xl gap-4">
             <span className="text-gray-500 dark:text-slate-400 text-sm font-medium leading-relaxed font-sans">
-              لا توجد لديك أي مقترحات بناءً على اختيارك، ابدأ الاستكشاف معنا
+              {t("home.listings.empty")}
             </span>
             <button
               onClick={() => navigate({ to: "/explore" })}
               className="px-6 py-2.5 bg-blue text-white rounded-full font-bold text-sm hover:bg-blue/90 active:scale-95 transition-all shadow-md"
             >
-              ابدأ الاستكشاف
+              {t("home.listings.startExploring")}
             </button>
           </div>
         )}
@@ -157,7 +201,7 @@ const HomePage: React.FC<{
             onClick={() => navigate({ to: "/explore" })}
             className="w-full py-3 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 rounded-xl font-semibold text-sm hover:bg-pale/30 dark:hover:bg-slate-800 active:scale-95 transition-all shadow-sm"
           >
-            مشاهدة المزيد
+            {t("common.showMore")}
           </button>
         )}
       </div>

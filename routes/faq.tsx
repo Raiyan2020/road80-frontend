@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import { useFaqs } from '../features/pages/hooks/usePages';
 import { useUIStore } from '../stores/ui.store';
 import { SpinnerIcon } from '../components/Icons';
+import { useTranslation } from '../i18n';
 
 export const Route = createFileRoute('/faq')({
   component: FaqPage
@@ -11,11 +12,12 @@ export const Route = createFileRoute('/faq')({
 
 function FaqPage() {
   const navigate = useNavigate();
+  const { t, dir } = useTranslation();
   const { data, isLoading } = useFaqs();
 
   return (
-    <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
-      <Header title="الأسئلة الشائعة" showBack onBack={() => {
+    <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir={dir}>
+      <Header title={t('nav.faq')} showBack onBack={() => {
         useUIStore.getState().setMenuOpen(true);
         window.history.back();
       }} />
@@ -27,7 +29,7 @@ function FaqPage() {
           </div>
         ) : (
           data?.map((faq) => (
-             <div key={faq.id} className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-pale dark:border-slate-800 text-right">
+             <div key={faq.id} className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-pale dark:border-slate-800 text-start">
                 <h3 className="text-lg font-bold text-navy dark:text-slate-200 mb-2">{faq.question}</h3>
                 <div 
                   className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-line" 

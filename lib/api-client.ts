@@ -1,6 +1,10 @@
 import { ofetch, type FetchOptions } from 'ofetch';
 import { forceLogout } from '@/shared/utils/notifications';
 import { API_BASE_URL } from '@/lib/api-base-url';
+// Always import i18n through the barrel. Mixing '@/i18n' and '@/i18n/store'
+// specifiers risks two module records, i.e. two independent language stores,
+// and the api client would then read a language nothing else updates.
+import { getLang } from '@/i18n';
 
 // Auth endpoints that should never trigger a force-logout on failure
 // (e.g. wrong OTP returns status:"needLogin" but user is not logged in yet)
@@ -17,6 +21,14 @@ export const apiClient = ofetch.create({
   },
   async onRequest({ options }) {
     try {
+      // Tell the backend which language to localize responses and error
+      // messages in. Read per-request so it follows the live language.
+      {
+        const headers = new Headers(options.headers);
+        headers.set('Accept-Language', getLang());
+        options.headers = headers;
+      }
+
       const userStr = localStorage.getItem('road80_user');
       if (userStr) {
         const parsed = JSON.parse(userStr);

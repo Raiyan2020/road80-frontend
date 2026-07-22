@@ -3,6 +3,8 @@ import { Listing, ListingSchema } from '@/lib/types';
 import { APP_LOGO_URL } from '@/shared/constants/images';
 import { resolveMediaUrl } from '@/shared/utils/media-url';
 import { ExploreFilters, ExploreResponse, ExploreRawAd } from '../types';
+import { t } from '@/i18n';
+import { isPropertyTypeCategory, isListingTypeCategory } from '@/shared/utils/category-match';
 
 /**
  * Fetch explore/search listings with filters and pagination.
@@ -60,29 +62,47 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
     category.name || category.category_name || '';
   const categoryValue = (category: ExploreRawAd['categories'][number]) =>
     category.value || category.category_value_name || '';
-  const propertyCategory = raw.categories?.find(
-    (category) => categoryName(category).trim() === 'نوع العقار',
+  const categorySlug = (category: ExploreRawAd['categories'][number]) =>
+    category.slug || category.category_slug;
+
+  const propertyCategory = raw.categories?.find((category) =>
+    isPropertyTypeCategory(categorySlug(category), categoryName(category)),
   );
   const listingCategory = raw.categories?.find((category) =>
-    ['نوع الإعلان', 'نوع التعاقد'].includes(categoryName(category).trim()),
+    isListingTypeCategory(categorySlug(category), categoryName(category)),
+  );
+
+  const propertyAnswer = raw.answers?.find((a) =>
+    isPropertyTypeCategory(a.category_slug, a.category_name),
+  );
+  const listingAnswer = raw.answers?.find((a) =>
+    isListingTypeCategory(a.category_slug, a.category_name),
   );
 
   // Broad search for property type in answers or categories
-  const propertyType = 
-    raw.answers?.find((a) => a.category_name?.trim() === 'نوع العقار')?.category_value_name ||
+  const propertyType =
+    propertyAnswer?.category_value_name ||
     (propertyCategory ? categoryValue(propertyCategory) : '') ||
     (raw.categories?.[0] ? categoryValue(raw.categories[0]) : '') ||
     '';
 
-  const listingType = 
-    raw.answers?.find((a) => a.category_name?.trim() === 'نوع الإعلان')?.category_value_name ||
+  const listingType =
+    listingAnswer?.category_value_name ||
     (listingCategory ? categoryValue(listingCategory) : '') ||
     '';
 
   // Format price with regex commas (Source Parity)
+  //
+  // The currency token is baked into the string here, at map time, so it is
+  // only correct as long as the queries feeding this mapper are keyed by
+  // language — otherwise a cached listing keeps the previous language's token.
+  // Grouping stays a regex rather than Intl.NumberFormat on purpose:
+  // Intl.NumberFormat('ar') yields Arabic-Indic digits (١٢٣), which would
+  // change existing Arabic rendering. Kuwait uses Western digits.
   const numericPriceStr = raw.price.toString().replace(/[^\d.]/g, '');
   const numericPrice = parseFloat(numericPriceStr) || 0;
-  const formattedPrice = numericPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ' د.ك';
+  const formattedPrice =
+    numericPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ' + t('common.currency');
 
   const hasVideo =
     raw.image?.type === 'video' || isVideoFile(raw.image?.file);

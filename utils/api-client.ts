@@ -1,5 +1,6 @@
 import { ofetch, type FetchOptions } from 'ofetch';
 import { API_BASE_URL } from '@/lib/api-base-url';
+import { getLang } from '@/i18n';
 
 export const apiClient = ofetch.create({
   baseURL: API_BASE_URL,
@@ -9,6 +10,13 @@ export const apiClient = ofetch.create({
   },
   async onRequest({ options }) {
     try {
+      // Localize backend responses and error messages to the active language.
+      {
+        const headers = new Headers(options.headers);
+        headers.set('Accept-Language', getLang());
+        options.headers = headers;
+      }
+
       const userStr = localStorage.getItem('road80_user');
       if (userStr) {
           const user = JSON.parse(userStr);

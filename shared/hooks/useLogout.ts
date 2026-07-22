@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/user.store';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { getDevicePushToken } from '../utils/notifications';
+import { t } from '@/i18n';
 
 export const useLogout = () => {
   const queryClient = useQueryClient();
@@ -18,7 +19,7 @@ export const useLogout = () => {
     // We don't clear the store in onMutate anymore to ensure the 
     // Authorization header is sent with the logout request.
     onSuccess: () => {
-      toast.success('تم تسجيل الخروج بنجاح', { closeButton: true });
+      toast.success(t('common.logoutSuccess'), { closeButton: true });
     },
     onSettled: () => {
       // Always clear store and redirect, even if API fails

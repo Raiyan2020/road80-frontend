@@ -2,12 +2,19 @@ import React, { useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCategories } from "../hooks/useCategories";
 import { KeyIcon, TagIcon, BedIcon } from "../../../components/Icons";
+import { useTranslation } from "../../../i18n";
+import type { TranslationKey } from "../../../i18n";
 
-// Fallback static actions when API returns nothing
-const FALLBACK_ACTIONS = [
-  { id: 3, label: "إيجار", icon: KeyIcon },
-  { id: 4, label: "بيع", icon: TagIcon },
-  { id: 5, label: "فنادق", icon: BedIcon },
+// Fallback static actions when API returns nothing.
+// Labels are translation keys — resolved at render time so they follow the language.
+const FALLBACK_ACTIONS: Array<{
+  id: number;
+  labelKey: TranslationKey;
+  icon: typeof KeyIcon;
+}> = [
+  { id: 3, labelKey: "home.quickActions.rent", icon: KeyIcon },
+  { id: 4, labelKey: "home.quickActions.sale", icon: TagIcon },
+  { id: 5, labelKey: "home.quickActions.hotels", icon: BedIcon },
 ];
 
 // Emoji icons for contract type values (matched by Arabic name)
@@ -29,6 +36,7 @@ const CONTRACT_ICONS: Record<string, string> = {
  * Clicking any card navigates to /explore filtered by that value id.
  */
 export const QuickActionsRow: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: categories, isLoading } = useCategories();
@@ -109,7 +117,7 @@ export const QuickActionsRow: React.FC = () => {
             <action.icon className="w-6 h-6 text-navy dark:text-blue group-hover:text-white transition-colors duration-300" />
           </div>
           <span className="text-xs font-semibold text-navy dark:text-slate-200 group-hover:text-navy dark:group-hover:text-blue transition-colors text-center">
-            {action.label}
+            {t(action.labelKey)}
           </span>
         </button>
       ))}

@@ -22,12 +22,17 @@ export interface ExploreRawAd {
   state_name: string;
   city_name: string;
   answers: Array<{
+    /** Stable, language-independent key (e.g. 'property-type'). Optional
+     *  because older backends predate it — always fall back to the name. */
+    category_slug?: string | null;
     category_name: string;
     category_value_name: string;
     range: unknown;
   }>;
   categories: Array<{
     id?: number;
+    slug?: string | null;
+    category_slug?: string | null;
     name?: string;
     value?: string;
     category_name?: string;

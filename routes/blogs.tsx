@@ -5,6 +5,7 @@ import { useBlogs, useBlogDetail } from '../features/blogs/hooks/useBlogs';
 import { useUIStore } from '../stores/ui.store';
 import { SpinnerIcon, ChevronRightIcon } from '../components/Icons';
 import { AppImage } from '../components/AppImage';
+import { useTranslation } from '../i18n';
 
 type BlogsSearch = {
   id?: number | string;
@@ -21,6 +22,7 @@ export const Route = createFileRoute('/blogs')({
 
 function BlogsPage() {
   const navigate = useNavigate();
+  const { t, dir, isRTL } = useTranslation();
   const { id } = Route.useSearch();
   const { data: listData, isLoading: isListLoading } = useBlogs();
   const { data: detailData, isLoading: isDetailLoading } = useBlogDetail(id);
@@ -31,9 +33,9 @@ function BlogsPage() {
   // Single Blog Detail View
   if (id) {
     return (
-      <div className="h-full bg-bg dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in" dir="rtl">
-        <Header 
-          title={blog?.title || 'جاري التحميل...'} 
+      <div className="h-full bg-bg dark:bg-slate-950 flex flex-col overflow-hidden animate-fade-in" dir={dir}>
+        <Header
+          title={blog?.title || t('common.loading')}
           showBack 
           onBack={() => navigate({ to: '/blogs', search: {} })} 
         />
@@ -45,23 +47,23 @@ function BlogsPage() {
             </div>
           ) : !blog ? (
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 text-center border border-pale dark:border-slate-800">
-               <p className="text-gray-400 font-bold italic">المقال غير موجود</p>
+               <p className="text-gray-400 font-bold italic">{t('pages.blogs.notFound')}</p>
             </div>
           ) : (
              <article className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl shadow-navy/5 border border-pale dark:border-slate-800 overflow-hidden mb-6">
                 <div className="relative h-64 sm:h-80 w-full">
                   <AppImage src={blog.image} alt={blog.title} className="w-full h-full" />
-                  <div className="absolute top-4 right-4 px-3 py-1 bg-navy/80 backdrop-blur-md text-white rounded-full text-xs font-bold border border-white/20">
+                  <div className="absolute top-4 rtl:right-4 ltr:left-4 px-3 py-1 bg-navy/80 backdrop-blur-md text-white rounded-full text-xs font-bold border border-white/20">
                      {blog.category_name}
                   </div>
                 </div>
                 
-                <div className="p-6 flex flex-col gap-6 text-right">
+                <div className="p-6 flex flex-col gap-6 text-start">
                    <div className="flex flex-col gap-3">
                      <h1 className="text-[28px] font-black text-navy dark:text-slate-100 leading-tight">{blog.title}</h1>
                      <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
                         <span className="flex items-center gap-1">
-                           بواسطة: <span className="text-navy dark:text-blue">{blog.publisher_name}</span>
+                           {t('pages.blogs.by')} <span className="text-navy dark:text-blue">{blog.publisher_name}</span>
                         </span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
                         <span>{blog.created_at}</span>
@@ -84,8 +86,8 @@ function BlogsPage() {
 
   // Blog List View
   return (
-    <div className="h-full bg-bg dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
-      <Header title="المدونة" showBack onBack={() => {
+    <div className="h-full bg-bg dark:bg-slate-950 flex flex-col overflow-hidden" dir={dir}>
+      <Header title={t('nav.blog')} showBack onBack={() => {
         useUIStore.getState().setMenuOpen(true);
         window.history.back();
       }} />
@@ -97,7 +99,7 @@ function BlogsPage() {
           </div>
         ) : blogs.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 shadow-sm border border-pale dark:border-slate-800 text-center text-gray-400 animate-fade-in">
-             <p className="font-bold">لا توجد مقالات حالياً</p>
+             <p className="font-bold">{t('pages.blogs.empty')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5">
@@ -112,11 +114,11 @@ function BlogsPage() {
                    alt={blog.title}
                    className="w-full h-48 group-hover:scale-105 transition-transform duration-500"
                  />
-                 <div className="p-5 flex flex-col gap-3 text-right">
+                 <div className="p-5 flex flex-col gap-3 text-start">
                     <h3 className="text-xl font-black text-navy dark:text-slate-100 line-clamp-2 leading-tight">{blog.title}</h3>
                     <p className="text-[14px] text-gray-500 dark:text-slate-400 line-clamp-3 leading-relaxed">{blog.short_description || blog.content?.replace(/<[^>]+>/g, '')}</p>
-                    <div className="flex items-center gap-1.5 text-blue font-black text-sm mt-2 transition-transform group-hover:translate-x-[-4px]">
-                       اقرأ المزيد
+                    <div className={`flex items-center gap-1.5 text-blue font-black text-sm mt-2 transition-transform ${isRTL ? 'group-hover:translate-x-[-4px]' : 'group-hover:translate-x-[4px]'}`}>
+                       {t('pages.blogs.readMore')}
                        <ChevronRightIcon className="w-4 h-4 rtl:rotate-180 ltr:rotate-0" />
                     </div>
                  </div>

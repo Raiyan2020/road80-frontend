@@ -5,6 +5,8 @@
  * or dynamically on the server.
  */
 
+import { getLang } from '@/i18n';
+
 // In Vite, we check VITE_IS_MOBILE.
 const IS_MOBILE = import.meta.env.VITE_IS_MOBILE === 'true';
 
@@ -20,6 +22,8 @@ export async function executeAction<T>(key: string, data?: any): Promise<T> {
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
+      // Raw fetch — bypasses lib/api-client, so set the language here too.
+      'Accept-Language': getLang(),
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;

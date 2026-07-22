@@ -1,5 +1,12 @@
 import api from '../../../lib/api-client';
 
+/**
+ * Static page copy is localized server-side. The active language ships as an
+ * `Accept-Language` header on every request, set centrally in
+ * `lib/api-client.ts` and read at call time — so no per-request header here.
+ * The `lang` in these query keys is what makes a switch refetch.
+ */
+
 export interface StaticPageData {
   title: string | null;
   description: string | null;

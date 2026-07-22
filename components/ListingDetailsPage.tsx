@@ -22,13 +22,13 @@ import MyFatoorahPayment from "./MyFatoorahPayment";
 import { FALLBACK_LISTING_IMAGE } from "@/shared/constants/images";
 import { resolveMediaUrl } from "@/shared/utils/media-url";
 import { AppImage } from "./AppImage";
+import { useTranslation } from "../i18n";
 
 interface ListingDetailsPageProps {
   listingId: number;
   onBack: () => void;
 }
 
-const UNLOCK_FEE = "١٥٠ فلس";
 const KNET_LOGO =
   "https://media.licdn.com/dms/image/v2/D4D0BAQFazp_I3lLeQg/company-logo_200_200/company-logo_200_200/0/1715599858189/the_shared_electronic_banking_services_co_knet_logo?e=2147483647&v=beta&t=FfjCLbNIUGrTCTi-tI5nXSNP9B4AcOJbWsFqV0bSWcM";
 
@@ -50,6 +50,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   onBack,
 }) => {
   const navigate = useNavigate();
+  const { t, isRTL } = useTranslation();
   const {
     data: listingData,
     isLoading: loading,
@@ -307,7 +308,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
       },
       onError: (err) => {
         setPaymentStatus("IDLE");
-        toast.error("حدث خطأ أثناء إنشاء جلسة الدفع");
+        toast.error(t("listing.payment.sessionCreateFailed"));
       },
     });
   };
@@ -319,7 +320,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
    */
   const onEmbeddedPaymentSuccess = async (mfCallbackSessionId: string) => {
     if (!mfTransactionId) {
-      toast.error("خطأ: لا يمكن التحقق من الدفع، يرجى المحاولة مجدداً");
+      toast.error(t("listing.payment.cannotVerify"));
       return;
     }
 
@@ -372,29 +373,29 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
           if (contactData && contactData.phone) {
             const fullPhone = `${contactData.phone_code || ""}${contactData.phone}`;
-            toast.success("تم الدفع بنجاح!", {
-              description: `رقم التواصل: ${fullPhone}`,
+            toast.success(t("listing.payment.success"), {
+              description: t("listing.contact.numberLabel", { phone: fullPhone }),
               duration: 10000,
               closeButton: true,
               action: {
-                label: "نسخ الرقم",
+                label: t("listing.contact.copyNumber"),
                 onClick: () => {
                   navigator.clipboard.writeText(fullPhone);
-                  toast.success("تم النسخ للحافظة", { closeButton: true });
+                  toast.success(t("common.copiedToClipboard"), { closeButton: true });
                 },
               },
             });
           } else {
-            toast.success("تم الدفع بنجاح وتحرير رقم التواصل!", { closeButton: true });
+            toast.success(t("listing.payment.successUnlocked"), { closeButton: true });
           }
         }, 500);
       } else {
         setPaymentStatus("IDLE");
-        toast.error(verifyRes.message || "فشل التحقق من الدفع");
+        toast.error(verifyRes.message || t("listing.payment.verifyFailed"));
       }
     } catch (err) {
       setPaymentStatus("IDLE");
-      toast.error("حدث خطأ أثناء التحقق من الدفع");
+      toast.error(t("listing.payment.verifyError"));
     }
   };
 
@@ -406,20 +407,21 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     if (isPaid || isUnlocked) {
       if (phone || whatsapp) {
         const contactInfo: string[] = [];
-        if (phone) contactInfo.push(`الهاتف: ${phone}`);
-        if (whatsapp) contactInfo.push(`واتساب: ${whatsapp}`);
+        if (phone) contactInfo.push(t("listing.contact.phoneLabel", { phone }));
+        if (whatsapp)
+          contactInfo.push(t("listing.contact.whatsappLabel", { whatsapp }));
 
-        toast.success("بيانات التواصل متاحة", {
+        toast.success(t("listing.contact.available"), {
           description: contactInfo.join(" | "),
           duration: 10000,
           closeButton: true,
           action: {
-            label: "نسخ الرقم",
+            label: t("listing.contact.copyNumber"),
             onClick: () => {
               const toCopy = phone || whatsapp;
               if (toCopy) {
                 navigator.clipboard.writeText(toCopy);
-                toast.success("تم نسخ الرقم بنجاح", { closeButton: true });
+                toast.success(t("listing.contact.numberCopied"), { closeButton: true });
               }
             },
           },
@@ -478,7 +480,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
       },
       onError: (err) => {
         setPaymentStatus("IDLE");
-        toast.error("حدث خطأ أثناء محاولة الاتصال");
+        toast.error(t("listing.contact.callError"));
       },
     });
   };
@@ -501,15 +503,15 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   const getPaymentText = () => {
     switch (paymentStatus) {
       case "STARTING":
-        return "جاري بدء عملية الدفع...";
+        return t("listing.payment.starting");
       case "VERIFYING":
-        return "جاري التحقق من الدفع...";
+        return t("listing.payment.verifying");
       case "CONFIRMING":
-        return "جاري تأكيد العملية...";
+        return t("listing.payment.confirming");
       case "SUCCESS":
-        return "تم الدفع بنجاح";
+        return t("listing.payment.succeeded");
       default:
-        return "فتح التواصل مع ناشر الإعلان";
+        return t("listing.unlock.title");
     }
   };
 
@@ -579,21 +581,21 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                       src={getSrc(item.src)}
                       className="w-full h-full object-contain"
                       coverClassName="object-contain"
-                      alt={`Slide ${idx}`}
+                      alt={t("listing.gallery.slideAlt", { index: idx + 1 })}
                     />
                   )}
                 </div>
               ))}
             </div>
             {/* Count Badge */}
-            <div className={`absolute right-4 bg-black/60 backdrop-blur-md text-white text-[13px] font-bold px-2.5 py-1 rounded-full border border-white/10 z-10 pointer-events-none ${isActiveVideo ? "bottom-16" : "bottom-4"}`}>
+            <div className={`absolute ${isRTL ? "right-4" : "left-4"} bg-black/60 backdrop-blur-md text-white text-[13px] font-bold px-2.5 py-1 rounded-full border border-white/10 z-10 pointer-events-none ${isActiveVideo ? "bottom-16" : "bottom-4"}`}>
               {activeImageIndex + 1} / {mediaItems.length}
             </div>
             <button
               type="button"
               onClick={openMediaFullscreen}
-              className={`absolute left-4 z-10 w-10 h-10 bg-black/60 backdrop-blur-md text-white rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-all ${isActiveVideo ? "bottom-16" : "bottom-4"}`}
-              aria-label="ملء الشاشة"
+              className={`absolute ${isRTL ? "left-4" : "right-4"} z-10 w-10 h-10 bg-black/60 backdrop-blur-md text-white rounded-full border border-white/10 flex items-center justify-center active:scale-95 transition-all ${isActiveVideo ? "bottom-16" : "bottom-4"}`}
+              aria-label={t("listing.gallery.fullscreen")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -634,7 +636,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                     <AppImage
                       src={getSrc(item.src)}
                       className="w-full h-full"
-                      alt={`Thumb ${idx}`}
+                      alt={t("listing.gallery.thumbAlt", { index: idx + 1 })}
                     />
                   )}
                 </button>
@@ -657,8 +659,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
             <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400 text-sm mb-4">
               <BuildingIcon className="w-4 h-4" />
               <span className="font-medium">
-                {(listing as any).city_name || listing.area}،{" "}
-                {(listing as any).state_name || listing.governorate}
+                {t("listing.location", {
+                  city: (listing as any).city_name || listing.area,
+                  state: (listing as any).state_name || listing.governorate,
+                })}
               </span>
             </div>
             <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-slate-800 transition-colors duration-300">
@@ -681,7 +685,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                   >
                     {(listing as any).user?.name ||
                       listing.publisherName ||
-                      "مستخدم"}
+                      t("listing.defaultPublisherName")}
                   </span>
                   {(listing as any).user?.caption && (
                     <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
@@ -692,7 +696,9 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               </div>
               <div className="flex flex-col items-end gap-1">
                 <span className="text-[13px] text-gray-400 dark:text-slate-500 font-bold">
-                  {(listing as any).watch_count || listing.views || 0} مشاهدة
+                  {t("listing.views", {
+                    count: (listing as any).watch_count || listing.views || 0,
+                  })}
                 </span>
                 <span className="text-[11px] text-gray-300">
                   {(listing as any).created_at}
@@ -705,7 +711,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           {(listing as any).categories?.length > 0 && (
             <div className="flex flex-col gap-3">
               <h3 className="text-lg font-bold text-navy dark:text-slate-200 mb-1 font-sans">
-                تفاصيل العقار
+                {t("listing.propertyDetails")}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {(listing as any).categories.map((cat: any, idx: number) => (
@@ -721,10 +727,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
           <div>
             <h3 className="text-lg font-bold text-navy dark:text-slate-200 mb-3 font-sans">
-              الوصف
+              {t("listing.description")}
             </h3>
             <p className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed whitespace-pre-line font-medium">
-              {listing.description || "لا يوجد وصف متاح لهذا العقار."}
+              {listing.description || t("listing.noDescription")}
             </p>
           </div>
 
@@ -734,7 +740,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-6 bg-orange-400 rounded-full" />
                 <h3 className="text-sm font-bold text-orange-800 dark:text-orange-400">
-                  نصائح السلامة
+                  {t("listing.safetyTips")}
                 </h3>
               </div>
               <p className="text-[13px] text-orange-700/80 dark:text-orange-300/60 leading-relaxed whitespace-pre-line font-medium">
@@ -756,26 +762,42 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
             listing.water) && (
             <div>
               <h3 className="text-lg font-bold text-navy dark:text-slate-200 mb-3 font-sans">
-                تفاصيل العقار
+                {t("listing.propertyDetails")}
               </h3>
               <div className="grid grid-cols-2 gap-3">
-                <AttrBadge label="نوع الإعلان" value={listing.listingType} />
-                <AttrBadge label="نوع العقار" value={listing.propertyType} />
                 <AttrBadge
-                  label="المساحة"
-                  value={listing.size ? `${listing.size} م²` : undefined}
+                  label={t("listing.attrs.listingType")}
+                  value={listing.listingType}
                 />
-                <AttrBadge label="الغرف" value={listing.rooms} />
-                <AttrBadge label="الحمامات" value={listing.bathrooms} />
-                <AttrBadge label="بلكونة" value={listing.balcony} />
-                <AttrBadge label="المواقف" value={listing.parking} />
                 <AttrBadge
-                  label="نظام المواقف"
+                  label={t("listing.attrs.propertyType")}
+                  value={listing.propertyType}
+                />
+                <AttrBadge
+                  label={t("listing.attrs.size")}
+                  value={
+                    listing.size
+                      ? t("listing.attrs.sizeValue", { size: listing.size })
+                      : undefined
+                  }
+                />
+                <AttrBadge label={t("listing.attrs.rooms")} value={listing.rooms} />
+                <AttrBadge
+                  label={t("listing.attrs.bathrooms")}
+                  value={listing.bathrooms}
+                />
+                <AttrBadge label={t("listing.attrs.balcony")} value={listing.balcony} />
+                <AttrBadge label={t("listing.attrs.parking")} value={listing.parking} />
+                <AttrBadge
+                  label={t("listing.attrs.parkingSystem")}
                   value={listing.parkingSystems?.join(", ")}
                 />
-                <AttrBadge label="التكييف" value={listing.ac} />
-                <AttrBadge label="الكهرباء" value={listing.electricity} />
-                <AttrBadge label="الماء" value={listing.water} />
+                <AttrBadge label={t("listing.attrs.ac")} value={listing.ac} />
+                <AttrBadge
+                  label={t("listing.attrs.electricity")}
+                  value={listing.electricity}
+                />
+                <AttrBadge label={t("listing.attrs.water")} value={listing.water} />
               </div>
             </div>
           )}
@@ -798,7 +820,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               ) : (
                 <WhatsappIcon className="w-5 h-5" />
               )}
-              <span>واتساب</span>
+              <span>{t("listing.contact.whatsapp")}</span>
             </button>
           </div>
 
@@ -813,7 +835,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               ) : (
                 <PhoneIcon className="w-5 h-5" />
               )}
-              <span>اتصال</span>
+              <span>{t("listing.contact.call")}</span>
             </button>
           </div>
         </div>
@@ -867,7 +889,9 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                 <h3
                   className={`text-xl font-bold transition-colors duration-300 ${paymentStatus === "SUCCESS" ? "text-green-600 dark:text-green-500" : "text-navy dark:text-slate-200"}`}
                 >
-                  {mfSessionId ? "إكمال عملية الدفع" : getPaymentText()}
+                  {mfSessionId
+                    ? t("listing.payment.completeTitle")
+                    : getPaymentText()}
                 </h3>
                 {mfSessionId ? (
                   <div className="w-full mt-4">
@@ -876,7 +900,9 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                       countryCode={mfCountry}
                       encryptionKey={mfEncryptionKey ?? undefined}
                       onSuccess={onEmbeddedPaymentSuccess}
-                      onError={(err) => toast.error(err.message || "فشل الدفع")}
+                      onError={(err) =>
+                        toast.error(err.message || t("listing.payment.failed"))
+                      }
                       onRequestNewSession={() => {
                         // MF rejected the session — clear and get a fresh one
                         setMfSessionId(null);
@@ -889,17 +915,16 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                       onClick={() => setMfSessionId(null)}
                       className="w-full mt-4 text-xs text-gray-400 font-bold hover:text-navy underline"
                     >
-                      العودة لخيارات الدفع
+                      {t("listing.payment.backToOptions")}
                     </button>
                   </div>
                 ) : paymentStatus === "IDLE" ? (
                   <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed max-w-[85%] mx-auto font-sans">
-                    لفتح القفل والتواصل مع البائع في هذا الإعلان، يرجى الدفع مرة
-                    واحدة فقط.
+                    {t("listing.unlock.description")}
                   </p>
                 ) : paymentStatus === "SUCCESS" ? (
                   <p className="text-sm text-green-600/80 dark:text-green-500/80 font-medium animate-fade-in font-sans">
-                    تم فتح التواصل مع ناشر الإعلان
+                    {t("listing.unlock.unlocked")}
                   </p>
                 ) : (
                   <div className="flex flex-col gap-4 mt-2">
@@ -923,10 +948,10 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                 <>
                   <div className="bg-bg dark:bg-slate-800 px-6 py-3 rounded-2xl border border-pale/50 dark:border-slate-700 flex items-center gap-3 animate-fade-in transition-colors duration-300">
                     <span className="text-xs text-gray-400 dark:text-slate-500 font-medium">
-                      سعر فتح الاعلان:
+                      {t("listing.unlock.feeLabel")}
                     </span>
                     <span className="text-md font-bold text-navy dark:text-slate-200">
-                      {UNLOCK_FEE}
+                      {t("listing.unlock.fee")}
                     </span>
                   </div>
                   <div className="w-full flex flex-col gap-3 mt-4 animate-fade-in">
@@ -935,7 +960,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                       className="w-full h-14 bg-black dark:bg-slate-950 text-white rounded-2xl font-bold flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-black/10"
                     >
                       <AppleIcon className="w-6 h-6 mb-1" />
-                      <span>الدفع السريع</span>
+                      <span>{t("listing.payment.applePay")}</span>
                     </button>
                     <button
                       onClick={handleUnlockPayment}
@@ -946,13 +971,13 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                         className="w-8 h-8 object-contain"
                         alt="KNET"
                       />
-                      <span>الدفع ببطاقة بنكية</span>
+                      <span>{t("listing.payment.card")}</span>
                     </button>
                     <button
                       onClick={() => setShowUnlockPopup(false)}
                       className="w-full h-12 text-gray-400 dark:text-slate-500 font-bold text-sm hover:text-navy dark:hover:text-slate-300 transition-colors active:scale-95 mt-1"
                     >
-                      إلغاء
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </>
@@ -978,7 +1003,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               type="button"
               onClick={closeMediaFullscreen}
               className="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-95 transition-all"
-              aria-label="إغلاق"
+              aria-label={t("common.close")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -999,10 +1024,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               <button
                 type="button"
                 onClick={showPrevMedia}
-                className="absolute right-2 z-10 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-95 transition-all"
-                aria-label="السابق"
+                className={`absolute ${isRTL ? "right-2" : "left-2"} z-10 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-95 transition-all`}
+                aria-label={t("common.previous")}
               >
-                <ChevronRightIcon className="w-6 h-6" />
+                <ChevronRightIcon
+                  className={`w-6 h-6 ${isRTL ? "" : "rotate-180"}`}
+                />
               </button>
             )}
 
@@ -1033,10 +1060,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               <button
                 type="button"
                 onClick={showNextMedia}
-                className="absolute left-2 z-10 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-95 transition-all"
-                aria-label="التالي"
+                className={`absolute ${isRTL ? "left-2" : "right-2"} z-10 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center active:scale-95 transition-all`}
+                aria-label={t("common.next")}
               >
-                <ChevronRightIcon className="w-6 h-6 rotate-180" />
+                <ChevronRightIcon
+                  className={`w-6 h-6 ${isRTL ? "rotate-180" : ""}`}
+                />
               </button>
             )}
           </div>

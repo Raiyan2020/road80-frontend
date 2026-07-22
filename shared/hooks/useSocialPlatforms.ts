@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { t } from '@/i18n';
 import { socialPlatformsService } from '../services/social-platforms.service';
 
 export function useSocialPlatforms() {
@@ -7,7 +8,10 @@ export function useSocialPlatforms() {
     queryFn: async () => {
       const response = await socialPlatformsService.getPlatforms();
       if (!response.status) {
-        throw new Error(response.message || 'Failed to fetch social platforms');
+        // The message ends up in a toast title via lib/query-client, which
+        // prefers `err.message` over its own localized fallback — so it has to
+        // be localized here, at throw time, in the language in use right now.
+        throw new Error(response.message || t('common.genericError'));
       }
       return response.data || [];
     },

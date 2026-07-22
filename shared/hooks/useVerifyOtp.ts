@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/user.store';
 import { authStorage } from '../utils/auth-storage';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import type { VerifyOtpPayload, AuthResponse, VerifyOtpData } from '../types/auth';
+import { t } from '@/i18n';
 
 export const useVerifyOtp = () => {
   const login = useUserStore(s => s.login);
@@ -28,7 +29,7 @@ export const useVerifyOtp = () => {
       login({
         id: user.id,
         phone: user.country_code,
-        name: user.name || 'مستخدم',
+        name: user.name || t('auth.defaultUserName'),
         avatar: user.image,
         token: token,
       });

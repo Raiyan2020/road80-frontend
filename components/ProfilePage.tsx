@@ -31,6 +31,7 @@ import { AppImage } from "./AppImage";
 import { resolveListingImageUrl } from "@/shared/utils/listing-image";
 import { PlayIcon } from "./Icons";
 import { APP_LOGO_URL } from "@/shared/constants/images";
+import { useTranslation } from "../i18n";
 
 interface ProfilePageProps {
   onListingClick?: (listing: Listing) => void;
@@ -55,6 +56,7 @@ const ListingCard: React.FC<{
   listing,
   onClick,
 }) => {
+  const { t } = useTranslation();
   const hasVideo = listingHasVideo(listing);
 
   return (
@@ -69,7 +71,7 @@ const ListingCard: React.FC<{
           className="w-full h-full"
         />
         <span className="absolute top-2 left-2 bg-navy/80 dark:bg-blue/80 text-white text-[13px] px-2 py-0.5 rounded-full z-10 font-bold">
-          جديد
+          {t("profile.page.newBadge")}
         </span>
 
         {hasVideo && (
@@ -82,13 +84,13 @@ const ListingCard: React.FC<{
 
       </div>
       <div className="p-3 flex flex-col gap-1.5 flex-1">
-        <span className="text-blue dark:text-blue/80 font-bold text-sm text-right font-sans leading-tight min-h-[1.25rem]">
+        <span className="text-blue dark:text-blue/80 font-bold text-sm rtl:text-right ltr:text-left font-sans leading-tight min-h-[1.25rem]">
           {listing.price}
         </span>
-        <h4 className="text-navy dark:text-slate-200 font-semibold text-xs text-right font-sans leading-[1.4] line-clamp-2 min-h-[2.2rem]">
+        <h4 className="text-navy dark:text-slate-200 font-semibold text-xs rtl:text-right ltr:text-left font-sans leading-[1.4] line-clamp-2 min-h-[2.2rem]">
           {listing.title}
         </h4>
-        <div className="flex items-center justify-end gap-1 opacity-60 min-h-[1.25rem]">
+        <div className="flex items-center rtl:justify-end ltr:justify-start gap-1 opacity-60 min-h-[1.25rem]">
           <span className="text-[13px] text-navy dark:text-slate-400 font-medium font-sans truncate max-w-full">
             {listing.area}
           </span>
@@ -114,6 +116,7 @@ const StatItem: React.FC<{ label: string; value: string }> = ({
 );
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -162,7 +165,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     ? myAdsLoading || myFavsLoading || profileLoading
     : officeLoading || officeAdsLoading;
 
-  let profileName = "مستخدم";
+  let profileName = t("profile.page.defaultUserName");
   let profileBio = "";
   let profileAvatar: string | null = APP_LOGO_URL;
   let isVerified = false;
@@ -179,14 +182,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
       likes: myFavs.length.toString() || "0",
       views: profile?.total_ads_watch?.toString() || "0",
     };
-    profileName = profile?.name || profile?.country_code || "مستخدم";
+    profileName = profile?.name || profile?.country_code || t("profile.page.defaultUserName");
     profileBio = profile?.caption || "";
     profileAvatar = profile?.image || APP_LOGO_URL;
     isVerified = false;
     socials = profile?.socials || {};
   } else {
     if (officeData) {
-      profileName = officeData.officeName || "شركة";
+      profileName = officeData.officeName || t("profile.page.defaultCompanyName");
       profileAvatar = officeData.logo || APP_LOGO_URL;
       profileBio = officeData.bio || "";
       isVerified = false;
@@ -241,16 +244,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setIsSocialLinksOpen(true)}
-              title="روابط التواصل"
-              aria-label="تعديل روابط التواصل"
+              title={t("profile.page.socialLinksTitle")}
+              aria-label={t("profile.page.socialLinksAria")}
               className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
             >
               <LinkIcon className="w-4 h-4" />
             </button>
             <button
               onClick={() => setIsEditProfileOpen(true)}
-              title="تعديل الملف الشخصي"
-              aria-label="تعديل الملف الشخصي"
+              title={t("profile.page.editProfileTitle")}
+              aria-label={t("profile.page.editProfileAria")}
               className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
             >
               <EditIcon className="w-4 h-4" />
@@ -262,11 +265,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
       <SocialLinksRow socials={socials} className="-mt-2 flex-wrap" />
 
       <div className="flex justify-between items-center px-4 py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-pale dark:border-slate-800 transition-colors duration-300">
-        <StatItem label="الإعلانات" value={stats.ads} />
+        <StatItem label={t("profile.page.statAds")} value={stats.ads} />
         <div className="w-px h-8 bg-gray-100 dark:bg-slate-800"></div>
-        <StatItem label="الإعجابات" value={stats.likes} />
+        <StatItem label={t("profile.page.statLikes")} value={stats.likes} />
         <div className="w-px h-8 bg-gray-100 dark:bg-slate-800"></div>
-        <StatItem label="المشاهدات" value={stats.views} />
+        <StatItem label={t("profile.page.statViews")} value={stats.views} />
       </div>
 
       {/* <div className="flex gap-3">
@@ -277,14 +280,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-navy/20 dark:border-slate-700 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 font-semibold text-sm transition-all active:scale-98"
         >
           <WhatsappIcon className="w-6 h-6" />
-          <span>ارسال واتساب</span>
+          <span>{t("profile.page.sendWhatsapp")}</span>
         </a>
         <a
           href="tel:+96598812020"
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-navy dark:bg-blue text-white font-semibold text-sm shadow-lg shadow-navy/20 dark:shadow-blue/20 transition-all active:scale-98"
         >
           <PhoneIcon className="w-5 h-5" />
-          <span>اتصال</span>
+          <span>{t("profile.page.call")}</span>
         </a>
       </div> */}
 
@@ -305,7 +308,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
 
       <div className="flex flex-col gap-4 mt-2">
         <h3 className="text-lg font-bold text-navy dark:text-slate-200 font-sans px-1">
-          {isMe ? "اعلاناتي" : `إعلانات ${profileName}`}
+          {isMe
+            ? t("profile.page.myAdsHeading")
+            : t("profile.page.userAdsHeading", { name: profileName })}
         </h3>
         {isMe && (
           <div className="flex p-1 bg-gray-100/80 dark:bg-slate-800 rounded-xl relative transition-colors duration-300">
@@ -313,13 +318,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
               onClick={() => handleTabChange("ads")}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 font-sans ${activeSubTab === "ads" ? "bg-white dark:bg-slate-900 shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-navy dark:text-slate-200" : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"}`}
             >
-              اعلاناتي
+              {t("profile.page.tabMyAds")}
             </button>
             <button
               onClick={() => handleTabChange("favorites")}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 font-sans ${activeSubTab === "favorites" ? "bg-white dark:bg-slate-900 shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-navy dark:text-slate-200" : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"}`}
             >
-              مفضلتي
+              {t("profile.page.tabFavorites")}
             </button>
           </div>
         )}
@@ -339,7 +344,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           )}
           {!isLoading && displayList.length === 0 && (
             <div className="col-span-2 py-10 text-center text-gray-400 dark:text-slate-600 text-sm font-medium">
-              لا توجد إعلانات
+              {t("profile.page.emptyAds")}
             </div>
           )}
         </div>

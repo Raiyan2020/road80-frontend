@@ -2,12 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { SpinnerIcon } from './Icons';
 import { AppImage } from './AppImage';
+import { useTranslation } from '../i18n';
 
 interface SplashScreenProps {
   onFinish: () => void;
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
+  const { t } = useTranslation();
   const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
@@ -26,7 +28,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       <div className="flex flex-col items-center gap-8">
         <AppImage
           src="/logo-road.png"
-          alt="80road Logo"
+          alt={t('quickStart.splash.logoAlt')}
           className="w-40 h-auto animate-fade-in"
           coverClassName="object-contain"
         />

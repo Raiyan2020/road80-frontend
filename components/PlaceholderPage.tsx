@@ -1,11 +1,14 @@
 import React from 'react';
+import { useTranslation } from '../i18n';
 
 const PlaceholderPage: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="w-full h-full relative bg-bg animate-fade-in">
       {/* True Center content */}
       <div className="absolute inset-0 flex items-center justify-center p-6 pb-20 pointer-events-none">
-        <h1 className="text-4xl font-bold text-navy pointer-events-auto">قريباً</h1>
+        <h1 className="text-4xl font-bold text-navy pointer-events-auto">{t('common.comingSoon')}</h1>
       </div>
       
       {/* Bottom Footer */}

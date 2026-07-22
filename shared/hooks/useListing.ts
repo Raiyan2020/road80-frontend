@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { listingService } from '../services/listing.service';
 import { toast } from 'sonner';
 import { QUERY_KEYS } from '@/lib/types';
+import { t } from '@/i18n';
 
 export function useToggleLike() {
   const queryClient = useQueryClient();
@@ -65,7 +66,7 @@ export function useToggleLike() {
       if (response.status) {
         toast.success(response.message, { closeButton: true });
       } else {
-        toast.error(response.message || 'فشل تنفيذ العملية');
+        toast.error(response.message || t('common.actionFailed'));
       }
       // Refetch in background to sync with real server state
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.listings.all });
@@ -80,7 +81,7 @@ export function useToggleLike() {
           queryClient.setQueryData(queryKey, data);
         }
       }
-      toast.error(error?.message || 'حدث خطأ أثناء المحاولة');
+      toast.error(error?.message || t('common.tryAgain'));
     },
   });
 }

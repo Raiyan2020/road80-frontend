@@ -5,6 +5,7 @@ import { firebaseConfig, VAPID_KEY } from '@/lib/firebase.config';
 import { API_BASE_URL } from '@/lib/api-base-url';
 import { getQueryClient } from '@/lib/query-client';
 import { useUserStore } from '@/stores/user.store';
+import { t, pickLocalized, getLang } from '@/i18n';
 
 const FCM_TOKEN_KEY = 'FCM_TOKEN';
 const NATIVE_FCM_TOKEN_KEY = 'NATIVE_FCM_TOKEN';
@@ -91,17 +92,23 @@ export const registerCurrentDevice = async (
     return;
   }
 
+  // Raw fetch — bypasses lib/api-client, so the language header is set here.
+  const lang = getLang();
+
   const response = await fetch(`${API_BASE_URL}/notifications/register-device`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
+      'Accept-Language': lang,
       Authorization: `Bearer ${authToken}`,
     },
     body: JSON.stringify({
       device_id: token,
       device_type: getDeviceType(),
-      lang: document.documentElement.lang || 'ar',
+      // Read from the store rather than document.documentElement so this does
+      // not depend on the DOM having been updated first.
+      lang,
     }),
   });
 
@@ -186,22 +193,24 @@ const FALLBACK_DEVICE_ID_KEY = 'FALLBACK_DEVICE_ID';
 
 export const getNotificationCopy = (notif: any) => {
   const data = notif?.data || notif || {};
+  // Payloads that ship both languages (title_ar/title_en, message_ar/message_en…)
+  // win over the single-language field so the toast matches the active language.
   return {
     title:
-      data.title ||
-      data.subject ||
-      data.notification_title ||
-      notif?.notification?.title ||
-      notif?.title ||
-      'إشعار',
+      pickLocalized(data, 'title') ||
+      pickLocalized(data, 'subject') ||
+      pickLocalized(data, 'notification_title') ||
+      pickLocalized(notif?.notification, 'title') ||
+      pickLocalized(notif, 'title') ||
+      t('notifications.list.defaultTitle'),
     body:
-      data.message ||
-      data.description ||
-      data.body ||
-      data.content ||
-      data.text ||
-      notif?.notification?.body ||
-      notif?.body ||
+      pickLocalized(data, 'message') ||
+      pickLocalized(data, 'description') ||
+      pickLocalized(data, 'body') ||
+      pickLocalized(data, 'content') ||
+      pickLocalized(data, 'text') ||
+      pickLocalized(notif?.notification, 'body') ||
+      pickLocalized(notif, 'body') ||
       '',
   };
 };
@@ -243,10 +252,10 @@ export const forceLogout = (reason: 'block' | 'delete' | 'session_expired') => {
 
   const msg =
     reason === 'block'
-      ? 'تم تعليق حسابك من قبل الإدارة'
+      ? t('notifications.forceLogout.blocked')
       : reason === 'delete'
-      ? 'تم حذف حسابك من قبل الإدارة'
-      : 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً';
+      ? t('notifications.forceLogout.deleted')
+      : t('notifications.forceLogout.sessionExpired');
 
   toast.error(msg, { duration: 12000 });
 
@@ -325,8 +334,9 @@ export const initializePushNotifications = async (): Promise<void> => {
       }
 
       // Normal notification
+      // title/body come from the server payload — not translated here.
       const copy = getNotificationCopy(payload);
-      const title = copy.title || payload.notification?.title || 'إشعار جديد';
+      const title = copy.title || payload.notification?.title || t('notifications.push.defaultTitle');
       const body = copy.body || payload.notification?.body;
       toast.info(title, { description: body, duration: 10000 });
       const queryClient = getQueryClient();

@@ -755,9 +755,14 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
                   {t("listing.safetyTips")}
                 </h3>
               </div>
-              <p className="text-[13px] text-orange-700/80 dark:text-orange-300/60 leading-relaxed whitespace-pre-line font-medium">
-                {(listing as any).safety_tips}
-              </p>
+              {/* safety_tips is a Filament RichEditor field (see Settings.php), so
+                  it arrives as HTML — rendering it as text printed the raw tags.
+                  Admin-authored, same as terms/privacy/about. Note the ad's own
+                  `description` above is user-written and must stay plain text. */}
+              <div
+                className="text-[13px] text-orange-700/80 dark:text-orange-300/60 leading-relaxed font-medium Prose"
+                dangerouslySetInnerHTML={{ __html: (listing as any).safety_tips }}
+              />
             </div>
           )}
 

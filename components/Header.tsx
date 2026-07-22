@@ -90,6 +90,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBack, onBack }) => {
 
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
               {[
+                { titleKey: "nav.about", to: "/about" },
                 { titleKey: "nav.faq", to: "/faq" },
                 { titleKey: "nav.terms", to: "/terms" },
                 { titleKey: "nav.privacy", to: "/privacy" },

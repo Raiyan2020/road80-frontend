@@ -201,6 +201,48 @@
         align-items: center;
         position: relative;
       }
+
+      /*
+       * Styling for admin-authored rich text rendered via dangerouslySetInnerHTML
+       * (Filament RichEditor output): safety tips, terms, privacy, about us, blogs.
+       *
+       * Tailwind's preflight strips margins from <p>, bullets from <ul> and sizing
+       * from headings, so without this the HTML collapses into one unbroken block.
+       * The class was already referenced in those components but never defined.
+       * Inherits colour and font-size from the parent so each page keeps its own.
+       */
+      .Prose > *:first-child { margin-top: 0; }
+      .Prose > *:last-child { margin-bottom: 0; }
+      .Prose p,
+      .Prose ul,
+      .Prose ol,
+      .Prose blockquote { margin: 0 0 0.75em; }
+      .Prose ul,
+      .Prose ol { padding-inline-start: 1.5em; }
+      .Prose ul { list-style: disc; }
+      .Prose ol { list-style: decimal; }
+      .Prose li { margin-bottom: 0.25em; }
+      .Prose h1,
+      .Prose h2,
+      .Prose h3,
+      .Prose h4 { font-weight: 700; margin: 1.25em 0 0.5em; line-height: 1.3; }
+      .Prose h1 { font-size: 1.5em; }
+      .Prose h2 { font-size: 1.25em; }
+      .Prose h3 { font-size: 1.1em; }
+      .Prose h4 { font-size: 1em; }
+      .Prose strong, .Prose b { font-weight: 700; }
+      .Prose em, .Prose i { font-style: italic; }
+      .Prose a { color: #2563eb; text-decoration: underline; }
+      .Prose blockquote {
+        padding-inline-start: 1em;
+        border-inline-start: 3px solid currentColor;
+        opacity: 0.8;
+      }
+      .Prose img { max-width: 100%; height: auto; border-radius: 0.5rem; }
+      .Prose hr { margin: 1em 0; border: 0; border-top: 1px solid currentColor; opacity: 0.2; }
+      /* Wide tables shouldn't push the page sideways on a phone. */
+      .Prose table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; }
+      .Prose th, .Prose td { border: 1px solid currentColor; padding: 0.4em 0.6em; }
     </style>
     <script>
       // Reliable fix for iOS Safari's dynamic viewport height

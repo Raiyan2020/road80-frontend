@@ -235,7 +235,9 @@ function RootComponent() {
 
   const routePath = location.pathname;
   const isAuthRoute = routePath.startsWith('/auth') || routePath.startsWith('/verify');
-  const isStandalonePage = ['/faq', '/terms', '/privacy', '/blogs'].some(p => routePath.startsWith(p));
+  // Pages that render their own <Header>. Anything listed here must NOT also get
+  // the shell header below, or both stack. Add new self-headed routes here.
+  const isStandalonePage = ['/about', '/faq', '/terms', '/privacy', '/blogs'].some(p => routePath.startsWith(p));
   const isQuickStart = routePath.startsWith('/quick-start');
   const isProfile = routePath.startsWith('/profile');
   const isCompanies = routePath.startsWith('/companies');

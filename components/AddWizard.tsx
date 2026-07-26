@@ -9,7 +9,10 @@ import {
   PlayIcon,
 } from "./Icons";
 import { useCategories } from "../features/post-ad/hooks/useCategories";
-import { useChunkedVideoUpload } from "../features/post-ad/hooks/useChunkedVideoUpload";
+import {
+  isVideoUploadCancelled,
+  useChunkedVideoUpload,
+} from "../features/post-ad/hooks/useChunkedVideoUpload";
 import { useCountries } from "../shared/hooks/useCountries";
 import {
   useExploreStates,
@@ -39,6 +42,10 @@ import MyFatoorahPayment from "./MyFatoorahPayment";
 import { AppImage } from "./AppImage";
 import { dismissKeyboard, useKeyboardOpen } from "@/shared/hooks/useKeyboardOpen";
 import { paymentService } from "../shared/services/payment.service";
+import {
+  compressVideo,
+  type VideoCompressionResult,
+} from "../shared/utils/video-compression";
 
 interface AddWizardProps {
   onComplete: () => void;
@@ -92,6 +99,18 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   /** True during the watermark pass, which runs before compression. */
   const [isWatermarking, setIsWatermarking] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  /** Non-null only while a freshly picked video is being optimised (transcoded). */
+  const [videoCompressing, setVideoCompressing] = useState<{
+    percent: number;
+  } | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  /**
+   * Size before/after optimisation. State (not a ref) so the live comparison
+   * panel re-renders the moment compression finishes and stays visible through
+   * the upload.
+   */
+  const [videoSavings, setVideoSavings] =
+    useState<VideoCompressionResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [published, setPublished] = useState(false);
   const [showEmbedded, setShowEmbedded] = useState(false);
@@ -116,6 +135,20 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   const [showErrors, setShowErrors] = useState(false);
   const [descriptionFocused, setDescriptionFocused] = useState(false);
   const isKeyboardOpen = useKeyboardOpen();
+
+  // Keep exactly one object URL alive for the selected video. Creating one in
+  // render leaks a URL on every progress update and retains the original,
+  // potentially 150 MB blob even after compression replaces it.
+  useEffect(() => {
+    if (!videoFile) {
+      setVideoPreviewUrl(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(videoFile);
+    setVideoPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [videoFile]);
 
   // ── Location Data ────────────────────────────────────────────────────────
   const { data: states = [] } = useExploreStates(countryId || undefined);
@@ -337,6 +370,8 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     setDescription("");
     setImages([]);
     setVideoFile(null);
+    setVideoCompressing(null);
+    setVideoSavings(null);
     setIsProcessing(false);
     setPublished(false);
     setShowEmbedded(false);
@@ -385,10 +420,37 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     }
 
     setVideoFile(file);
+    setVideoSavings(null);
+    // Clear any prior upload state so a previous "done"/error overlay can't
+    // linger behind the new clip's optimising overlay.
+    resetVideoUpload();
+
+    // Reassure the user they don't have to wait on the video — optimising and
+    // uploading both run in the background while they fill in the rest.
+    toast.success(t("postAd.video.backgroundNotice"));
+
+    // Optimise (down-size) before uploading. compressVideo never throws — on any
+    // failure it hands back the original, so the upload path below is unchanged.
+    let toUpload = file;
     try {
-      await uploadVideo(file);
-    } catch {
-      toast.error(t("postAd.video.uploadFailed"));
+      setVideoCompressing({ percent: 0 });
+      const result = await compressVideo(file, {
+        onProgress: (percent) => setVideoCompressing({ percent }),
+      });
+      setVideoSavings(result);
+      toUpload = result.file;
+      // Swap the preview to the smaller file once it is ready.
+      if (result.didCompress) setVideoFile(result.file);
+    } finally {
+      setVideoCompressing(null);
+    }
+
+    try {
+      await uploadVideo(toUpload);
+    } catch (error) {
+      if (!isVideoUploadCancelled(error)) {
+        toast.error(t("postAd.video.uploadFailed"));
+      }
     }
   };
 
@@ -497,6 +559,10 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
   const handlePublish = async () => {
     if (isWatermarking) {
       toast.warning(t("postAd.images.waitForOptimize"));
+      return;
+    }
+    if (videoCompressing) {
+      toast.warning(t("postAd.video.waitForCompress"));
       return;
     }
     if (
@@ -957,11 +1023,31 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             <div className="flex flex-col gap-4">
               <div className="relative aspect-video bg-slate-900 rounded-2xl overflow-hidden">
                 <video
-                  src={URL.createObjectURL(videoFile)}
+                  src={videoPreviewUrl ?? undefined}
                   aria-label={t("postAd.video.previewAlt")}
                   className="w-full h-full object-cover"
                 />
-                {uploadState &&
+                {videoCompressing && (
+                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 px-4">
+                    <SpinnerIcon className="w-8 h-8 text-white animate-spin" />
+                    <div className="w-4/5 h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue transition-all duration-300 rounded-full"
+                        style={{ width: `${videoCompressing.percent}%` }}
+                      />
+                    </div>
+                    <span className="text-white text-sm font-bold text-center">
+                      {t("postAd.video.compressing", {
+                        percent: videoCompressing.percent,
+                      })}
+                    </span>
+                    <span className="text-blue-200 text-xs font-bold text-center">
+                      {t("postAd.video.continueInBackground")}
+                    </span>
+                  </div>
+                )}
+                {!videoCompressing &&
+                  uploadState &&
                   uploadState.status !== "done" &&
                   uploadState.status !== "error" && (
                     <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3 px-4">
@@ -996,6 +1082,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                             : ""}
                         </span>
                       )}
+                      <span className="text-blue-200 text-xs font-bold text-center">
+                        {t("postAd.video.continueInBackground")}
+                      </span>
                     </div>
                   )}
                 {uploadState?.status === "done" && (
@@ -1011,15 +1100,78 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                   </div>
                 )}
               </div>
-              <button
-                onClick={() => {
-                  setVideoFile(null);
-                  resetVideoUpload();
-                }}
-                className="w-full py-3 text-red-500 border border-red-200 rounded-xl font-bold text-sm active:scale-95 transition-all"
-              >
-                {t("postAd.video.remove")}
-              </button>
+              {/* Live size comparison — visible while compressing, uploading,
+                  and after it's done, so the user can see what's happening. */}
+              {(videoCompressing || videoSavings) && (
+                <div className="rounded-xl border border-pale dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-2.5">
+                  {videoSavings?.didCompress ? (
+                    <div
+                      className="flex items-center justify-center gap-2 text-sm"
+                      dir="ltr"
+                    >
+                      <span className="text-gray-400 line-through">
+                        {formatBytes(videoSavings.originalBytes)}
+                      </span>
+                      <ChevronRightIcon className="w-4 h-4 text-green-500" />
+                      <span className="font-bold text-green-600 dark:text-green-400">
+                        {formatBytes(videoSavings.compressedBytes)}
+                      </span>
+                      <span className="ml-1 rounded-full bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 px-2 py-0.5 text-xs font-bold">
+                        {t("postAd.video.savedPercent", {
+                          percent: Math.round(
+                            (1 -
+                              videoSavings.compressedBytes /
+                                videoSavings.originalBytes) *
+                              100,
+                          ),
+                        })}
+                      </span>
+                    </div>
+                  ) : videoCompressing ? (
+                    <p
+                      className="text-sm text-center text-gray-500 dark:text-slate-400"
+                      dir="ltr"
+                    >
+                      {t("postAd.video.comparing", {
+                        size: formatBytes(videoFile.size),
+                      })}
+                    </p>
+                  ) : (
+                    <p
+                      className="text-sm text-center text-gray-500 dark:text-slate-400"
+                      dir="ltr"
+                    >
+                      {t("postAd.video.alreadyOptimized", {
+                        size: formatBytes(
+                          videoSavings?.originalBytes ?? videoFile.size,
+                        ),
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+              {(() => {
+                const isUploading =
+                  uploadState?.status === "uploading" ||
+                  uploadState?.status === "merging";
+                return (
+                  <button
+                    onClick={() => {
+                      setVideoFile(null);
+                      setVideoSavings(null);
+                      resetVideoUpload();
+                    }}
+                    // The native editor cannot cancel a transcode mid-flight.
+                    // Upload removal is safe: reset aborts active HTTP requests.
+                    disabled={!!videoCompressing}
+                    className="w-full py-3 text-red-500 border border-red-200 rounded-xl font-bold text-sm active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100"
+                  >
+                    {isUploading
+                      ? t("postAd.video.cancel")
+                      : t("postAd.video.remove")}
+                  </button>
+                );
+              })()}
             </div>
           ) : (
             <label className="flex flex-col items-center justify-center gap-4 border-2 border-dashed border-pale dark:border-slate-700 rounded-3xl py-16 cursor-pointer hover:border-navy transition-all group">
@@ -1031,7 +1183,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
                   {t("postAd.video.choose")}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
-                  {t("postAd.video.formats")}
+                  {t("postAd.video.optimizingHint")}
                 </p>
               </div>
               <input
@@ -1510,6 +1662,44 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     return <div className="w-full">{backBtn}</div>;
   };
 
+  const backgroundVideoStatus = videoCompressing
+    ? {
+        title: t("postAd.video.compressing", {
+          percent: videoCompressing.percent,
+        }),
+        detail: t("postAd.video.compressingDetail"),
+        progress: videoCompressing.percent,
+      }
+    : uploadState?.status === "uploading" ||
+        uploadState?.status === "merging"
+      ? {
+          title:
+            uploadState.status === "merging"
+              ? t("postAd.video.processing")
+              : t("postAd.video.uploadProgress", {
+                  percent: uploadState.progress,
+                }),
+          detail:
+            uploadState.status === "uploading"
+              ? t("postAd.video.uploadDetail", {
+                  uploaded: formatBytes(uploadState.uploadedBytes),
+                  total: formatBytes(uploadState.totalBytes),
+                }) +
+                (videoSavings?.didCompress
+                  ? ` · ${t("postAd.video.savedPercent", {
+                      percent: Math.round(
+                        (1 -
+                          videoSavings.compressedBytes /
+                            videoSavings.originalBytes) *
+                          100,
+                      ),
+                    })}`
+                  : "")
+              : t("postAd.video.processingDetail"),
+          progress: uploadState.progress,
+        }
+      : null;
+
   const footerContent = renderFooter();
 
   // ── Layout ───────────────────────────────────────────────────────────────
@@ -1540,6 +1730,34 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
           />
         </div>
       </div>
+
+      {backgroundVideoStatus && currentStepInfo?.type !== "video" && (
+        <div
+          className="mx-5 mt-2 shrink-0 rounded-2xl border border-blue/20 bg-blue/5 dark:bg-blue/10 px-4 py-3 shadow-sm"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-3">
+            <SpinnerIcon className="w-5 h-5 mt-0.5 shrink-0 text-blue animate-spin" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-navy dark:text-slate-100">
+                {backgroundVideoStatus.title}
+              </p>
+              <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
+                {backgroundVideoStatus.detail}
+              </p>
+              <p className="mt-1 text-xs font-bold text-blue">
+                {t("postAd.video.continueInBackground")}
+              </p>
+              <div className="mt-2 h-1.5 bg-blue/15 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue rounded-full transition-all duration-300"
+                  style={{ width: `${backgroundVideoStatus.progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Scrollable content */}
       <div

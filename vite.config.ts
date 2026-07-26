@@ -31,6 +31,11 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           output: {
             manualChunks(id) {
+              // This is only needed after a web user picks a video. Keep the
+              // codec/muxing engine out of the initial app vendor bundle.
+              if (id.includes('node_modules/mediabunny')) {
+                return 'video-compression';
+              }
               if (id.includes('node_modules')) {
                 return 'vendor';
               }

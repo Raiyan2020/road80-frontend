@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 // Use built-in crypto.randomUUID — available in modern browsers and Node 14.17+
 import { postAdService } from '../services/post-ad.service';
 import { t } from '../../../i18n';
@@ -60,6 +60,18 @@ class VideoUploadError extends Error {
   }
 }
 
+export class VideoUploadCancelledError extends Error {
+  constructor() {
+    super('Video upload cancelled');
+    this.name = 'VideoUploadCancelledError';
+  }
+}
+
+export const isVideoUploadCancelled = (
+  error: unknown,
+): error is VideoUploadCancelledError =>
+  error instanceof VideoUploadCancelledError;
+
 const NETWORK_ERROR_RE =
   /failed to fetch|networkerror|network request failed|load failed|timed? ?out/i;
 
@@ -99,17 +111,35 @@ export function useChunkedVideoUpload() {
   const [uploadState, setUploadState] = useState<VideoUploadState | null>(null);
   /** Bumped on reset so a superseded upload stops writing state. */
   const runIdRef = useRef(0);
+  /** Aborts active chunk/merge requests rather than only hiding their state. */
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const reset = useCallback(() => {
     runIdRef.current += 1;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     setUploadState(null);
   }, []);
+
+  useEffect(
+    () => () => {
+      runIdRef.current += 1;
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    },
+    [],
+  );
 
   /**
    * Start chunked upload for a video file.
    * Returns the merged server path on success, or throws on failure.
    */
   const uploadVideo = useCallback(async (file: File): Promise<string> => {
+    abortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const { signal } = abortController;
+
     const runId = ++runIdRef.current;
     const isStale = () => runIdRef.current !== runId;
 
@@ -183,9 +213,17 @@ export function useChunkedVideoUpload() {
 
         for (let attempt = 0; ; attempt++) {
           try {
-            await postAdService.uploadChunk({ fileId, chunkIndex: index, chunk });
+            await postAdService.uploadChunk({
+              fileId,
+              chunkIndex: index,
+              chunk,
+              signal,
+            });
             return end - start;
           } catch (err) {
+            if (signal.aborted || isStale()) {
+              throw new VideoUploadCancelledError();
+            }
             if (attempt >= CHUNK_RETRIES || aborted || isStale()) throw err;
             // Back off a little before retrying — an immediate retry on a
             // flaky mobile link usually fails the same way.
@@ -222,7 +260,9 @@ export function useChunkedVideoUpload() {
       const failure = outcomes.find((o) => o.status === 'rejected');
       if (failure) throw (failure as PromiseRejectedResult).reason;
 
-      if (isStale()) throw new VideoUploadError(t('postAd.video.uploadError'));
+      if (signal.aborted || isStale()) {
+        throw new VideoUploadCancelledError();
+      }
 
       // Merge all chunks → get server path
       setUploadState((prev) =>
@@ -241,6 +281,7 @@ export function useChunkedVideoUpload() {
         fileId,
         totalChunks,
         originalExtension: extension,
+        signal,
       });
 
       if (!mergeRes.status) {
@@ -268,13 +309,19 @@ export function useChunkedVideoUpload() {
 
       return serverPath;
     } catch (err: unknown) {
-      const message = toUploadErrorMessage(err);
-      if (!isStale()) {
-        setUploadState((prev) =>
-          prev ? { ...prev, status: 'error', error: message } : prev,
-        );
+      if (signal.aborted || isStale() || isVideoUploadCancelled(err)) {
+        throw new VideoUploadCancelledError();
       }
+
+      const message = toUploadErrorMessage(err);
+      setUploadState((prev) =>
+        prev ? { ...prev, status: 'error', error: message } : prev,
+      );
       throw err;
+    } finally {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
     }
   }, []);
 

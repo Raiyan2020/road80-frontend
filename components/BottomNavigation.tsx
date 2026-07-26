@@ -3,6 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { Tab, NavItem } from '../types';
 import { HomeIcon, BuildingIcon, PlusIcon, PlayIcon, UserIcon } from './Icons';
 import { useTranslation, type TranslationKey } from '../i18n';
+import { useKeyboardOpen } from '../shared/hooks/useKeyboardOpen';
 
 interface BottomNavigationProps {
   activeTab: Tab;
@@ -31,11 +32,16 @@ const getRouteForTab = (tab: Tab) => {
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const isKeyboardOpen = useKeyboardOpen();
 
   const handleAddClick = (event: React.MouseEvent) => {
     event.preventDefault();
     navigate({ to: '/post-ad', search: { step: 1 } as any });
   };
+
+  // Hide the bottom navigation while the on-screen keyboard is open so it
+  // doesn't overlap the keyboard / input.
+  if (isKeyboardOpen) return null;
 
   return (
     <div 

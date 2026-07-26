@@ -140,6 +140,10 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         key: `cat_${categories[1].id}`,
       });
 
+    // Media steps (video & photos as steps 3 and 4)
+    base.push({ type: "video", key: "video" });
+    base.push({ type: "images", key: "images" });
+
     // Location steps
     base.push({ type: "country", key: "country" });
     base.push({ type: "state", key: "governorate" });
@@ -150,9 +154,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       base.push({ type: "category", data: cat, key: `cat_${cat.id}` });
     });
 
-    // Media & final steps
-    base.push({ type: "video", key: "video" });
-    base.push({ type: "images", key: "images" });
+    // Final steps
     base.push({ type: "details", key: "details" });
     base.push({ type: "summary", key: "summary" });
 

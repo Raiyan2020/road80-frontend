@@ -56,8 +56,7 @@ type WizardStep =
   | { type: "country"; key: string }
   | { type: "state"; key: string }
   | { type: "city"; key: string }
-  | { type: "video"; key: string }
-  | { type: "images"; key: string }
+  | { type: "media"; key: string }
   | { type: "details"; key: string }
   | { type: "summary"; key: string };
 
@@ -173,9 +172,8 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         key: `cat_${categories[1].id}`,
       });
 
-    // Media steps (video & photos as steps 3 and 4)
-    base.push({ type: "video", key: "video" });
-    base.push({ type: "images", key: "images" });
+    // Media step — video and photos share one step
+    base.push({ type: "media", key: "media" });
 
     // Location steps
     base.push({ type: "country", key: "country" });
@@ -775,6 +773,15 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     <h2 className="text-xl font-bold text-navy mb-6 text-center">{label}</h2>
   );
 
+  /** Sub-heading for the sections sharing the combined media step. */
+  const renderSectionTitle = (label: string, className = "") => (
+    <h3
+      className={`text-sm font-bold text-gray-500 dark:text-slate-400 mb-3 text-start ${className}`}
+    >
+      {label}
+    </h3>
+  );
+
   const renderOpt = (
     label: React.ReactNode,
     isSelected: boolean,
@@ -1014,11 +1021,13 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       );
     }
 
-    // VIDEO step
-    if (currentStepInfo.type === "video") {
+    // MEDIA step — video and photos share one step
+    if (currentStepInfo.type === "media") {
       return (
         <>
-          {renderTitle(t("postAd.video.title"))}
+          {renderTitle(t("postAd.media.title"))}
+
+          {renderSectionTitle(t("postAd.video.title"))}
           {videoFile ? (
             <div className="flex flex-col gap-4">
               <div className="relative aspect-video bg-slate-900 rounded-2xl overflow-hidden">
@@ -1174,7 +1183,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               })()}
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center gap-4 border-2 border-dashed border-pale dark:border-slate-700 rounded-3xl py-16 cursor-pointer hover:border-navy transition-all group">
+            // py-10 rather than py-16: the photo grid now shares this step, so a
+            // full-height dropzone would push it below the fold.
+            <label className="flex flex-col items-center justify-center gap-4 border-2 border-dashed border-pale dark:border-slate-700 rounded-3xl py-10 cursor-pointer hover:border-navy transition-all group">
               <div className="w-16 h-16 rounded-2xl bg-navy/5 flex items-center justify-center group-hover:bg-navy/10 transition-all">
                 <PlayIcon className="w-8 h-8 text-navy dark:text-blue" />
               </div>
@@ -1204,15 +1215,8 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
               />
             </label>
           )}
-        </>
-      );
-    }
 
-    // IMAGES step
-    if (currentStepInfo.type === "images") {
-      return (
-        <>
-          {renderTitle(t("postAd.images.title"))}
+          {renderSectionTitle(t("postAd.images.title"), "mt-8")}
           <div className="grid grid-cols-3 gap-2">
             {images.map((img, i) => (
               <div
@@ -1607,10 +1611,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       );
     }
 
-    // Steps that need manual Next (range slider, video, images)
+    // Steps that need manual Next (range slider, media, details)
     const needsManualNext =
-      currentStepInfo?.type === "video" ||
-      currentStepInfo?.type === "images" ||
+      currentStepInfo?.type === "media" ||
       currentStepInfo?.type === "details" ||
       (currentStepInfo?.type === "category" &&
         currentStepInfo.data.type === "range");
@@ -1731,7 +1734,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         </div>
       </div>
 
-      {backgroundVideoStatus && currentStepInfo?.type !== "video" && (
+      {backgroundVideoStatus && currentStepInfo?.type !== "media" && (
         <div
           className="mx-5 mt-2 shrink-0 rounded-2xl border border-blue/20 bg-blue/5 dark:bg-blue/10 px-4 py-3 shadow-sm"
           aria-live="polite"

@@ -19,6 +19,21 @@ export const home = {
     rent: 'For rent',
     sale: 'For sale',
     hotels: 'Hotels',
+
+    // Card copy. `generic` covers contract types we have no artwork for —
+    // {name} is the category value as the API localized it.
+    subtitle: {
+      rent: 'Find the right property to rent, with plenty of options',
+      sale: 'Browse thousands of properties for sale and find your next investment',
+      hotels: 'Book the best hotels at the best prices worldwide',
+      generic: 'Browse everything listed under {name}',
+    },
+    cta: {
+      rent: 'Explore rentals',
+      sale: 'Explore listings',
+      hotels: 'Explore hotels',
+      generic: 'Explore {name}',
+    },
   },
 
   // Suggested listings section

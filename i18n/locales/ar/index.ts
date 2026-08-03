@@ -12,6 +12,7 @@ import { notifications } from './notifications';
 import { quickStart } from './quickStart';
 import { pages } from './pages';
 import { payment } from './payment';
+import { categories } from './categories';
 
 export const ar = {
   common,
@@ -28,4 +29,5 @@ export const ar = {
   quickStart,
   pages,
   payment,
+  categories,
 };

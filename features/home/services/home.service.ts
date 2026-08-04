@@ -3,6 +3,8 @@ import api from '@/lib/api-client';
 export interface FilterOptionValue {
   id: number;
   value: string;
+  /** Absolute URL served by the backend; null when no artwork was uploaded. */
+  icon?: string | null;
 }
 
 export interface FilterCategory {

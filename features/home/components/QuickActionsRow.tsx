@@ -3,69 +3,29 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCategories } from "../hooks/useCategories";
 import { useTranslation } from "../../../i18n";
 import type { TranslationKey } from "../../../i18n";
-import {
-  localizeCategoryValue,
-  normalizeCategoryText,
-} from "../../../shared/utils/category-localization";
+import { localizeCategoryValue } from "../../../shared/utils/category-localization";
 
-/** Contract types we ship artwork for. */
-type ThemeKey = "rent" | "sale" | "hotels";
-
-// Fallback static actions when API returns nothing.
-// Labels are translation keys — resolved at render time so they follow the language.
-const FALLBACK_ACTIONS: Array<{
-  id: number;
-  labelKey: TranslationKey;
-  themeKey: ThemeKey;
-}> = [
-  { id: 3, labelKey: "categories.values.rent", themeKey: "rent" },
-  { id: 4, labelKey: "categories.values.sale", themeKey: "sale" },
-  { id: 5, labelKey: "categories.values.hotels", themeKey: "hotels" },
+// Fallback actions when the API returns nothing. Labels are translation keys —
+// resolved at render time so they follow the language. No artwork here: icons
+// are owned by the backend (`values[].icon`), so a tile without one falls back
+// to the initial badge rather than to a bundled image.
+const FALLBACK_ACTIONS: Array<{ id: number; labelKey: TranslationKey }> = [
+  { id: 3, labelKey: "categories.values.rent" },
+  { id: 4, labelKey: "categories.values.sale" },
+  { id: 5, labelKey: "categories.values.hotels" },
 ];
 
-/** Illustrated icon per contract type (3D-style artwork on a transparent bg). */
-const ICONS: Record<ThemeKey, string> = {
-  rent: "/icon-rent.png",
-  sale: "/icon-sale.png",
-  hotels: "/icon-hotels.png",
-};
-
-/**
- * The backend localizes category values via `Accept-Language`, and values carry
- * no slug — only an `id` and a localized `value`. So the theme is resolved by id
- * first, with a bilingual name match as a compatibility fallback. Those name
- * lists are NOT UI copy and must not be routed through i18n.
- */
-const THEME_IDS: Record<number, ThemeKey> = {
-  3: "rent",
-  4: "sale",
-  5: "hotels",
-};
-
-const THEME_NAMES: Record<ThemeKey, string[]> = {
-  rent: ["إيجار", "ايجار", "for rent", "rent", "rentals"],
-  sale: ["بيع", "for sale", "sale", "sales"],
-  hotels: ["فنادق", "فندق", "hotels", "hotel"],
-};
-
-const themeKeyFor = (id: number, value: string): ThemeKey | null => {
-  if (THEME_IDS[id]) return THEME_IDS[id];
-  const needle = normalizeCategoryText(value);
-  const hit = (Object.keys(THEME_NAMES) as ThemeKey[]).find((key) =>
-    THEME_NAMES[key].some(
-      (candidate) => normalizeCategoryText(candidate) === needle
-    )
-  );
-  return hit ?? null;
-};
-
-/** Soft blue tile: illustration on top, label underneath. */
+/** Soft blue tile: backend illustration on top, label underneath. */
 const ActionCard: React.FC<{
   label: string;
-  themeKey: ThemeKey | null;
+  icon?: string | null;
   onClick: () => void;
-}> = ({ label, themeKey, onClick }) => {
-  const icon = themeKey ? ICONS[themeKey] : null;
+}> = ({ label, icon, onClick }) => {
+  // A broken/404 icon URL degrades to the initial badge instead of a torn image.
+  const [failed, setFailed] = React.useState(false);
+  const showIcon = Boolean(icon) && !failed;
+
+  React.useEffect(() => setFailed(false), [icon]);
 
   return (
     <button
@@ -73,12 +33,13 @@ const ActionCard: React.FC<{
       className="group flex flex-col items-center justify-start gap-1 rounded-[1.35rem] px-2 pt-3 pb-3 bg-gradient-to-b from-[#eef4fd] to-[#dce8f9] dark:from-slate-800 dark:to-slate-800/50 border border-white/80 dark:border-slate-700 shadow-sm shadow-navy/5 active:scale-95 transition-transform duration-200"
     >
       <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
-        {icon ? (
+        {showIcon ? (
           <img
-            src={icon}
+            src={icon as string}
             alt=""
             aria-hidden="true"
             loading="lazy"
+            onError={() => setFailed(true)}
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
@@ -146,13 +107,13 @@ export const QuickActionsRow: React.FC = () => {
       ? actions.map((action) => ({
           key: action.id,
           label: localizeCategoryValue(action.value, action.id),
-          themeKey: themeKeyFor(action.id, action.value),
+          icon: action.icon ?? null,
           id: action.id,
         }))
       : FALLBACK_ACTIONS.map((action) => ({
           key: action.id,
           label: t(action.labelKey),
-          themeKey: action.themeKey as ThemeKey | null,
+          icon: null,
           id: action.id,
         }));
 
@@ -163,7 +124,7 @@ export const QuickActionsRow: React.FC = () => {
           <ActionCard
             key={item.key}
             label={item.label}
-            themeKey={item.themeKey}
+            icon={item.icon}
             onClick={() => handleClick(item.id)}
           />
         ))}

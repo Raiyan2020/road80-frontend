@@ -5,6 +5,11 @@ export interface FilterOptionValue {
   value: string;
   /** Absolute URL served by the backend; null when no artwork was uploaded. */
   icon?: string | null;
+  /**
+   * Backend flag marking the values that belong on the home screen's quick
+   * actions. Optional because older payloads (and the filter endpoint) omit it.
+   */
+  appear_in_home?: boolean;
 }
 
 export interface FilterCategory {

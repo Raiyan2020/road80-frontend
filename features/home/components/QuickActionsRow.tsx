@@ -59,8 +59,9 @@ const ActionCard: React.FC<{
 /**
  * QuickActionsRow
  *
- * Fetches /categories, finds "نوع التعاقد" (contract type, id=2),
- * renders ALL its values as soft blue icon tiles in a 3-up grid card.
+ * Fetches /categories and renders every value flagged `appear_in_home` as a
+ * soft blue icon tile in a 3-up grid card. The flag spans categories — the
+ * backend decides what belongs on home, so we no longer hardcode a category id.
  * Clicking any tile navigates to /explore filtered by that value id.
  */
 export const QuickActionsRow: React.FC = () => {
@@ -68,12 +69,25 @@ export const QuickActionsRow: React.FC = () => {
   const navigate = useNavigate();
   const { data: categories, isLoading } = useCategories();
 
-  // Find the "نوع التعاقد" category, fallback to first category with values
-  const contractCategory =
-    categories?.find((c) => c.id === 2) ||
-    categories?.find((c) => c.values.length > 0);
+  // Collect the home-flagged values from every category, in backend order.
+  // Value ids are unique across categories, but dedupe defensively so a
+  // repeated id can't produce duplicate React keys.
+  const actions = React.useMemo(() => {
+    const seen = new Set<number>();
+    const flagged = (categories ?? [])
+      .flatMap((c) => c.values ?? [])
+      .filter((v) => v.appear_in_home === true)
+      .filter((v) => (seen.has(v.id) ? false : (seen.add(v.id), true)));
 
-  const actions = contractCategory?.values ?? [];
+    if (flagged.length > 0) return flagged;
+
+    // Payload predates the flag: keep the old behaviour — "نوع التعاقد" (id=2),
+    // else the first category that has any values.
+    const contractCategory =
+      categories?.find((c) => c.id === 2) ||
+      categories?.find((c) => c.values.length > 0);
+    return contractCategory?.values ?? [];
+  }, [categories]);
 
   const handleClick = (valueId: number) => {
     navigate({

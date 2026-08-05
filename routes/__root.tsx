@@ -15,6 +15,7 @@ import { initSwLangSync } from '../shared/utils/sw-lang';
 import { useLangStore } from '../i18n';
 import { useUserStore } from '../stores/user.store';
 import { useSyncFavorites } from '../features/favorites/hooks/useSyncFavorites';
+import { prefetchHomeScreen } from '../features/home/utils/prefetch-home';
 import { useTranslation, type TranslationKey } from '../i18n';
 
 const queryClient = new QueryClient({
@@ -34,6 +35,29 @@ const CATEGORY_KEYS = ['real-estate', 'construction', 'contracting', 'decor', 'm
 
 function FavoritesBootstrap() {
   useSyncFavorites();
+  return null;
+}
+
+/**
+ * Fires the home screen's requests while the splash is still covering them.
+ *
+ * Mounted outside the `showSplash` branch on purpose — the route tree below
+ * `<Outlet />` does not exist yet at this point, so nothing else would start
+ * fetching until the splash unmounts.
+ *
+ * Guarded on auth: an unauthenticated user is redirected to /auth and never
+ * sees home, and worse, these endpoints would answer 401 — which the api client
+ * turns into a forceLogout. Runs once; the language can't change behind a
+ * splash the user cannot interact with.
+ */
+function HomePrefetch() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!useUserStore.getState().isAuthenticated) return;
+    prefetchHomeScreen(queryClient, useLangStore.getState().lang);
+  }, [queryClient]);
+
   return null;
 }
 
@@ -349,6 +373,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <FavoritesBootstrap />
       <LanguageBootstrap />
+      <HomePrefetch />
       <AppContext.Provider value={{ theme, setTheme }}>
         <div
           className="relative w-full max-w-[991px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"

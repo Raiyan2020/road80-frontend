@@ -26,14 +26,15 @@ export interface VerifyOtpPayload {
   phone: string;
   code: string; // 4-digit code
   country_id: string | number;
-  device_id: string;
-  device_type: string;
+  device_id?: string;
+  device_type?: string;
   name?: string;
 }
 
 export interface RegisterCompanyPayload {
   name: string;
-  email?: string;
+  /** Required by the backend's RegisterCompanyRequest. */
+  email: string;
   caption: string;
   state_id: number | string;
   country_id: number | string;

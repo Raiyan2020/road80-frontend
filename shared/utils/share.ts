@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { t } from "@/i18n";
 
 /**
  * Public web origin for shareable links. The app only configures an API host
@@ -31,9 +32,9 @@ const copyLink = async (url: string) => {
       document.execCommand("copy");
       document.body.removeChild(el);
     }
-    toast.success("تم نسخ الرابط");
+    toast.success(t("common.copiedToClipboard"));
   } catch {
-    toast.error("تعذر نسخ الرابط");
+    toast.error(t("common.copyFailed"));
   }
 };
 

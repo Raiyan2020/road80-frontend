@@ -2,7 +2,10 @@ import api from '@/lib/api-client';
 import { Office, OfficeSchema, Listing, ListingSchema } from '@/lib/types';
 import { APP_LOGO_URL } from '@/shared/constants/images';
 import { resolveMediaUrl } from '@/shared/utils/media-url';
+import { normalizeSocials } from '@/shared/services/social-platforms.service';
+import { t } from '@/i18n';
 import { CompanyDepartment, DepartmentsResponse } from '../types';
+import { isPropertyTypeCategory, isListingTypeCategory } from '@/shared/utils/category-match';
 
 // ── Service functions ─────────────────────────────────────────
 
@@ -49,7 +52,7 @@ export async function fetchOffices(category?: string | number): Promise<Office[]
 
           return OfficeSchema.parse({
             id: raw.id,
-            officeName: raw.name ?? "مكتب عقاري",
+            officeName: raw.name ?? t('companies.fallback.officeName'),
             logo: logoUrl || APP_LOGO_URL,
             governorate,
             activeListingsCount: raw.ads_count,
@@ -78,8 +81,11 @@ interface RawOfficeAd {
   state_name: string;
   city_name: string;
   categories: Array<{
-    category_name: string;
-    category_value_name: string;
+    /** Stable, language-independent key. Optional — older backends omit it. */
+    category_slug?: string | null;
+    /** Nullable since the backend made category serialization null-safe. */
+    category_name: string | null;
+    category_value_name: string | null;
   }>;
   image?: {
     file: string;
@@ -96,8 +102,13 @@ export async function fetchOfficeAds(id: string | number): Promise<Listing[]> {
     if (resp.status && resp.data) {
        
        return resp.data.map((raw) => {
-          const propertyType = raw.categories.find(c => c.category_name === 'نوع العقار')?.category_value_name;
-          const listingType = raw.categories.find(c => c.category_name === 'نوع الإعلان')?.category_value_name;
+          // Classify by stable slug — category_name is localized by the API.
+          const propertyType = raw.categories.find(c =>
+            isPropertyTypeCategory(c.category_slug, c.category_name),
+          )?.category_value_name;
+          const listingType = raw.categories.find(c =>
+            isListingTypeCategory(c.category_slug, c.category_name),
+          )?.category_value_name;
           
           const imageFile = raw.image?.file ? resolveMediaUrl(raw.image.file) : '';
 
@@ -146,13 +157,14 @@ export async function fetchOfficeById(id: string | number): Promise<Office | nul
 
       return OfficeSchema.parse({
         id: raw.id,
-        officeName: raw.name ?? 'شركة',
+        officeName: raw.name ?? t('companies.fallback.companyName'),
         bio: raw.caption ?? undefined,
         logo,
         activeListingsCount: raw.total_active_ads ?? 0,
         totalViews: raw.total_ads_watch ?? 0,
         totalLikes: raw.total_ads_likes ?? 0,
         rating: raw.rate ?? 0,
+        socials: normalizeSocials(raw.socials),
         sampleListings: [],
       });
     }

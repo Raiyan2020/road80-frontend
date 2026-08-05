@@ -9,8 +9,10 @@ import { AppImage } from './AppImage';
 import { resolveListingImageUrl } from '@/shared/utils/listing-image';
 import { useCountries, useStates, useCities } from '@/shared/hooks/useLocation';
 import { useFilterOptions } from '@/features/home/hooks/useFilterOptions';
+import { useTranslation } from '../i18n';
 
 const ExplorePage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const getFiltersFromUrl = (search: any) => {
@@ -201,16 +203,17 @@ const ExplorePage: React.FC = () => {
           <div className="flex-1 relative">
              <input 
                type="text" 
-               placeholder="ابحث عن عقارات..." 
+               placeholder={t('explore.search.placeholder')}
                value={searchText}
                onChange={e => setSearchText(e.target.value)}
-               className="w-full h-12 pl-4 pr-11 rounded-2xl bg-gray-50 dark:bg-slate-800 text-navy dark:text-slate-200 border border-pale dark:border-slate-700 outline-none focus:border-blue transition-colors font-bold text-sm"
+               className="w-full h-12 rtl:pl-4 rtl:pr-11 ltr:pr-4 ltr:pl-11 rounded-2xl bg-gray-50 dark:bg-slate-800 text-navy dark:text-slate-200 border border-pale dark:border-slate-700 outline-none focus:border-blue transition-colors font-bold text-sm"
              />
-             <SearchIcon className="absolute top-1/2 -translate-y-1/2 right-4 w-5 h-5 text-gray-400" />
+             <SearchIcon className="absolute top-1/2 -translate-y-1/2 rtl:right-4 ltr:left-4 w-5 h-5 text-gray-400" />
           </div>
-          <button 
+          <button
              type="button"
              onClick={() => setIsDrawerOpen(true)}
+             aria-label={t('explore.search.openFilters')}
              className="w-12 h-12 rounded-2xl bg-navy dark:bg-blue flex items-center justify-center shadow-lg shadow-navy/20 dark:shadow-blue/20 active:scale-95 transition-all text-white shrink-0"
           >
              <SlidersIcon className="w-5 h-5" />
@@ -266,7 +269,7 @@ const ExplorePage: React.FC = () => {
       {filteredListings.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-slate-500">
              <SearchIcon className="w-12 h-12 mb-2 opacity-20" />
-             <p className="text-sm font-bold">لا توجد اعلانات تطابق هذا البحث</p>
+             <p className="text-sm font-bold">{t('explore.feed.noMatches')}</p>
           </div>
       )}
            </>

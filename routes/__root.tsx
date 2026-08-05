@@ -5,14 +5,18 @@ import BottomNavigation from '../components/BottomNavigation';
 import Header from '../components/Header';
 import { Tab } from '../types';
 import { AppContext } from '../components/AppContext';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
-import { initializePushNotifications } from '../shared/utils/notifications';
+import { initializePushNotifications, registerCurrentDevice } from '../shared/utils/notifications';
+import { initSwLangSync } from '../shared/utils/sw-lang';
+import { useLangStore } from '../i18n';
 import { useUserStore } from '../stores/user.store';
 import { useSyncFavorites } from '../features/favorites/hooks/useSyncFavorites';
+import { prefetchHomeScreen } from '../features/home/utils/prefetch-home';
+import { useTranslation, type TranslationKey } from '../i18n';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,16 +31,147 @@ export const Route = createRootRoute({
   component: RootComponent,
 })
 
-const CATEGORY_NAMES: Record<string, string> = {
-  'real-estate': 'الشركات العقارية',
-  'construction': 'الشركات الانشائية',
-  'contracting': 'شركات المقاولات',
-  'decor': 'قسم الديكور',
-  'materials': 'مواد البناء'
-};
+const CATEGORY_KEYS = ['real-estate', 'construction', 'contracting', 'decor', 'materials'] as const;
 
 function FavoritesBootstrap() {
   useSyncFavorites();
+  return null;
+}
+
+/**
+ * Fires the home screen's requests while the splash is still covering them.
+ *
+ * Mounted outside the `showSplash` branch on purpose — the route tree below
+ * `<Outlet />` does not exist yet at this point, so nothing else would start
+ * fetching until the splash unmounts.
+ *
+ * Guarded on auth: an unauthenticated user is redirected to /auth and never
+ * sees home, and worse, these endpoints would answer 401 — which the api client
+ * turns into a forceLogout. Runs once; the language can't change behind a
+ * splash the user cannot interact with.
+ */
+function HomePrefetch() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!useUserStore.getState().isAuthenticated) return;
+    prefetchHomeScreen(queryClient, useLangStore.getState().lang);
+  }, [queryClient]);
+
+  return null;
+}
+
+/**
+ * Query-key prefixes whose responses are rendered by the server in the caller's
+ * language (both API clients send `Accept-Language` from `getLang()`), so their
+ * cached payloads go stale the moment the language changes.
+ *
+ * Most of these queries now carry the language in their own key, which already
+ * gives them a clean cache entry per language. This list is the safety net for
+ * the ones that deliberately do NOT — shared keys like `['profile','my-favorites']`
+ * (also read by the id-only favorites sync) and `['social-platforms']` — plus any
+ * future query that forgets to key itself.
+ *
+ * Intentionally omitted: `['profile']` (the user's own name/avatar/socials),
+ * auth/session state, and the favorites id set — none of which the server
+ * translates.
+ */
+const LANGUAGE_DEPENDENT_QUERY_PREFIXES: readonly (readonly unknown[])[] = [
+  ['listings'],
+  ['offices'],
+  ['companies'],
+  ['departments'],
+  ['categories'],
+  ['categories-filter'],
+  ['post-ad-categories'],
+  ['filter-options'],
+  ['home-data'],
+  ['ads-by-history'],
+  ['countries'],
+  ['states'],
+  ['cities'],
+  ['settings'],
+  ['social-platforms'],
+  ['notifications'],
+  ['notifications-unread'],
+  ['blogs'],
+  ['pages'],
+  ['profile', 'my-ads'],
+  ['profile', 'my-favorites'],
+];
+
+function matchesLanguageDependentPrefix(queryKey: readonly unknown[]): boolean {
+  return LANGUAGE_DEPENDENT_QUERY_PREFIXES.some(
+    (prefix) =>
+      queryKey.length >= prefix.length &&
+      prefix.every((segment, i) => queryKey[i] === segment)
+  );
+}
+
+/**
+ * True for cache entries that must be refetched because the language changed.
+ *
+ * Queries that key themselves by language are excluded: by convention the
+ * language is the LAST segment of their key (see features/blogs/hooks and
+ * features/pages/hooks for the canonical shape). An entry already tagged with
+ * the new language is the one React just mounted and is fetching afresh —
+ * invalidating it would fire a second, redundant request. Entries tagged with
+ * the outgoing language are observer-less by now, so `refetchType: 'active'`
+ * would skip them anyway; leaving them cached makes switching back instant.
+ */
+function shouldInvalidateForLanguage(
+  queryKey: readonly unknown[],
+  nextLang: string
+): boolean {
+  if (!matchesLanguageDependentPrefix(queryKey)) return false;
+  return queryKey[queryKey.length - 1] !== nextLang;
+}
+
+/**
+ * Keeps everything outside React's render tree in step with the chosen
+ * language: the service worker's copy of it (for background push), the
+ * backend's record of it (for server-sent push), and the React Query cache
+ * (whose entries were fetched under the previous `Accept-Language`).
+ */
+function LanguageBootstrap() {
+  const lang = useLangStore((s) => s.lang);
+  const queryClient = useQueryClient();
+  const previousLang = React.useRef(lang);
+
+  useEffect(() => initSwLangSync(), []);
+
+  useEffect(() => {
+    let previous = useLangStore.getState().lang;
+    return useLangStore.subscribe((state) => {
+      if (state.lang === previous) return;
+      previous = state.lang;
+      // Re-register so server-sent notifications switch language too.
+      // Best-effort: a logged-out or token-less user simply no-ops.
+      registerCurrentDevice().catch(() => {});
+    });
+  }, []);
+
+  // Deliberately an effect (not a store subscription) so it runs *after* React
+  // has re-rendered the tree under the new language. By then the queries that
+  // key themselves by language have already swapped to their new key, so only
+  // the still-mounted, un-keyed queries actually go back to the network — no
+  // double-fetch, no refetch storm.
+  //
+  // Targeted rather than `queryClient.clear()`: clear() would also drop
+  // auth/session-shaped caches and force every screen to refetch from scratch.
+  // Mutations are untouched — invalidateQueries only ever touches queries — so
+  // in-flight uploads (e.g. the chunked video upload, which is plain
+  // useState + service calls and not in the query cache at all) keep running.
+  useEffect(() => {
+    if (previousLang.current === lang) return;
+    previousLang.current = lang;
+
+    queryClient.invalidateQueries({
+      predicate: (query) => shouldInvalidateForLanguage(query.queryKey, lang),
+      refetchType: 'active',
+    });
+  }, [lang, queryClient]);
+
   return null;
 }
 
@@ -47,6 +182,7 @@ function RootComponent() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Store navigate in a ref so the route guard effect doesn't depend on it.
   // TanStack Router's navigate is NOT referentially stable — putting it in a
@@ -123,7 +259,9 @@ function RootComponent() {
 
   const routePath = location.pathname;
   const isAuthRoute = routePath.startsWith('/auth') || routePath.startsWith('/verify');
-  const isStandalonePage = ['/faq', '/terms', '/privacy', '/blogs'].some(p => routePath.startsWith(p));
+  // Pages that render their own <Header>. Anything listed here must NOT also get
+  // the shell header below, or both stack. Add new self-headed routes here.
+  const isStandalonePage = ['/about', '/faq', '/terms', '/privacy', '/blogs'].some(p => routePath.startsWith(p));
   const isQuickStart = routePath.startsWith('/quick-start');
   const isProfile = routePath.startsWith('/profile');
   const isCompanies = routePath.startsWith('/companies');
@@ -168,11 +306,11 @@ function RootComponent() {
 
   const getPageTitle = (tab: Tab): string => {
     switch (tab) {
-      case Tab.HOME: return 'الرئيسية';
-      case Tab.COMPANIES: return 'الشركات';
-      case Tab.ADD: return 'انشر اعلانك';
-      case Tab.EXPLORE: return 'اكسبلور';
-      case Tab.PROFILE: return 'حسابي';
+      case Tab.HOME: return t('nav.home');
+      case Tab.COMPANIES: return t('nav.companies');
+      case Tab.ADD: return t('nav.postAd');
+      case Tab.EXPLORE: return t('nav.explore');
+      case Tab.PROFILE: return t('nav.profile');
       default: return '80road';
     }
   };
@@ -185,7 +323,7 @@ function RootComponent() {
     // Notifications sub-page → show back button
     if (isNotifications) {
       return {
-        title: 'الإشعارات',
+        title: t('nav.notifications'),
         showBack: true,
         onBack: () => window.history.back()
       };
@@ -193,14 +331,17 @@ function RootComponent() {
 
     if (activeTab === Tab.COMPANIES) {
       if (categoryId) {
+        const isKnownCategory = (CATEGORY_KEYS as readonly string[]).includes(categoryId);
         return {
-          title: CATEGORY_NAMES[categoryId] || 'الشركات',
+          title: isKnownCategory
+            ? t(`nav.categories.${categoryId}` as TranslationKey)
+            : t('nav.companies'),
           showBack: true,
           onBack: () => navigate({ to: '/companies/' as any, search: { category: undefined } as any })
         };
       } else {
         return {
-          title: 'الشركات',
+          title: t('nav.companies'),
           showBack: true,
           onBack: () => navigate({ to: '/home' })
         };
@@ -210,7 +351,7 @@ function RootComponent() {
     if (activeTab === Tab.PROFILE) {
       if (userId && userId !== 'current_user') {
         return {
-          title: 'الملف التعريفي',
+          title: t('nav.publicProfile'),
           showBack: true,
           onBack: () => window.history.back()
         };
@@ -231,6 +372,8 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <FavoritesBootstrap />
+      <LanguageBootstrap />
+      <HomePrefetch />
       <AppContext.Provider value={{ theme, setTheme }}>
         <div
           className="relative w-full max-w-[991px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"

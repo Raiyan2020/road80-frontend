@@ -1,13 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLangStore, t } from '@/i18n';
 import { settingsService } from '../services/settings.service';
 
 export function useSettings() {
+  const lang = useLangStore((s) => s.lang);
   return useQuery({
-    queryKey: ['settings'],
+    queryKey: ['settings', lang],
     queryFn: async () => {
       const response = await settingsService.getSettings();
       if (!response.status) {
-        throw new Error(response.message || 'Failed to fetch settings');
+        // The message ends up in a toast title via lib/query-client, which
+        // prefers `err.message` over its own localized fallback — so it has to
+        // be localized here, at throw time, in the language in use right now.
+        throw new Error(response.message || t('common.genericError'));
       }
       return response.data;
     },

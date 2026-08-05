@@ -30,7 +30,9 @@ export const authService = {
     formData.append('country_id', String(payload.country_id));
     formData.append('phone', payload.phone);
     formData.append('otp', payload.code);
-    formData.append('device_id', payload.device_id);
+    if (payload.device_id) {
+      formData.append('device_id', payload.device_id);
+    }
     if (payload.device_type) {
       formData.append('device_type', payload.device_type);
     }

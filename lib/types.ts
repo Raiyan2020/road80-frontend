@@ -57,6 +57,8 @@ export const OfficeSchema = z.object({
   responseTime: z.string().optional(),
   phone: z.string().optional(),
   whatsapp: z.string().optional(),
+  /** User's social links, keyed by platform slug. See UserSocials. */
+  socials: z.record(z.string(), z.any()).optional(),
   verified: z.boolean().optional(),
   specialties: z.array(z.string()).optional(),
   sampleListings: z.array(ListingSchema).optional().default([]),

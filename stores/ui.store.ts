@@ -45,7 +45,9 @@ export const useUIStore = create<UIState>()(
           return { theme: next };
         }),
 
-      headerTitle: 'الرئيسية',
+      // Empty by default — the header title is supplied per-route by __root.tsx
+      // and translated there. Storing a literal here would freeze one language.
+      headerTitle: '',
       setHeaderTitle: (headerTitle) => set({ headerTitle }),
       showBack: false,
       setShowBack: (showBack) => set({ showBack }),

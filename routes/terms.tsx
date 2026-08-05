@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import { useTerms } from '../features/pages/hooks/usePages';
 import { useUIStore } from '../stores/ui.store';
 import { SpinnerIcon } from '../components/Icons';
+import { useTranslation } from '../i18n';
 
 export const Route = createFileRoute('/terms')({
   component: TermsPage
@@ -11,11 +12,12 @@ export const Route = createFileRoute('/terms')({
 
 function TermsPage() {
   const navigate = useNavigate();
+  const { t, dir } = useTranslation();
   const { data, isLoading } = useTerms();
 
   return (
-    <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir="rtl">
-      <Header title="الشروط والأحكام" showBack onBack={() => {
+    <div className="h-full bg-gray-50 dark:bg-slate-950 flex flex-col overflow-hidden" dir={dir}>
+      <Header title={t('nav.terms')} showBack onBack={() => {
         useUIStore.getState().setMenuOpen(true);
         window.history.back();
       }} />
@@ -26,8 +28,8 @@ function TermsPage() {
             <SpinnerIcon className="w-8 h-8 animate-spin text-navy dark:text-blue" />
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-pale dark:border-slate-800 text-right">
-             <h2 className="text-xl font-bold text-navy dark:text-slate-200 mb-4">{data?.title || 'الشروط والأحكام'}</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-pale dark:border-slate-800 text-start">
+             <h2 className="text-xl font-bold text-navy dark:text-slate-200 mb-4">{data?.title || t('nav.terms')}</h2>
              <div 
                className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-line Prose" 
                dangerouslySetInnerHTML={{ __html: data?.description || '' }}

@@ -22,16 +22,25 @@ export interface ExploreRawAd {
   state_name: string;
   city_name: string;
   answers: Array<{
-    category_name: string;
-    category_value_name: string;
+    /** Stable, language-independent key (e.g. 'property-type'). Optional
+     *  because older backends predate it — always fall back to the name. */
+    category_slug?: string | null;
+    /**
+     * Nullable since the backend switched to `$answer->category?->name`: a
+     * soft-deleted or missing category used to 500, and now serializes as null.
+     */
+    category_name: string | null;
+    category_value_name: string | null;
     range: unknown;
   }>;
   categories: Array<{
     id?: number;
-    name?: string;
-    value?: string;
-    category_name?: string;
-    category_value_name?: string;
+    slug?: string | null;
+    category_slug?: string | null;
+    name?: string | null;
+    value?: string | null;
+    category_name?: string | null;
+    category_value_name?: string | null;
     range?: unknown;
   }>;
   image: {
@@ -45,13 +54,17 @@ export interface ExploreResponse {
   status: boolean;
   message: string;
   data: ExploreRawAd[];
+  // snake_case to match ApiResponse::paginationResponse — it emits
+  // current_page/last_page/per_page/total, never the camelCase spelling.
   pagination: {
-    currentPage: number;
-    lastPage: number;
-    perPage: number;
+    current_page: number;
+    last_page: number;
+    per_page: number;
     total: number;
   };
-  min_price: number;
-  max_price: number;
+  // number_format()'d server-side, so these arrive as strings ("1,250.00").
+  // Coerce before comparing or doing arithmetic.
+  min_price: string;
+  max_price: string;
   errors: unknown[];
 }

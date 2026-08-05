@@ -7,42 +7,112 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: 'AIzaSyC-Acd0GoIo3SG27JE_JKIG-Hdb3_SG35c',
+  apiKey: 'AIzaSyC6ZAwuIGCrkSZrGn26HTJK3V1Ktllz7Dc',
   authDomain: 'road-d5491.firebaseapp.com',
   projectId: 'road-d5491',
   storageBucket: 'road-d5491.firebasestorage.app',
   messagingSenderId: '188664861433',
-  appId: 'REPLACE_WITH_WEB_APP_ID', // ← Must match firebase.config.ts
+  appId: '1:188664861433:web:8592a8c84726e535678828',
+  measurementId: 'G-KDMP9FJPRT',
 });
 
 const messaging = firebase.messaging();
 
-const getNotificationCopy = (notif) => {
+// ── Language ───────────────────────────────────────────────────────────────
+// A service worker cannot read localStorage or the zustand store, so the page
+// mirrors the active language into the Cache API (see shared/utils/sw-lang.ts)
+// and we read it back here. Kept in a module variable as a fast path, but
+// always re-read from the cache because the SW can be terminated at any time.
+const LANG_CACHE = 'road80-prefs';
+const LANG_KEY = '/__lang';
+let cachedLang = 'ar';
+
+async function getLang() {
+  try {
+    const cache = await caches.open(LANG_CACHE);
+    const hit = await cache.match(LANG_KEY);
+    if (hit) {
+      const value = (await hit.text()).trim();
+      if (value === 'ar' || value === 'en') {
+        cachedLang = value;
+      }
+    }
+  } catch (e) {
+    // Cache unavailable — fall back to the last known value.
+  }
+  return cachedLang;
+}
+
+// Mirrors the keys the app uses for these same notifications. Kept inline
+// because a service worker cannot import the app's i18n bundle.
+const SW_STRINGS = {
+  ar: {
+    adApprovedTitle: 'تمت الموافقة على نشر إعلانك',
+    adApprovedBodyNamed: 'تمت الموافقة على إعلان "{title}" ويمكن للمستخدمين مشاهدته الآن',
+    adApprovedBody: 'تمت الموافقة على إعلانك ويمكن للمستخدمين مشاهدته الآن',
+    defaultTitle: 'إشعار جديد',
+    blockedTitle: 'تم تعليق الحساب',
+    blockedBody: 'تم تعليق حسابك من قبل الإدارة',
+    deletedTitle: 'تم حذف الحساب',
+    deletedBody: 'تم حذف حسابك من قبل الإدارة',
+  },
+  en: {
+    adApprovedTitle: 'Your ad has been approved',
+    adApprovedBodyNamed: 'Your ad "{title}" has been approved and is now visible to users',
+    adApprovedBody: 'Your ad has been approved and is now visible to users',
+    defaultTitle: 'New notification',
+    blockedTitle: 'Account suspended',
+    blockedBody: 'Your account has been suspended by the administration',
+    deletedTitle: 'Account deleted',
+    deletedBody: 'Your account has been deleted by the administration',
+  },
+};
+
+const swT = (lang, key, params) => {
+  let value = (SW_STRINGS[lang] || SW_STRINGS.ar)[key] || SW_STRINGS.ar[key] || key;
+  if (params) {
+    Object.keys(params).forEach((name) => {
+      value = value.replace(`{${name}}`, params[name]);
+    });
+  }
+  return value;
+};
+
+// Picks the language-matched side of a payload field when the backend sends
+// both (e.g. title_ar / title_en), falling back to the plain key.
+const pickField = (data, base, lang) =>
+  data[`${base}_${lang}`] || data[`${base}_ar`] || data[`${base}_en`] || data[base];
+
+const getNotificationCopy = (notif, lang) => {
   const data = notif?.data || notif || {};
   const type = data.type || notif?.type;
-  const adTitle = data.ad_title || data.adTitle || data.listing_title || data.title;
+  const adTitle =
+    pickField(data, 'ad_title', lang) ||
+    data.adTitle ||
+    pickField(data, 'listing_title', lang) ||
+    pickField(data, 'title', lang);
 
   if (type === 'ad_approved') {
     return {
-      title: 'تمت الموافقة على نشر إعلانك',
+      title: swT(lang, 'adApprovedTitle'),
       body: adTitle
-        ? `تمت الموافقة على إعلان "${adTitle}" ويمكن للمستخدمين مشاهدته الآن`
-        : 'تمت الموافقة على إعلانك ويمكن للمستخدمين مشاهدته الآن',
+        ? swT(lang, 'adApprovedBodyNamed', { title: adTitle })
+        : swT(lang, 'adApprovedBody'),
     };
   }
 
   return {
     title:
-      data.title ||
-      data.subject ||
+      pickField(data, 'title', lang) ||
+      pickField(data, 'subject', lang) ||
       notif?.notification?.title ||
       notif?.title ||
-      'إشعار جديد',
+      swT(lang, 'defaultTitle'),
     body:
-      data.message ||
-      data.body ||
-      data.content ||
-      data.description ||
+      pickField(data, 'message', lang) ||
+      pickField(data, 'body', lang) ||
+      pickField(data, 'content', lang) ||
+      pickField(data, 'description', lang) ||
       notif?.notification?.body ||
       notif?.body ||
       '',
@@ -52,7 +122,11 @@ const getNotificationCopy = (notif) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const data = event.notification?.data || {};
+  // Two shapes to handle: notifications we raised ourselves carry the data
+  // payload directly, while ones FCM auto-displayed (because the message had a
+  // `notification` block) nest it under FCM_MSG.
+  const raw = event.notification?.data || {};
+  const data = raw.FCM_MSG?.data || raw;
   const adId = data.ad_id || data.adId;
   const targetUrl = adId ? `/ad/${adId}` : '/notifications';
 
@@ -76,8 +150,17 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // Handle background notifications (when the browser tab is hidden or closed)
-messaging.onBackgroundMessage((payload) => {
+messaging.onBackgroundMessage(async (payload) => {
+  const lang = await getLang();
   const type = payload.data && payload.data.type;
+
+  /*
+   * The backend now attaches a `notification` block to every push, including
+   * webpush. When one is present FCM displays the notification itself, so
+   * raising our own on top produces two identical entries in the tray. Only
+   * render our own for data-only messages.
+   */
+  const fcmAlreadyDisplayed = Boolean(payload.notification);
 
   // ── Block / Delete: notify all open tabs to force-logout ─────────────────
   if (type === 'block' || type === 'delete') {
@@ -89,24 +172,27 @@ messaging.onBackgroundMessage((payload) => {
     });
 
     // Also show a system notification so the user knows even if no tab is open
-    const title = type === 'block' ? 'تم تعليق الحساب' : 'تم حذف الحساب';
-    const body  = type === 'block'
-      ? 'تم تعليق حسابك من قبل الإدارة'
-      : 'تم حذف حسابك من قبل الإدارة';
+    if (!fcmAlreadyDisplayed) {
+      const title = swT(lang, type === 'block' ? 'blockedTitle' : 'deletedTitle');
+      const body  = swT(lang, type === 'block' ? 'blockedBody' : 'deletedBody');
 
-    self.registration.showNotification(title, {
-      body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
-    });
+      self.registration.showNotification(title, {
+        body,
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        data: payload.data,
+      });
+    }
     return;
   }
 
   // ── Normal notification ───────────────────────────────────────────────────
-  const copy = getNotificationCopy(payload);
-  const notificationTitle = copy.title || payload.notification?.title || 'إشعار جديد';
+  if (fcmAlreadyDisplayed) return;
+
+  const copy = getNotificationCopy(payload, lang);
+  const notificationTitle = copy.title || swT(lang, 'defaultTitle');
   const notificationOptions = {
-    body: copy.body || payload.notification?.body || '',
+    body: copy.body || '',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
     data: payload.data,

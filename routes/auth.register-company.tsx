@@ -14,6 +14,9 @@ import {
 import { toast } from "sonner";
 import { AppImage } from "@/components/AppImage";
 import { z } from "zod";
+import { LANG_LABELS, t, useTranslation, type TranslationKey } from "@/i18n";
+import { compressImage, AVATAR_OPTIONS } from "@/shared/utils/media-compression";
+import { isWithinImageSizeLimit } from "@/shared/utils/media-validation";
 
 const PHONE_DIGITS: Record<string, number> = {
   KW: 8,
@@ -28,44 +31,59 @@ const PHONE_DIGITS: Record<string, number> = {
 };
 const DEFAULT_DIGITS = 10;
 
+const DEPARTMENT_KEYS: Record<number, TranslationKey> = {
+  1: "nav.categories.real-estate",
+  2: "nav.categories.construction",
+  3: "nav.categories.contracting",
+  4: "nav.categories.decor",
+  5: "nav.categories.materials",
+};
+
 const registerCompanySchema = (phoneDigits: number, whatsappDigits: number) =>
   z.object({
-    name: z.string().trim().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل"),
+    name: z.string().trim().min(3, { error: () => t("validation.nameMin3") }),
+    // Required as of the backend's RegisterCompanyRequest — it was optional here,
+    // so an empty field passed client validation and came back as a 422.
     email: z
-      .union([
-        z.string().trim().email("البريد الإلكتروني غير صحيح"),
-        z.literal(""),
-      ])
-      .optional(),
+      .string()
+      .trim()
+      .min(1, { error: () => t("auth.validation.emailRequired") })
+      .email({ error: () => t("auth.validation.emailInvalid") }),
     caption: z
       .string()
       .trim()
-      .min(1, "يرجى إدخال وصف الشركة")
-      .min(10, "الوصف يجب أن يكون 10 أحرف على الأقل")
-      .max(255, "الوصف يجب أن يكون 255 حرفاً على الأكثر"),
+      .min(1, { error: () => t("auth.validation.captionRequired") })
+      .min(10, { error: () => t("validation.descriptionMin10") })
+      .max(255, { error: () => t("validation.maxLength", { max: 255 }) }),
     company_department_id: z
       .union([z.string(), z.number()])
-      .refine((val) => !!val, "يرجى اختيار القسم"),
+      .refine((val) => !!val, { error: () => t("validation.selectDepartment") }),
     country_id: z
       .union([z.string(), z.number()])
-      .refine((val) => !!val, "يرجى اختيار الدولة"),
+      .refine((val) => !!val, { error: () => t("validation.selectCountry") }),
     state_id: z
       .union([z.string(), z.number()])
-      .refine((val) => !!val, "يرجى اختيار المحافظة"),
+      .refine((val) => !!val, { error: () => t("validation.selectGovernorate") }),
     phone: z
       .string()
       .trim()
-      .regex(/^\d+$/, "رقم الهاتف يجب أن يحتوي على أرقام فقط")
-      .length(phoneDigits, `رقم الهاتف يجب أن يكون ${phoneDigits} أرقام`),
+      .regex(/^\d+$/, { error: () => t("auth.validation.phoneDigitsOnly") })
+      .length(phoneDigits, {
+        error: () => t("auth.validation.phoneExactDigits", { digits: phoneDigits }),
+      }),
     whatsapp_phone: z
       .string()
       .trim()
-      .regex(/^\d+$/, "رقم الواتساب يجب أن يحتوي على أرقام فقط")
-      .length(
-        whatsappDigits,
-        `رقم الواتساب يجب أن يكون ${whatsappDigits} أرقام`,
-      ),
-    image: z.any().refine((file) => file instanceof File, "يرجى رفع صورة الشركة"),
+      .regex(/^\d+$/, { error: () => t("auth.validation.whatsappDigitsOnly") })
+      .length(whatsappDigits, {
+        error: () =>
+          t("auth.validation.whatsappExactDigits", { digits: whatsappDigits }),
+      }),
+    image: z
+      .any()
+      .refine((file) => file instanceof File, {
+        error: () => t("validation.uploadCompanyImage"),
+      }),
   });
 
 type RegisterCompanyErrors = Partial<
@@ -88,7 +106,17 @@ export const Route = createFileRoute("/auth/register-company")({
 });
 
 function RegisterCompanyPage() {
+  const { t: tr, dir, isRTL, lang, toggleLang } = useTranslation();
   const navigate = useNavigate();
+
+  // The chevron sits on the trailing edge of the select, so it has to follow the direction.
+  const selectChevronStyle: React.CSSProperties = {
+    backgroundPosition: isRTL ? "left 1rem center" : "right 1rem center",
+    backgroundRepeat: "no-repeat",
+    backgroundImage:
+      'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a9c2e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
+    backgroundSize: "0.65rem auto",
+  };
   const registerMutation = useRegisterCompany();
 
   const { data: countriesResponse, isLoading: loadingCountries } =
@@ -119,6 +147,7 @@ function RegisterCompanyPage() {
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isOptimizingImage, setIsOptimizingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [errors, setErrors] = useState<RegisterCompanyErrors>({});
 
@@ -161,26 +190,35 @@ function RegisterCompanyPage() {
     return mapped;
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      
-      const maxSize = 1 * 1024 * 1024; // 1 MB
-      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-      
-      if (!validTypes.includes(file.type) || file.size > maxSize) {
-        toast.error("عذراً، يجب أن يكون حجم الصورة أقل من 1 ميجابايت وبصيغة JPG أو PNG فقط.");
-        setFieldError("image", "يرجى رفع صورة بصيغة JPG أو PNG وحجم أقل من 1 ميجابايت");
-        // Clear the input so they can try again
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-        return;
-      }
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      setImageFile(file);
-      setPreviewImage(URL.createObjectURL(file));
+    // Matches the backend's `mimetypes:image/*` — it deliberately dropped the
+    // jpeg/png/webp allowlist so iPhone HEIC uploads stop being rejected.
+    const isImage = file.type.startsWith('image/');
+
+    // Size is no longer a rejection reason — compression brings any reasonable
+    // logo well under the backend's 8 MB cap. Only the type gate remains, plus
+    // an outer bound on what's safe to decode.
+    if (!isImage || !isWithinImageSizeLimit(file)) {
+      toast.error(tr("validation.imageTooLarge"));
+      setFieldError("image", tr("auth.validation.imageTypeOrSize"));
+      // Clear the input so they can try again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setIsOptimizingImage(true);
+    try {
+      const { file: optimized } = await compressImage(file, AVATAR_OPTIONS);
+      setImageFile(optimized);
+      setPreviewImage(URL.createObjectURL(optimized));
       setFieldError("image");
+    } finally {
+      setIsOptimizingImage(false);
     }
   };
 
@@ -234,18 +272,20 @@ function RegisterCompanyPage() {
 
     registerMutation.mutate(payload, {
       onSuccess: (response: any) => {
-        if (response.status || response.message === "success") {
-          toast.success("تم التسجيل بنجاح، في انتظار موافقة الإدارة", { closeButton: true });
+        // Was `response.status || response.message === "success"` — API messages are
+        // localized now, so matching on English text can never be right.
+        if (response.status) {
+          toast.success(tr("auth.registerCompany.successToast"), { closeButton: true });
           navigate({ to: "/auth" });
         } else {
-          toast.error(response.message || "حدث خطأ ما أثناء التسجيل");
+          toast.error(response.message || tr("auth.registerCompany.errorToast"));
         }
       },
       onError: (error: any) => {
         const message =
           error?.data?.message ||
           error?.message ||
-          "حدث خطأ ما أثناء التسجيل، يرجى المحاولة لاحقاً";
+          tr("auth.registerCompany.errorRetryLater");
         toast.error(message);
       },
     });
@@ -254,8 +294,16 @@ function RegisterCompanyPage() {
   return (
     <div
       className="absolute inset-0 bg-bg dark:bg-slate-950 overflow-y-auto overflow-x-hidden no-scrollbar animate-fade-in transition-colors duration-300"
-      dir="rtl"
+      dir={dir}
     >
+      <button
+        type="button"
+        onClick={toggleLang}
+        aria-label={tr("common.language")}
+        className="fixed top-[max(1rem,env(safe-area-inset-top))] rtl:left-4 ltr:right-4 z-20 rounded-full border border-pale dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 px-4 py-2 text-sm font-bold text-navy dark:text-slate-100 shadow-sm backdrop-blur active:scale-95 transition-all"
+      >
+        {LANG_LABELS[lang === "ar" ? "en" : "ar"]}
+      </button>
       <div className="p-4 sm:p-6 pb-24 max-w-lg mx-auto">
         {/* Header */}
         <div className="flex flex-col items-center text-center gap-4 mb-8">
@@ -264,7 +312,7 @@ function RegisterCompanyPage() {
             className="self-start flex items-center gap-1 text-gray-500 dark:text-slate-400 hover:text-navy dark:hover:text-blue transition-colors font-bold text-sm"
           >
             <ChevronRightIcon className="w-5 h-5 rtl:rotate-0 ltr:rotate-180" />{" "}
-            العودة للخلف
+            {tr("auth.registerCompany.back")}
           </button>
 
           <div className="w-24 h-24 mb-2">
@@ -278,10 +326,10 @@ function RegisterCompanyPage() {
 
           <div className="space-y-1">
             <h1 className="text-2xl font-black text-navy dark:text-slate-100 tracking-tight">
-              تسجيل شركة جديدة
+              {tr("auth.registerCompany.title")}
             </h1>
             <p className="text-gray-500 dark:text-slate-400 font-medium text-sm px-4">
-              انضم إلى شبكة 80road العقارية وابدأ بعرض عقارات شركتك لجمهور واسع
+              {tr("auth.registerCompany.subtitle")}
             </p>
           </div>
         </div>
@@ -292,7 +340,7 @@ function RegisterCompanyPage() {
             {/* Image Uploader */}
             <div className="flex flex-col items-center gap-2">
               <span className="text-sm font-bold text-navy dark:text-slate-200">
-                شعار الشركة
+                {tr("auth.registerCompany.logoLabel")}
               </span>
               <div
                 className="w-28 h-28 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-600 flex items-center justify-center overflow-hidden cursor-pointer relative active:scale-95 transition-all"
@@ -300,14 +348,19 @@ function RegisterCompanyPage() {
               >
                 <AppImage
                   src={previewImage}
-                  alt="Logo"
+                  alt={tr('auth.registerCompany.logoLabel')}
                   className="w-full h-full"
                 />
+                {isOptimizingImage && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <SpinnerIcon className="w-6 h-6 text-white animate-spin" />
+                  </div>
+                )}
                 <input
                   type="file"
                   ref={fileInputRef}
                   className="hidden"
-                  accept="image/jpeg, image/png, image/jpg"
+                  accept="image/*"
                   onChange={handleImageChange}
                 />
               </div>
@@ -321,7 +374,7 @@ function RegisterCompanyPage() {
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center gap-1.5 px-1">
                   <MailIcon className="w-4 h-4 text-blue" />
-                  البريد الإلكتروني (اختياري)
+                  {tr("auth.registerCompany.emailLabel")}
                 </label>
                 <input
                   type="email"
@@ -334,7 +387,7 @@ function RegisterCompanyPage() {
                       const emailResult = z
                         .string()
                         .trim()
-                        .email("البريد الإلكتروني غير صحيح")
+                        .email({ error: () => t("auth.validation.emailInvalid") })
                         .safeParse(formData.email);
                       setFieldError(
                         "email",
@@ -360,21 +413,19 @@ function RegisterCompanyPage() {
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center gap-1.5 px-1">
                   <BuildingIcon className="w-4 h-4 text-blue" />
-                  اسم الشركة
+                  {tr("auth.registerCompany.nameLabel")}
                 </label>
                 <input
                   type="text"
                   name="name"
-                  placeholder="أدخل اسم الشركة"
+                  placeholder={tr("auth.registerCompany.namePlaceholder")}
                   value={formData.name}
                   onChange={handleChange}
                   onBlur={() => {
                     const value = formData.name.trim();
                     setFieldError(
                       "name",
-                      value.length < 3
-                        ? "الاسم يجب أن يكون 3 أحرف على الأقل"
-                        : undefined,
+                      value.length < 3 ? tr("validation.nameMin3") : undefined,
                     );
                   }}
                   className="h-14 px-4 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors"
@@ -389,7 +440,7 @@ function RegisterCompanyPage() {
               {/* Department Select */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 px-1">
-                  القسم
+                  {tr("auth.registerCompany.departmentLabel")}
                 </label>
                 <select
                   name="company_department_id"
@@ -397,23 +448,24 @@ function RegisterCompanyPage() {
                   onChange={handleChange}
                   onBlur={() => {
                     if (!formData.company_department_id) {
-                      setFieldError("company_department_id", "يرجى اختيار القسم");
+                      setFieldError(
+                        "company_department_id",
+                        tr("validation.selectDepartment"),
+                      );
                     }
                   }}
-                  className="h-14 px-4 pr-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none"
-                  style={{
-                    backgroundPosition: "left 1rem center",
-                    backgroundRepeat: "no-repeat",
-                    backgroundImage:
-                      'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a9c2e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-                    backgroundSize: "0.65rem auto",
-                  }}
+                  className="h-14 px-4 rtl:pr-10 ltr:pl-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none"
+                  style={selectChevronStyle}
                 >
-                  <option value="">اختر القسم</option>
+                  <option value="">
+                    {tr("auth.registerCompany.departmentPlaceholder")}
+                  </option>
                   {!loadingDepts &&
                     departments.map((d: any) => (
                       <option key={d.id} value={d.id}>
-                        {d.name || d.value}
+                        {DEPARTMENT_KEYS[d.id]
+                          ? tr(DEPARTMENT_KEYS[d.id])
+                          : d.name || d.value}
                       </option>
                     ))}
                 </select>
@@ -427,7 +479,7 @@ function RegisterCompanyPage() {
               {/* Country Select */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 px-1">
-                  الدولة
+                  {tr("auth.registerCompany.countryLabel")}
                 </label>
                 <select
                   name="country_id"
@@ -435,19 +487,15 @@ function RegisterCompanyPage() {
                   onChange={handleChange}
                   onBlur={() => {
                     if (!formData.country_id) {
-                      setFieldError("country_id", "يرجى اختيار الدولة");
+                      setFieldError("country_id", tr("validation.selectCountry"));
                     }
                   }}
-                  className="h-14 px-4 pr-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none"
-                  style={{
-                    backgroundPosition: "left 1rem center",
-                    backgroundRepeat: "no-repeat",
-                    backgroundImage:
-                      'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a9c2e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-                    backgroundSize: "0.65rem auto",
-                  }}
+                  className="h-14 px-4 rtl:pr-10 ltr:pl-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none"
+                  style={selectChevronStyle}
                 >
-                  <option value="">اختر الدولة</option>
+                  <option value="">
+                    {tr("auth.registerCompany.countryPlaceholder")}
+                  </option>
                   {!loadingCountries &&
                     countries.map((c: any) => (
                       <option key={c.id || c.code} value={c.id || c.code}>
@@ -465,7 +513,7 @@ function RegisterCompanyPage() {
               {/* State Select */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 px-1">
-                  المحافظة
+                  {tr("auth.registerCompany.stateLabel")}
                 </label>
                 <select
                   name="state_id"
@@ -474,22 +522,19 @@ function RegisterCompanyPage() {
                   disabled={!formData.country_id || loadingStates}
                   onBlur={() => {
                     if (!formData.state_id) {
-                      setFieldError("state_id", "يرجى اختيار المحافظة");
+                      setFieldError(
+                        "state_id",
+                        tr("validation.selectGovernorate"),
+                      );
                     }
                   }}
-                  className="h-14 px-4 pr-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none disabled:opacity-50"
-                  style={{
-                    backgroundPosition: "left 1rem center",
-                    backgroundRepeat: "no-repeat",
-                    backgroundImage:
-                      'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a9c2e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-                    backgroundSize: "0.65rem auto",
-                  }}
+                  className="h-14 px-4 rtl:pr-10 ltr:pl-10 rounded-2xl bg-gray-50 dark:bg-slate-800/50 border border-pale dark:border-slate-700 text-navy dark:text-slate-200 font-bold outline-none focus:border-blue transition-colors appearance-none disabled:opacity-50"
+                  style={selectChevronStyle}
                 >
                   <option value="">
                     {!formData.country_id
-                      ? "اختر الدولة أولاً"
-                      : "اختر المحافظة"}
+                      ? tr("auth.registerCompany.selectCountryFirst")
+                      : tr("auth.registerCompany.statePlaceholder")}
                   </option>
                   {!loadingStates &&
                     states.map((s: any) => (
@@ -509,7 +554,7 @@ function RegisterCompanyPage() {
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center gap-1.5 px-1">
                   <PhoneIcon className="w-4 h-4 text-blue" />
-                  رقم الهاتف
+                  {tr("auth.registerCompany.phoneLabel")}
                 </label>
                 <div
                   dir="ltr"
@@ -571,7 +616,9 @@ function RegisterCompanyPage() {
                       }}
                       maxLength={maxPhoneDigits}
                       className="w-full h-full bg-transparent px-3 text-right font-bold text-navy dark:text-slate-100 tracking-wider focus:outline-none"
-                      placeholder={`أدخل ${maxPhoneDigits} أرقام`}
+                      placeholder={tr("auth.registerCompany.digitsPlaceholder", {
+                        digits: maxPhoneDigits,
+                      })}
                       dir="ltr"
                     />
                   </div>
@@ -587,7 +634,7 @@ function RegisterCompanyPage() {
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center gap-1.5 px-1">
                   <WhatsappIcon className="w-4 h-4 text-green-500" />
-                  رقم الواتساب
+                  {tr("auth.registerCompany.whatsappLabel")}
                 </label>
                 <div
                   dir="ltr"
@@ -652,7 +699,9 @@ function RegisterCompanyPage() {
                       }}
                       maxLength={maxWhatsappDigits}
                       className="w-full h-full bg-transparent px-3 text-right font-bold text-navy dark:text-slate-100 tracking-wider focus:outline-none"
-                      placeholder={`أدخل ${maxWhatsappDigits} أرقام`}
+                      placeholder={tr("auth.registerCompany.digitsPlaceholder", {
+                        digits: maxWhatsappDigits,
+                      })}
                       dir="ltr"
                     />
                   </div>
@@ -667,11 +716,11 @@ function RegisterCompanyPage() {
               {/* Caption */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 px-1">
-                  وصف الشركة
+                  {tr("auth.registerCompany.captionLabel")}
                 </label>
                 <textarea
                   name="caption"
-                  placeholder="تحدث قليلاً عن نشاط الشركة العقاري..."
+                  placeholder={tr("auth.registerCompany.captionPlaceholder")}
                   value={formData.caption}
                   onChange={handleChange}
                   onBlur={() => {
@@ -679,7 +728,7 @@ function RegisterCompanyPage() {
                     setFieldError(
                       "caption",
                       value.length < 10
-                        ? "الوصف يجب أن يكون 10 أحرف على الأقل"
+                        ? tr("validation.descriptionMin10")
                         : undefined,
                     );
                   }}
@@ -695,13 +744,13 @@ function RegisterCompanyPage() {
 
             <button
               type="submit"
-              disabled={registerMutation.isPending}
+              disabled={registerMutation.isPending || isOptimizingImage}
               className="mt-2 w-full h-14 rounded-2xl bg-navy dark:bg-blue text-white font-black text-lg flex items-center justify-center shadow-lg shadow-navy/20 dark:shadow-blue/20 active:scale-95 transition-all disabled:opacity-70"
             >
-              {registerMutation.isPending ? (
+              {registerMutation.isPending || isOptimizingImage ? (
                 <SpinnerIcon className="w-6 h-6 animate-spin" />
               ) : (
-                "تقديم طلب التسجيل"
+                tr("auth.registerCompany.submit")
               )}
             </button>
           </form>

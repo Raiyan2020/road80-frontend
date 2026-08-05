@@ -23,9 +23,9 @@ export const HomeListingCard: React.FC<{ listing: Listing }> = ({ listing }) => 
         />
       </div>
       <div className="flex min-h-[80px] flex-1 flex-col justify-between gap-1 p-3">
-        <span className="line-clamp-1 text-right font-sans text-sm font-bold text-blue dark:text-blue/80">{listing.price}</span>
-        <h4 className="line-clamp-2 min-h-[2rem] text-right font-sans text-xs font-semibold leading-4 text-navy dark:text-slate-200">{listing.title}</h4>
-        <div className="flex items-center justify-end gap-1 opacity-60">
+        <span className="line-clamp-1 rtl:text-right ltr:text-left font-sans text-sm font-bold text-blue dark:text-blue/80">{listing.price}</span>
+        <h4 className="line-clamp-2 min-h-[2rem] rtl:text-right ltr:text-left font-sans text-xs font-semibold leading-4 text-navy dark:text-slate-200">{listing.title}</h4>
+        <div className="flex items-center rtl:justify-end ltr:justify-start gap-1 opacity-60">
           <span className="line-clamp-1 font-sans text-[13px] font-medium text-navy dark:text-slate-400">{listing.area}</span>
           <div className="w-1 h-1 rounded-full bg-navy dark:bg-slate-400"></div>
         </div>

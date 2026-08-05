@@ -1,15 +1,22 @@
 import { ofetch, type FetchOptions } from 'ofetch';
-
-const BASE_URL = 'https://portal.road-80.com/api';
+import { API_BASE_URL } from '@/lib/api-base-url';
+import { getLang } from '@/i18n';
 
 export const apiClient = ofetch.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
   async onRequest({ options }) {
     try {
+      // Localize backend responses and error messages to the active language.
+      {
+        const headers = new Headers(options.headers);
+        headers.set('Accept-Language', getLang());
+        options.headers = headers;
+      }
+
       const userStr = localStorage.getItem('road80_user');
       if (userStr) {
           const user = JSON.parse(userStr);

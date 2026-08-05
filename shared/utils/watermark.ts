@@ -37,8 +37,12 @@ const renameForType = (fileName: string, isPng: boolean) => {
 };
 
 /**
- * Draws the app logo into the top-right corner of `file` at 50% opacity and
+ * Draws the app logo into the top-right corner of `file` at 30% opacity and
  * returns a new File ready for upload.
+ *
+ * Deliberately lighter than the server-side video watermark (15% width / 50%
+ * opacity, config/watermark.php). Both sit top-right, but photos carry a
+ * subtler mark by choice — don't "fix" the difference without asking.
  *
  * Orientation note: `naturalWidth`/`naturalHeight` on an HTMLImageElement
  * already account for EXIF orientation (CSS `image-orientation: from-image` is

@@ -23,6 +23,9 @@ import {
   useDeleteAd,
 } from "../features/account/hooks/useProfile";
 import { UpdateProfileDialog } from "./UpdateProfileDialog";
+import { SocialLinksDialog } from "./SocialLinksDialog";
+import { SocialLinksRow } from "./SocialLinksRow";
+import type { UserSocials } from "@/shared/services/social-platforms.service";
 import { useOffice } from "../features/companies/hooks/useOffices";
 import { useOfficeAds } from "../features/companies/hooks/useOfficeAds";
 import { listingHasVideo } from "../features/explore/services/explore.service";
@@ -30,6 +33,7 @@ import { AppImage } from "./AppImage";
 import { resolveListingImageUrl } from "@/shared/utils/listing-image";
 import { PlayIcon } from "./Icons";
 import { APP_LOGO_URL } from "@/shared/constants/images";
+import { useTranslation } from "../i18n";
 import { buildShareUrl, shareContent } from "@/shared/utils/share";
 
 interface ProfilePageProps {
@@ -55,6 +59,7 @@ const ListingCard: React.FC<{
   listing,
   onClick,
 }) => {
+  const { t } = useTranslation();
   const hasVideo = listingHasVideo(listing);
 
   return (
@@ -69,7 +74,7 @@ const ListingCard: React.FC<{
           className="w-full h-full"
         />
         <span className="absolute top-2 left-2 bg-navy/80 dark:bg-blue/80 text-white text-[13px] px-2 py-0.5 rounded-full z-10 font-bold">
-          جديد
+          {t("profile.page.newBadge")}
         </span>
 
         {hasVideo && (
@@ -82,13 +87,13 @@ const ListingCard: React.FC<{
 
       </div>
       <div className="p-3 flex flex-col gap-1.5 flex-1">
-        <span className="text-blue dark:text-blue/80 font-bold text-sm text-right font-sans leading-tight min-h-[1.25rem]">
+        <span className="text-blue dark:text-blue/80 font-bold text-sm rtl:text-right ltr:text-left font-sans leading-tight min-h-[1.25rem]">
           {listing.price}
         </span>
-        <h4 className="text-navy dark:text-slate-200 font-semibold text-xs text-right font-sans leading-[1.4] line-clamp-2 min-h-[2.2rem]">
+        <h4 className="text-navy dark:text-slate-200 font-semibold text-xs rtl:text-right ltr:text-left font-sans leading-[1.4] line-clamp-2 min-h-[2.2rem]">
           {listing.title}
         </h4>
-        <div className="flex items-center justify-end gap-1 opacity-60 min-h-[1.25rem]">
+        <div className="flex items-center rtl:justify-end ltr:justify-start gap-1 opacity-60 min-h-[1.25rem]">
           <span className="text-[13px] text-navy dark:text-slate-400 font-medium font-sans truncate max-w-full">
             {listing.area}
           </span>
@@ -114,6 +119,7 @@ const StatItem: React.FC<{ label: string; value: string }> = ({
 );
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -132,6 +138,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     activeTabParam === "favorites" && isMe ? "favorites" : "ads",
   );
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isSocialLinksOpen, setIsSocialLinksOpen] = useState(false);
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
 
   useEffect(() => {
@@ -162,12 +169,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     ? myAdsLoading || myFavsLoading || profileLoading
     : officeLoading || officeAdsLoading;
 
-  let profileName = "مستخدم";
+  let profileName = t("profile.page.defaultUserName");
   let profileBio = "";
   let profileAvatar: string | null = APP_LOGO_URL;
   let isVerified = false;
   let stats = { ads: "0", likes: "0", views: "0" };
   let displayList: Listing[] = [];
+  let socials: UserSocials = {};
 
   if (isMe) {
     const myAds = myAdsData;
@@ -178,13 +186,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
       likes: myFavs.length.toString() || "0",
       views: profile?.total_ads_watch?.toString() || "0",
     };
-    profileName = profile?.name || profile?.country_code || "مستخدم";
+    profileName = profile?.name || profile?.country_code || t("profile.page.defaultUserName");
     profileBio = profile?.caption || "";
     profileAvatar = profile?.image || APP_LOGO_URL;
     isVerified = false;
+    socials = profile?.socials || {};
   } else {
     if (officeData) {
-      profileName = officeData.officeName || "شركة";
+      profileName = officeData.officeName || t("profile.page.defaultCompanyName");
       profileAvatar = officeData.logo || APP_LOGO_URL;
       profileBio = officeData.bio || "";
       isVerified = false;
@@ -194,6 +203,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
         views: officeData.totalViews?.toString() || "0",
       };
       displayList = officeAdsData as Listing[];
+      socials = (officeData.socials || {}) as UserSocials;
     }
   }
 
@@ -243,10 +253,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
             onPointerDown={openAvatarPreview}
             onTouchStart={openAvatarPreview}
             className="absolute inset-0 z-30 rounded-full cursor-pointer touch-manipulation bg-transparent active:scale-95 transition-transform"
-            aria-label="عرض صورة الملف الشخصي"
+            aria-label={t("profile.editDialog.avatarAlt")}
           />
         </div>
-        <div className="flex flex-col gap-1 flex-1">
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <h2 className="text-xl font-bold text-navy dark:text-slate-200 font-sans line-clamp-1">
               {profileName}
@@ -258,34 +268,51 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           <p className="text-xs text-gray-500 dark:text-slate-400 leading-snug font-sans font-normal whitespace-pre-line">
             {profileBio}
           </p>
-          <div className="mr-auto flex items-center gap-2">
-            {isMe && (
+        </div>
+
+        {/* Pinned so they stay reachable no matter how many social links exist */}
+        <div className="flex items-center gap-2 shrink-0">
+          {isMe && (
+            <>
+              <button
+                onClick={() => setIsSocialLinksOpen(true)}
+                title={t("profile.page.socialLinksTitle")}
+                aria-label={t("profile.page.socialLinksAria")}
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
+              >
+                <LinkIcon className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => setIsEditProfileOpen(true)}
-                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300"
+                title={t("profile.page.editProfileTitle")}
+                aria-label={t("profile.page.editProfileAria")}
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-90 transition-all"
               >
                 <EditIcon className="w-4 h-4" />
               </button>
-            )}
-            {shareableUserId && (
-              <button
-                onClick={handleShare}
-                aria-label="مشاركة الملف الشخصي"
-                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-95 transition-transform"
-              >
-                <ShareIcon className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+            </>
+          )}
+          {shareableUserId && (
+            <button
+              onClick={handleShare}
+              title={t("common.share")}
+              aria-label={t("common.share")}
+              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-navy dark:text-slate-300 active:scale-95 transition-transform"
+            >
+              <ShareIcon className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
+      <SocialLinksRow socials={socials} className="-mt-2 flex-wrap" />
+
       <div className="flex justify-between items-center px-4 py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-pale dark:border-slate-800 transition-colors duration-300">
-        <StatItem label="الإعلانات" value={stats.ads} />
+        <StatItem label={t("profile.page.statAds")} value={stats.ads} />
         <div className="w-px h-8 bg-gray-100 dark:bg-slate-800"></div>
-        <StatItem label="الإعجابات" value={stats.likes} />
+        <StatItem label={t("profile.page.statLikes")} value={stats.likes} />
         <div className="w-px h-8 bg-gray-100 dark:bg-slate-800"></div>
-        <StatItem label="المشاهدات" value={stats.views} />
+        <StatItem label={t("profile.page.statViews")} value={stats.views} />
       </div>
 
       {/* <div className="flex gap-3">
@@ -296,14 +323,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-navy/20 dark:border-slate-700 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 font-semibold text-sm transition-all active:scale-98"
         >
           <WhatsappIcon className="w-6 h-6" />
-          <span>ارسال واتساب</span>
+          <span>{t("profile.page.sendWhatsapp")}</span>
         </a>
         <a
           href="tel:+96598812020"
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-navy dark:bg-blue text-white font-semibold text-sm shadow-lg shadow-navy/20 dark:shadow-blue/20 transition-all active:scale-98"
         >
           <PhoneIcon className="w-5 h-5" />
-          <span>اتصال</span>
+          <span>{t("profile.page.call")}</span>
         </a>
       </div> */}
 
@@ -324,7 +351,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
 
       <div className="flex flex-col gap-4 mt-2">
         <h3 className="text-lg font-bold text-navy dark:text-slate-200 font-sans px-1">
-          {isMe ? "اعلاناتي" : `إعلانات ${profileName}`}
+          {isMe
+            ? t("profile.page.myAdsHeading")
+            : t("profile.page.userAdsHeading", { name: profileName })}
         </h3>
         {isMe && (
           <div className="flex p-1 bg-gray-100/80 dark:bg-slate-800 rounded-xl relative transition-colors duration-300">
@@ -332,13 +361,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
               onClick={() => handleTabChange("ads")}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 font-sans ${activeSubTab === "ads" ? "bg-white dark:bg-slate-900 shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-navy dark:text-slate-200" : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"}`}
             >
-              اعلاناتي
+              {t("profile.page.tabMyAds")}
             </button>
             <button
               onClick={() => handleTabChange("favorites")}
               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-300 font-sans ${activeSubTab === "favorites" ? "bg-white dark:bg-slate-900 shadow-[0_2px_8px_rgba(0,0,0,0.05)] text-navy dark:text-slate-200" : "text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"}`}
             >
-              مفضلتي
+              {t("profile.page.tabFavorites")}
             </button>
           </div>
         )}
@@ -358,7 +387,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
           )}
           {!isLoading && displayList.length === 0 && (
             <div className="col-span-2 py-10 text-center text-gray-400 dark:text-slate-600 text-sm font-medium">
-              لا توجد إعلانات
+              {t("profile.page.emptyAds")}
             </div>
           )}
         </div>
@@ -372,20 +401,28 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
         />
       )}
 
+      {isMe && (
+        <SocialLinksDialog
+          isOpen={isSocialLinksOpen}
+          onClose={() => setIsSocialLinksOpen(false)}
+          socials={socials}
+        />
+      )}
+
       {isAvatarPreviewOpen && (
         <div className="fixed inset-0 z-[260] flex items-center justify-center p-6" dir="rtl">
           <button
             type="button"
             className="absolute inset-0 bg-black/75 backdrop-blur-sm"
             onClick={() => setIsAvatarPreviewOpen(false)}
-            aria-label="إغلاق معاينة الصورة"
+            aria-label={t("profile.editDialog.avatarAlt")}
           />
           <div className="relative w-full max-w-sm rounded-[28px] bg-white dark:bg-slate-900 p-5 shadow-2xl animate-fade-in">
             <button
               type="button"
               onClick={() => setIsAvatarPreviewOpen(false)}
               className="absolute left-4 top-4 z-10 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-800/90 text-navy dark:text-slate-200 flex items-center justify-center shadow-md active:scale-95 transition-transform"
-              aria-label="إغلاق"
+              aria-label={t("common.close")}
             >
               <CloseIcon className="w-5 h-5" />
             </button>

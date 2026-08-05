@@ -1,5 +1,6 @@
 import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { t } from '@/i18n';
 
 export function makeQueryClient() {
   return new QueryClient({
@@ -15,9 +16,10 @@ export function makeQueryClient() {
         if (err.status === 401) return;
 
         if (typeof window !== 'undefined') {
-          const message = err?.data?.message || err?.message || 'حدث خطأ غير متوقع.';
+          // Resolved inside the handler so the toast follows the live language.
+          const message = err?.data?.message || err?.message || t('common.genericError');
           toast.error(message, {
-            description: 'يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.',
+            description: t('common.networkError'),
           });
         }
       },
@@ -33,7 +35,7 @@ export function makeQueryClient() {
         if (err.status === 401) return;
 
         if (typeof window !== 'undefined') {
-          const message = err?.data?.message || err?.message || 'فشلت العملية.';
+          const message = err?.data?.message || err?.message || t('common.actionFailed');
           toast.error(message, {
             id: 'mutation-error', // Prevent duplicate toast for same mutation
           });

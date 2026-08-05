@@ -26,23 +26,25 @@ export async function fetchListingById(id: number): Promise<any | null> {
 export interface CallResponse {
   status: boolean;
   message: string;
+  /** An embedded payment session — see shared/services/payment.service. */
   data: {
-    payment_url: string;
+    session_id: string;
+    encryption_key: string;
     transaction_id: number;
-    phone?: string;
-    session_id?: string;
-    encryption_key?: string;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   errors: any[];
 }
 
 /**
- * Initiate a call for an ad.
+ * Open a payment session to unlock an ad's contact details.
+ *
+ * Moved under the `payments` prefix backend-side. The bare `/call` this used to
+ * post to only survived as a duplicate route registration and has been removed.
  */
 export async function initiateCall(adId: number): Promise<CallResponse> {
   const formData = new FormData();
   formData.append('ad_id', adId.toString());
 
-  return api.post<CallResponse>('/call', formData);
+  return api.post<CallResponse>('/payments/call', formData);
 }

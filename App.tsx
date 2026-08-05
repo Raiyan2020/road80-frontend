@@ -15,17 +15,12 @@ import { Tab, Listing } from './types';
 import { initializePushNotifications } from './shared/utils/notifications';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { useTranslation, type TranslationKey } from './i18n';
 
-// Duplicate category map for Title resolution
-const CATEGORY_NAMES: Record<string, string> = {
-  'real-estate': 'الشركات العقارية',
-  'construction': 'الشركات الانشائية',
-  'contracting': 'شركات المقاولات',
-  'decor': 'قسم الديكور',
-  'materials': 'مواد البناء'
-};
+const CATEGORY_KEYS = ['real-estate', 'construction', 'contracting', 'decor', 'materials'] as const;
 
 const App: React.FC = () => {
+  const { t } = useTranslation();
   const [showSplash, setShowSplash] = useState(true);
   const [currentHash, setCurrentHash] = useState(window.location.hash);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
@@ -147,11 +142,11 @@ const App: React.FC = () => {
 
   const getPageTitle = (tab: Tab): string => {
     switch (tab) {
-      case Tab.HOME: return 'الرئيسية';
-      case Tab.COMPANIES: return 'الشركات';
-      case Tab.ADD: return 'انشر اعلانك';
-      case Tab.EXPLORE: return 'اكسبلور';
-      case Tab.PROFILE: return 'حسابي';
+      case Tab.HOME: return t('nav.home');
+      case Tab.COMPANIES: return t('nav.companies');
+      case Tab.ADD: return t('nav.postAd');
+      case Tab.EXPLORE: return t('nav.explore');
+      case Tab.PROFILE: return t('nav.profile');
       default: return '80road';
     }
   };
@@ -166,14 +161,16 @@ const App: React.FC = () => {
       if (categoryId) {
         // Sub-page: Company List (Filtered)
         return {
-          title: CATEGORY_NAMES[categoryId] || 'الشركات',
+          title: (CATEGORY_KEYS as readonly string[]).includes(categoryId)
+            ? t(`nav.categories.${categoryId}` as TranslationKey)
+            : t('nav.companies'),
           showBack: true,
           onBack: () => window.location.hash = '#/companies'
         };
       } else {
         // Root: Categories
         return {
-          title: 'الشركات',
+          title: t('nav.companies'),
           showBack: true,
           onBack: () => window.location.hash = '#/home'
         };
@@ -184,7 +181,7 @@ const App: React.FC = () => {
       if (userId && userId !== 'current_user') {
         // Sub-page: Other User/Company Profile
         return {
-          title: 'الملف التعريفي',
+          title: t('nav.publicProfile'),
           showBack: true,
           onBack: () => window.history.back()
         };

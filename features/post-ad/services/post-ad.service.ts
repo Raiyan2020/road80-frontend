@@ -63,12 +63,15 @@ export const postAdService = {
     fileId: string;
     chunkIndex: number;
     chunk: Blob;
+    signal?: AbortSignal;
   }): Promise<UploadChunkResponse> => {
     const formData = new FormData();
     formData.append('file_id', params.fileId);
     formData.append('chunk_index', String(params.chunkIndex));
     formData.append('file', params.chunk);
-    return api.post<UploadChunkResponse>('/upload-chunk', formData);
+    return api.post<UploadChunkResponse>('/upload-chunk', formData, {
+      signal: params.signal,
+    });
   },
 
   /**
@@ -79,12 +82,15 @@ export const postAdService = {
     fileId: string;
     totalChunks: number;
     originalExtension: string; // e.g. ".mp4"
+    signal?: AbortSignal;
   }): Promise<MergeChunksResponse> => {
     const formData = new FormData();
     formData.append('file_id', params.fileId);
     formData.append('total_chunks', String(params.totalChunks));
     formData.append('original_extension', params.originalExtension);
-    return api.post<MergeChunksResponse>('/merge-chunks', formData);
+    return api.post<MergeChunksResponse>('/merge-chunks', formData, {
+      signal: params.signal,
+    });
   },
 
   /**

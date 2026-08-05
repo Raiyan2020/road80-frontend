@@ -8,9 +8,14 @@ import { useUserStore } from "@/stores/user.store";
 
 import { useCountries } from "@/shared/hooks/useCountries";
 import { usePrivacy, useTerms } from "@/features/pages/hooks/usePages";
-import { getDeviceId } from "@/shared/utils/notifications";
+import {
+  getDevicePushToken,
+  getDeviceType,
+  registerCurrentDeviceWithRetry,
+} from "@/shared/utils/notifications";
 import { User } from "@/shared/types/auth";
 import { AppImage } from "./AppImage";
+import { LANG_LABELS, useTranslation } from "@/i18n";
 
 // Number of local phone digits (without country code) per country_code
 const PHONE_DIGITS: Record<string, number> = {
@@ -31,6 +36,7 @@ interface AuthPageProps {
 }
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
+  const { t, dir, lang, toggleLang } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [step, setStep] = useState<"PHONE" | "OTP">("PHONE");
@@ -40,7 +46,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(30);
-  const [pageDialog, setPageDialog] = useState<"terms" | "privacy" | null>(null);
+  const [pageDialog, setPageDialog] = useState<"terms" | "privacy" | null>(
+    null,
+  );
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Real API hooks
@@ -91,7 +99,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
     // Basic Validation — must match the country's exact digit count
     if (!phone || phone.length < maxPhoneDigits || isNaN(Number(phone))) {
-      setError(`يرجى إدخال رقم الهاتف كاملاً (${maxPhoneDigits} أرقام)`);
+      setError(t("auth.login.phoneIncomplete", { digits: maxPhoneDigits }));
       return;
     }
 
@@ -106,12 +114,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             sessionStorage.setItem("temp_auth_country_id", String(countryId));
             navigate({ to: "/verify", replace: true });
           } else {
-            setError(response.message || "فشل إرسال الرمز");
+            setError(response.message || t("auth.login.sendCodeFailed"));
           }
         },
         onError: (err: any) => {
           setLoading(false);
-          setError(err?.data?.message || "حدث خطأ، يرجى المحاولة مجدداً");
+          setError(err?.data?.message || t("common.tryAgain"));
         },
       },
     );
@@ -148,15 +156,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     setError("");
 
     try {
-      const device_id = getDeviceId();
+      const device_id = getDevicePushToken();
       // Sending OTP Verification payload
 
       const response = await authService.verifyOtp({
         phone,
         code,
         country_id: countryId,
-        device_id: device_id,
-        device_type: "web",
+        device_id: device_id ?? undefined,
+        device_type: device_id ? getDeviceType() : undefined,
       });
 
       if (response.status && response.data) {
@@ -168,19 +176,22 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         loginUser({
           id: user.id,
           phone: user.country_code,
-          name: user.name || "مستخدم",
+          name: user.name || t("auth.defaultUserName"),
           avatar: user.image,
           token,
         });
+        void registerCurrentDeviceWithRetry(token).catch((error) => {
+          console.warn("Failed to register push device after login.", error);
+        });
         onLoginSuccess(user);
       } else {
-        setError(response.message || "رمز التفعيل غير صحيح");
+        setError(response.message || t("auth.verify.invalidCode"));
         setLoading(false);
         setOtp(["", "", "", ""]);
         inputs.current[0]?.focus();
       }
     } catch (err: any) {
-      setError(err?.data?.message || "رمز التفعيل غير صحيح");
+      setError(err?.data?.message || t("auth.verify.invalidCode"));
       setLoading(false);
       setOtp(["", "", "", ""]);
       inputs.current[0]?.focus();
@@ -197,26 +208,36 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         country_id: countryId,
       });
       if (response.status) {
-        toast.success("تم إعادة إرسال رمز التفعيل", { closeButton: true });
+        toast.success(t("auth.verify.resendSuccess"), { closeButton: true });
       } else {
-        const message = response.message || "فشل إعادة الإرسال";
+        const message = response.message || t("auth.verify.resendFailed");
         setError(message);
         toast.error(message, { closeButton: true });
       }
     } catch {
-      const message = "فشل إعادة الإرسال، حاول مرة أخرى";
+      const message = t("auth.verify.resendFailedRetry");
       setError(message);
       toast.error(message, { closeButton: true });
     }
   };
 
   const closeDialog = () => setPageDialog(null);
-  const dialogTitle = pageDialog === "terms" ? "الشروط والأحكام" : "سياسة الخصوصية";
+  const dialogTitle =
+    pageDialog === "terms" ? t("nav.terms") : t("nav.privacy");
   const dialogData = pageDialog === "terms" ? termsData : privacyData;
-  const dialogLoading = pageDialog === "terms" ? isTermsLoading : isPrivacyLoading;
+  const dialogLoading =
+    pageDialog === "terms" ? isTermsLoading : isPrivacyLoading;
 
   return (
-    <div className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in p-6">
+    <div className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in p-6" dir={dir}>
+      <button
+        type="button"
+        onClick={toggleLang}
+        aria-label={t("common.language")}
+        className="absolute top-[max(1rem,env(safe-area-inset-top))] rtl:left-4 ltr:right-4 z-20 rounded-full border border-pale dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 px-4 py-2 text-sm font-bold text-navy dark:text-slate-100 shadow-sm backdrop-blur active:scale-95 transition-all"
+      >
+        {LANG_LABELS[lang === "ar" ? "en" : "ar"]}
+      </button>
       {/* Soft Background Blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-blue/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[40%] bg-navy/5 rounded-full blur-3xl pointer-events-none" />
@@ -228,7 +249,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           <AppImage
             src="/road-logo.png"
             alt="80road"
-            className="w-32 h-auto drop-shadow-sm"
+            className="w-36 h-auto drop-shadow-sm"
             coverClassName="object-contain"
           />
         </div>
@@ -238,12 +259,12 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           {/* Header Text */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-navy dark:text-white mb-2">
-              {step === "PHONE" ? "تسجيل الدخول" : "التحقق"}
+              {step === "PHONE" ? t("auth.login.title") : t("auth.verify.title")}
             </h1>
             <p className="text-gray-400 dark:text-slate-400 text-xs font-medium">
               {step === "PHONE"
-                ? "أهلاً بك في منصة 80road العقارية"
-                : `تم إرسال رمز التفعيل إلى ${phone}`}
+                ? t("auth.login.subtitle")
+                : t("auth.verify.codeSentTo", { phone })}
             </p>
           </div>
 
@@ -251,8 +272,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             <form onSubmit={handlePhoneSubmit} className="flex flex-col gap-6">
               {/* Phone Input Group */}
               <div className="flex flex-col gap-3 mb-2">
-                <label className="text-sm font-bold text-gray-500 dark:text-slate-400 text-right px-2">
-                  رقم الهاتف
+                <label className="text-sm font-bold text-gray-500 dark:text-slate-400 rtl:text-right ltr:text-left px-2">
+                  {t("auth.login.phoneLabel")}
                 </label>
 
                 {/* Unified Pill Container */}
@@ -270,12 +291,21 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                     >
                       {countries.length > 0 ? (
                         countries.map((c) => (
-                          <option key={c.id} value={c.id} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">
+                          <option
+                            key={c.id}
+                            value={c.id}
+                            className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold"
+                          >
                             {c.country_code || "KW"} {c.phone_code}
                           </option>
                         ))
                       ) : (
-                        <option value={1} className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold">KW +965</option>
+                        <option
+                          value={1}
+                          className="text-navy dark:text-slate-200 bg-white dark:bg-slate-900 font-bold"
+                        >
+                          KW +965
+                        </option>
                       )}
                     </select>
                     <div className="pointer-events-none flex items-center gap-1 text-navy dark:text-blue font-semibold text-sm tracking-wide">
@@ -319,7 +349,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 {loading ? (
                   <SpinnerIcon className="w-6 h-6 animate-spin text-white" />
                 ) : (
-                  "دخول"
+                  t("auth.login.submit")
                 )}
               </button>
             </form>
@@ -358,7 +388,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                 {loading ? (
                   <SpinnerIcon className="w-6 h-6 animate-spin" />
                 ) : (
-                  "تأكيد"
+                  t("auth.verify.confirm")
                 )}
               </button>
 
@@ -370,15 +400,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   className={`text-xs font-bold transition-colors ${timer > 0 ? "text-gray-400" : "text-blue hover:text-navy"}`}
                 >
                   {timer > 0
-                    ? `إعادة الإرسال بعد ${timer} ثانية`
-                    : "إعادة إرسال الرمز"}
+                    ? t("auth.verify.resendIn", { seconds: timer })
+                    : t("auth.verify.resend")}
                 </button>
 
                 <button
                   onClick={() => navigate({ to: "/auth", replace: true })}
                   className="text-xs text-gray-400 hover:text-navy transition-colors py-2 px-4 hover:bg-slate-50 rounded-lg"
                 >
-                  تغيير رقم الهاتف
+                  {t("auth.verify.changePhone")}
                 </button>
               </div>
             </div>
@@ -398,13 +428,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             onClick={() => navigate({ to: "/auth/register-company" })}
             className="text-sm font-bold text-navy dark:text-blue hover:text-blue dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-1.5 active:scale-95"
           >
-            إنشاء حساب مكتب عقاري / شركة
+            {t("auth.footer.registerCompanyCta")}
             <ChevronRightIcon className="w-4 h-4 rtl:rotate-180 ltr:rotate-0" />
           </button>
 
-            <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-              <span>بتسجيل الدخول فإنك تقبل</span>
-              <span
+          <p className="text-[13px] text-gray-500 dark:text-slate-400 leading-relaxed opacity-60 hover:opacity-100 transition-opacity relative z-20 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            <span>{t("auth.footer.consentPrefix")}</span>
+            <span
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -412,9 +442,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               }}
               className="underline cursor-pointer hover:text-navy dark:hover:text-blue relative z-30 pointer-events-auto"
             >
-              الشروط والأحكام
+              {t("nav.terms")}
             </span>
-            <span>و</span>
+            <span>{t("auth.footer.and")}</span>
             <span
               onClick={(e) => {
                 e.preventDefault();
@@ -423,18 +453,26 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
               }}
               className="underline cursor-pointer hover:text-navy dark:hover:text-blue relative z-30 pointer-events-auto"
             >
-              سياسة الخصوصية
+              {t("nav.privacy")}
             </span>
           </p>
         </div>
       </div>
 
       {pageDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" dir="rtl">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeDialog} />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          dir={dir}
+        >
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeDialog}
+          />
           <div className="relative w-full max-w-[420px] max-h-[85dvh] bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl border border-white/60 dark:border-slate-800 overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-slate-800">
-              <h2 className="text-lg font-bold text-navy dark:text-slate-200">{dialogTitle}</h2>
+              <h2 className="text-lg font-bold text-navy dark:text-slate-200">
+                {dialogTitle}
+              </h2>
               <button
                 onClick={closeDialog}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-navy dark:hover:text-white transition-all active:scale-90"
@@ -448,13 +486,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
                   <SpinnerIcon className="w-8 h-8 animate-spin text-navy dark:text-blue" />
                 </div>
               ) : (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-pale dark:border-slate-800 text-right">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-pale dark:border-slate-800 rtl:text-right ltr:text-left">
                   <h3 className="text-xl font-bold text-navy dark:text-slate-200 mb-4">
                     {dialogData?.title || dialogTitle}
                   </h3>
                   <div
                     className="text-sm text-gray-600 dark:text-slate-400 leading-relaxed font-medium whitespace-pre-line Prose"
-                    dangerouslySetInnerHTML={{ __html: dialogData?.description || "" }}
+                    dangerouslySetInnerHTML={{
+                      __html: dialogData?.description || "",
+                    }}
                   />
                 </div>
               )}

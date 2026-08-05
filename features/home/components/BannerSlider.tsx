@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppImage } from '@/components/AppImage';
+import { useTranslation } from '../../../i18n';
 
 export const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> = ({ images, isLoading }) => {
+  const { t, dir, isRTL } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
@@ -23,7 +25,10 @@ export const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> 
     const diff = touchStartX.current - touchEndX;
 
     if (Math.abs(diff) > 50) {
-      if (diff < 0) {
+      // diff > 0 means the finger travelled leftwards. In RTL the track advances
+      // rightwards, so a leftward swipe goes back; in LTR it goes forward.
+      const goToNext = isRTL ? diff < 0 : diff > 0;
+      if (goToNext) {
         setCurrentIndex(prev => (prev + 1) % images.length);
       } else {
         setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
@@ -45,11 +50,11 @@ export const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> 
   return (
     <div
       className="w-full aspect-[2.5/1] relative overflow-hidden rounded-2xl touch-pan-y shadow-sm"
-      dir="rtl"
+      dir={dir}
     >
       <div
         className="flex w-full h-full transition-transform duration-500 ease-in-out"
-        style={{ transform: `translateX(${currentIndex * 100}%)` }}
+        style={{ transform: `translateX(${(isRTL ? 1 : -1) * currentIndex * 100}%)` }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -57,7 +62,7 @@ export const BannerSlider: React.FC<{ images?: string[], isLoading?: boolean }> 
           <AppImage
             key={index}
             src={src}
-            alt="Banner"
+            alt={t('home.banner.headerAlt')}
             className="w-full h-full flex-shrink-0 select-none pointer-events-none"
           />
         ))}

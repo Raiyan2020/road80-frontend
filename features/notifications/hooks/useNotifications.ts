@@ -1,11 +1,15 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useLangStore } from '@/i18n';
 import { notificationsService } from '../services/notifications.service';
 
 export function useNotifications(page = 1) {
+  const lang = useLangStore((s) => s.lang);
   return useQuery({
-    queryKey: ['notifications', page],
+    // `lang` last so the existing `['notifications']` prefix invalidations
+    // (delete/delete-all mutations, push handler) keep matching.
+    queryKey: ['notifications', page, lang],
     queryFn: () => notificationsService.getNotifications(page),
     select: (res) => res,
   });

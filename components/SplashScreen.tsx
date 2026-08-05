@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { SpinnerIcon } from './Icons';
 import { AppImage } from './AppImage';
+import { useTranslation } from '../i18n';
 import roadLogo from '../assets/road-logo.png';
 
 interface SplashScreenProps {
@@ -9,6 +10,7 @@ interface SplashScreenProps {
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
+  const { t } = useTranslation();
   const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
@@ -27,8 +29,8 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       <div className="flex flex-col items-center gap-8">
         <AppImage
           src={roadLogo}
-          alt="80road Logo"
-          className="w-40 h-40 animate-fade-in"
+          alt={t('quickStart.splash.logoAlt')}
+          className="w-40 h-auto animate-fade-in"
           coverClassName="object-contain"
         />
         <SpinnerIcon className="w-8 h-8 text-navy animate-spin" />

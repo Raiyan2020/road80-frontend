@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useFilterOptions } from '../features/home/hooks/useFilterOptions';
 import { useCountries, useStates, useCities } from '../shared/hooks/useLocation';
 import { CloseIcon } from './Icons';
+import { useTranslation } from '../i18n';
 
 export interface ExploreFilters {
   name?: string;
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply, initialFilters }) => {
+  const { t, dir, isRTL } = useTranslation();
   const { data: filterOptionsRes, isLoading: loadingFilters } = useFilterOptions();
   const filterOptions = (filterOptionsRes as any)?.data || filterOptionsRes || [];
 
@@ -105,10 +107,18 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
     onClose();
   };
 
+  // The chevron sits on the trailing edge of the select, so it has to follow the direction.
+  const selectChevronStyle: React.CSSProperties = {
+    backgroundPosition: isRTL ? 'left 1rem center' : 'right 1rem center',
+    backgroundRepeat: 'no-repeat',
+    backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a9c2e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
+    backgroundSize: '0.65rem auto',
+  };
+
   const drawerContent = (
     <div className="fixed inset-0 z-[99999] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-[991px] mx-auto bg-bg dark:bg-slate-950 rounded-t-[40px] shadow-2xl flex flex-col h-[85vh] animate-slide-up" dir="rtl">
+      <div className="relative w-full max-w-[991px] mx-auto bg-bg dark:bg-slate-950 rounded-t-[40px] shadow-2xl flex flex-col h-[85vh] animate-slide-up" dir={dir}>
         {/* Handle */}
         <div className="w-full flex justify-center py-4">
           <div className="w-16 h-1.5 bg-gray-300 dark:bg-slate-700 rounded-full" />
@@ -119,13 +129,13 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800 text-navy dark:text-slate-300 active:scale-95 transition-all"
-              aria-label="Close"
+              aria-label={t('common.close')}
             >
               <CloseIcon className="w-5 h-5" />
             </button>
-            <h2 className="text-xl font-black text-navy dark:text-slate-100">تصفية البحث</h2>
+            <h2 className="text-xl font-black text-navy dark:text-slate-100">{t('explore.filters.title')}</h2>
           </div>
-          <button onClick={handleClear} className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors">مسح الكل</button>
+          <button onClick={handleClear} className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors">{t('explore.filters.clearAll')}</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-6 no-scrollbar pb-24">
@@ -157,15 +167,15 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
 
           {/* Location */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-gray-500 dark:text-slate-400">الموقع</h3>
+            <h3 className="text-sm font-bold text-gray-500 dark:text-slate-400">{t('explore.filters.location')}</h3>
 
             <select
               value={filters.country_id || ''}
               onChange={e => setFilters(p => ({ ...p, country_id: e.target.value }))}
-              className="h-14 px-4 pr-10 rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none appearance-none"
-              style={{ backgroundPosition: 'left 1rem center', backgroundRepeat: 'no-repeat', backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a9c2e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundSize: '0.65rem auto' }}
+              className="h-14 px-4 rtl:pr-10 ltr:pl-10 rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none appearance-none"
+              style={selectChevronStyle}
             >
-              <option value="">كل الدول</option>
+              <option value="">{t('explore.filters.allCountries')}</option>
               {countries.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
 
@@ -173,10 +183,10 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
               value={filters.state_id || ''}
               onChange={e => setFilters(p => ({ ...p, state_id: e.target.value }))}
               disabled={!filters.country_id}
-              className="h-14 px-4 pr-10 rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none disabled:opacity-50 appearance-none"
-              style={{ backgroundPosition: 'left 1rem center', backgroundRepeat: 'no-repeat', backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a9c2e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundSize: '0.65rem auto' }}
+              className="h-14 px-4 rtl:pr-10 ltr:pl-10 rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none disabled:opacity-50 appearance-none"
+              style={selectChevronStyle}
             >
-              <option value="">كل المحافظات</option>
+              <option value="">{t('explore.filters.allGovernorates')}</option>
               {states.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
 
@@ -184,24 +194,24 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
               value={filters.city_id || ''}
               onChange={e => setFilters(p => ({ ...p, city_id: e.target.value }))}
               disabled={!filters.state_id}
-              className="h-14 px-4 pr-10 rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none disabled:opacity-50 appearance-none"
-              style={{ backgroundPosition: 'left 1rem center', backgroundRepeat: 'no-repeat', backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a9c2e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundSize: '0.65rem auto' }}
+              className="h-14 px-4 rtl:pr-10 ltr:pl-10 rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none disabled:opacity-50 appearance-none"
+              style={selectChevronStyle}
             >
-              <option value="">كل المناطق</option>
+              <option value="">{t('explore.filters.allAreas')}</option>
               {cities.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
 
           {/* Price Range */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-gray-500 dark:text-slate-400">السعر</h3>
+            <h3 className="text-sm font-bold text-gray-500 dark:text-slate-400">{t('explore.filters.price')}</h3>
             <div className="flex gap-4 items-center">
               <input
                 type="number"
                 value={filters.min_price ?? ''}
                 onChange={e => setFilters(p => ({ ...p, min_price: e.target.value ? Number(e.target.value) : undefined }))}
                 className="flex-1 w-0 min-w-0 h-12 px-2 text-center rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                placeholder="من"
+                placeholder={t('explore.filters.priceFrom')}
               />
               <div className="flex items-center text-gray-400 font-bold shrink-0">-</div>
               <input
@@ -209,7 +219,7 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
                 value={filters.max_price ?? ''}
                 onChange={e => setFilters(p => ({ ...p, max_price: e.target.value ? Number(e.target.value) : undefined }))}
                 className="flex-1 w-0 min-w-0 h-12 px-2 text-center rounded-2xl bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 text-navy dark:text-slate-200 font-bold outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                placeholder="إلى"
+                placeholder={t('explore.filters.priceTo')}
               />
             </div>
           </div>
@@ -220,7 +230,7 @@ export const ExploreFilterDrawer: React.FC<Props> = ({ isOpen, onClose, onApply,
             onClick={handleApply}
             className="w-full h-[56px] rounded-2xl bg-navy dark:bg-blue text-white font-black text-lg active:scale-95 transition-all shadow-lg"
           >
-            تطبيق الفلاتر
+            {t('explore.filters.apply')}
           </button>
         </div>
       </div>

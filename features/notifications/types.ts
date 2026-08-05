@@ -18,10 +18,12 @@ export interface NotificationsResponse {
   status: boolean;
   message: string;
   data: Notification[];
+  // snake_case to match ApiResponse::paginationResponse — it emits
+  // current_page/last_page/per_page/total, never the camelCase spelling.
   pagination: {
-    currentPage: number;
-    lastPage: number;
-    perPage: number;
+    current_page: number;
+    last_page: number;
+    per_page: number;
     total: number;
   };
 }

@@ -19,7 +19,7 @@ import {
   UserIcon,
   WhatsappIcon,
 } from "./Icons";
-import MyFatoorahPayment from "./MyFatoorahPayment";
+import MyFatoorahPayment, { type MyFatoorahResult } from "./MyFatoorahPayment";
 import { FALLBACK_LISTING_IMAGE } from "@/shared/constants/images";
 import { resolveMediaUrl } from "@/shared/utils/media-url";
 import { buildShareUrl, shareContent } from "@/shared/utils/share";
@@ -321,14 +321,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     });
   };
 
-  /**
-   * Called by MyFatoorahPayment once the SDK has taken the card.
-   *
-   * The argument is MyFatoorah's numeric `paymentId` — NOT the SessionId. The
-   * backend feeds it straight to `GET /payments/{paymentId}`, so passing a
-   * session id here makes verification fail every time.
-   */
-  const onEmbeddedPaymentSuccess = async (mfPaymentId: string) => {
+  /** Verify the encrypted v3 callback result (with PaymentId as fallback). */
+  const onEmbeddedPaymentSuccess = async (result: MyFatoorahResult) => {
     if (!mfTransactionId) {
       toast.error(t("listing.payment.cannotVerify"));
       return;
@@ -339,7 +333,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     try {
       const verifyRes = await paymentService.verifyPayment({
         transaction_id: mfTransactionId,
-        payment_id: mfPaymentId,
+        payment_data: result.paymentData,
+        payment_id: result.paymentId,
       });
 
       if (verifyRes.status) {

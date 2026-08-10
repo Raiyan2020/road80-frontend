@@ -38,7 +38,7 @@ import {
 } from "../shared/utils/media-compression";
 import { watermarkImages } from "../shared/utils/watermark";
 import { useTranslation, pickLocalized } from "../i18n";
-import MyFatoorahPayment from "./MyFatoorahPayment";
+import MyFatoorahPayment, { type MyFatoorahResult } from "./MyFatoorahPayment";
 import { AppImage } from "./AppImage";
 import { dismissKeyboard, useKeyboardOpen } from "@/shared/hooks/useKeyboardOpen";
 import { paymentService } from "../shared/services/payment.service";
@@ -733,7 +733,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     }
   };
 
-  const onPaymentSuccess = async (_callbackId: string) => {
+  const onPaymentSuccess = async (result: MyFatoorahResult) => {
     setShowEmbedded(false);
     setIsProcessing(true);
     try {
@@ -743,16 +743,12 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         return;
       }
 
-      // _callbackId is now the MF paymentId (e.g. "07076389179322432673") from the v3 callback
-      // The backend's /payments/verify needs this MF paymentId, not the session ID
-      const finalPaymentId = _callbackId;
-
-      // Payment verify
-
-      // POST /payments/verify
+      // POST /payments/verify — `payment_data` is the encrypted v3 status blob the
+      // backend decrypts; `payment_id` is only the redirectionUrl fallback.
       const res = await paymentService.verifyPayment({
         transaction_id: transactionId,
-        payment_id: finalPaymentId,
+        payment_data: result.paymentData,
+        payment_id: result.paymentId,
       });
 
       if (res.status) {

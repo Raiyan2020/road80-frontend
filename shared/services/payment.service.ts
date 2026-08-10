@@ -43,8 +43,17 @@ export interface VerifyPaymentParams {
    * MyFatoorah's numeric `paymentId` from the SDK callback — NOT the SessionId.
    * The backend passes this straight to `GET /payments/{paymentId}`, so a
    * SessionId here makes verification fail every time.
+   *
+   * In v3 the callback has no top-level paymentId, so this is only ever the value
+   * scraped out of `redirectionUrl`. Send `payment_data` whenever it is available.
    */
-  payment_id: string;
+  payment_id?: string;
+  /**
+   * The v3 callback's AES-encrypted status document. The backend decrypts it with
+   * the EncryptionKey from the session — this is the authoritative result channel
+   * and needs no extra round-trip to MyFatoorah.
+   */
+  payment_data?: string;
 }
 
 /** Present for `call` transactions only; null when publishing an ad. */
@@ -84,7 +93,10 @@ export const paymentService = {
   verifyPayment: async (params: VerifyPaymentParams): Promise<VerifyPaymentResponse> => {
     const formData = new FormData();
     formData.append('transaction_id', String(params.transaction_id));
-    formData.append('payment_id', params.payment_id);
+    // The backend requires exactly one of the two; sending an empty string for the
+    // absent one would satisfy `required_without` while carrying no usable value.
+    if (params.payment_data) formData.append('payment_data', params.payment_data);
+    if (params.payment_id) formData.append('payment_id', params.payment_id);
     return api.post<VerifyPaymentResponse>('/payments/verify', formData);
   },
 };

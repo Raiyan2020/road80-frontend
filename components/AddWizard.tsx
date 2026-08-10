@@ -1590,7 +1590,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       <button
         onClick={prev}
         disabled={step === 1}
-        className={`w-full py-4 rounded-xl font-bold border border-pale dark:border-slate-700 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 transition-all shadow-sm ${
+        className={`flex-1 min-w-0 py-4 rounded-xl font-bold border border-pale dark:border-slate-700 bg-white dark:bg-slate-900 text-navy dark:text-slate-200 transition-all shadow-sm ${
           step === 1
             ? "opacity-40 cursor-not-allowed"
             : "active:scale-95 hover:bg-pale/30"
@@ -1603,12 +1603,12 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     // Summary step → payment buttons
     if (currentStepInfo?.type === "summary") {
       return (
-        <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
           {backBtn}
           <button
             onClick={handlePublish}
             disabled={isProcessing}
-            className="w-full py-4 bg-navy dark:bg-blue text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-navy/20 dark:shadow-blue/20"
+            className="flex-[2] min-w-0 py-4 bg-navy dark:bg-blue text-white rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-navy/20 dark:shadow-blue/20"
           >
             {isProcessing && !showEmbedded ? (
               <SpinnerIcon className="w-5 h-5 animate-spin" />
@@ -1654,11 +1654,11 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       }
 
       return (
-        <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
           {backBtn}
           <button
             onClick={next}
-            className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all ${
+            className={`flex-[2] min-w-0 py-4 rounded-xl font-bold shadow-lg transition-all ${
               isCurrentStepValid()
                 ? "bg-navy dark:bg-blue text-white shadow-navy/20 active:scale-95"
                 : "bg-gray-200 dark:bg-slate-800 text-gray-400 cursor-not-allowed"
@@ -1671,7 +1671,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     }
 
     // Default: just back button (auto-advance on selection)
-    return <div className="w-full">{backBtn}</div>;
+    return <div className="flex w-full">{backBtn}</div>;
   };
 
   const backgroundVideoStatus = videoCompressing

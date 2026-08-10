@@ -268,6 +268,10 @@ function RootComponent() {
 
   // Use regex to detect listing route: /ad/:id
   const isListingRoute = routePath.startsWith('/ad/');
+  // The post-ad wizard (/post-ad?step=…) owns the full screen: it has its own
+  // footer buttons, so the bottom nav would only overlap them.
+  const isPostAdWizard =
+    routePath.startsWith('/post-ad') && (location.search as any)?.step != null;
   // Sub-pages that need a back button but use the shell header
   const isNotifications = routePath.startsWith('/notifications');
 
@@ -395,14 +399,14 @@ function RootComponent() {
                 className="absolute left-0 right-0 overflow-hidden bg-bg dark:bg-slate-950 animate-fade-in transition-colors duration-300"
                 style={{
                   top: (isListingRoute || isQuickStart || isAuthRoute || isStandalonePage) ? '0' : 'calc(var(--header-h) + env(safe-area-inset-top))',
-                  bottom: (isListingRoute || isQuickStart || isAuthRoute) ? '0' : 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
+                  bottom: (isListingRoute || isQuickStart || isAuthRoute || isPostAdWizard) ? '0' : 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
                   zIndex: (isListingRoute || isQuickStart || isAuthRoute) ? 50 : 10
                 }}
               >
                 <Outlet />
               </main>
 
-              {!isListingRoute && !isQuickStart && !isAuthRoute && (
+              {!isListingRoute && !isQuickStart && !isAuthRoute && !isPostAdWizard && (
                 <BottomNavigation
                   activeTab={activeTab}
                   onTabChange={(tab) => navigate({ to: getRouteForTab(tab) as any, search: tab === Tab.COMPANIES ? ({ category: undefined } as any) : undefined })}

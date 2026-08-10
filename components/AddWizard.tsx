@@ -658,6 +658,14 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
 
       // Post ad success
 
+      const paymentUrl =
+        (res as any).data?.payment_url || (res as any).payment_url;
+
+      if (paymentUrl) {
+        window.location.assign(paymentUrl);
+        return;
+      }
+
       // The old redirect flow returned `payment_url`; the embedded flow replaced it
       // with a session triple. `ad_id` matters for retries — without it, a declined
       // card would force the user to re-submit the whole ad and create a duplicate.
@@ -720,6 +728,11 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         type: "publish_ad",
         reference_id: adId,
       });
+
+      if ((res.data as any)?.payment_url) {
+        window.location.assign((res.data as any).payment_url);
+        return;
+      }
 
       if (res.status && res.data?.session_id) {
         applySession(res.data.session_id);

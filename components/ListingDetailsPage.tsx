@@ -298,6 +298,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
     callMutation.mutate(listing.id, {
       onSuccess: (response) => {
+        const paymentUrl = (response.data as any)?.payment_url;
+        if (paymentUrl) {
+          window.location.assign(paymentUrl);
+          return;
+        }
+
         if (response.data?.session_id) {
           const sessionId = response.data.session_id;
           const transactionId = response.data.transaction_id;
@@ -450,6 +456,12 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
     callMutation.mutate(listing.id, {
       onSuccess: (response) => {
+        const paymentUrl = (response.data as any)?.payment_url;
+        if (paymentUrl) {
+          window.location.assign(paymentUrl);
+          return;
+        }
+
         // `/payments/call` always opens a fresh session — it never returns a
         // number directly and never short-circuits for an already-paid ad, so
         // the old `phone` and `payment_url` branches here were unreachable.

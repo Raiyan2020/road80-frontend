@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppImage } from "@/components/AppImage";
@@ -42,15 +42,48 @@ function HotelProfilePage() {
 
   const [ratingOpen, setRatingOpen] = useState(false);
 
+  // «عرض جميع التقييمات والتعليقات» — both tabs page through rather than
+  // showing only the first 10. Accumulated locally so earlier pages stay
+  // visible; the query key still carries the page so each is cached.
+  const [contentsPage, setContentsPage] = useState(1);
+  const [ratingsPage, setRatingsPage] = useState(1);
+  const [allContents, setAllContents] = useState<HotelContent[]>([]);
+  const [allRatings, setAllRatings] = useState<HotelRating[]>([]);
+
   const hotelQuery = useHotel(id);
-  const contentsQuery = useHotelContents(id);
-  const ratingsQuery = useHotelRatings(id);
+  const contentsQuery = useHotelContents(id, contentsPage);
+  const ratingsQuery = useHotelRatings(id, ratingsPage);
   const { profile } = useProfile();
   const { startConversation, isStarting } = useStartConversation();
 
   const hotel: Hotel | undefined = (hotelQuery.data as any)?.data;
-  const contents: HotelContent[] = (contentsQuery.data as any)?.data ?? [];
-  const ratings: HotelRating[] = (ratingsQuery.data as any)?.data ?? [];
+
+  const contentsPagination = (contentsQuery.data as any)?.pagination;
+  const ratingsPagination = (ratingsQuery.data as any)?.pagination;
+
+  // Append each fetched page, de-duplicating by id so a refetch of the same
+  // page (focus refetch, invalidation) cannot double-insert rows.
+  useEffect(() => {
+    const page: HotelContent[] = (contentsQuery.data as any)?.data ?? [];
+    if (!page.length) return;
+    setAllContents((prev) => {
+      const seen = new Set(prev.map((c) => c.id));
+      const merged = contentsPage === 1 ? page : [...prev, ...page.filter((c) => !seen.has(c.id))];
+      return merged;
+    });
+  }, [contentsQuery.data, contentsPage]);
+
+  useEffect(() => {
+    const page: HotelRating[] = (ratingsQuery.data as any)?.data ?? [];
+    if (!page.length) return;
+    setAllRatings((prev) => {
+      const seen = new Set(prev.map((r) => r.id));
+      return ratingsPage === 1 ? page : [...prev, ...page.filter((r) => !seen.has(r.id))];
+    });
+  }, [ratingsQuery.data, ratingsPage]);
+
+  const contents = allContents;
+  const ratings = allRatings;
 
   // A hotel cannot rate itself, and hotel accounts cannot rate at all (§7.6).
   const isOwnHotel = profile?.id === hotel?.id;
@@ -301,6 +334,18 @@ function HotelProfilePage() {
                   </p>
                 </button>
               ))}
+
+              {contentsPagination &&
+                contentsPagination.current_page < contentsPagination.last_page && (
+                  <button
+                    type="button"
+                    disabled={contentsQuery.isFetching}
+                    onClick={() => setContentsPage((p) => p + 1)}
+                    className="h-12 rounded-2xl border border-pale bg-white text-sm font-bold text-navy disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    {contentsQuery.isFetching ? tr("common.loading") : tr("hotels.loadMore")}
+                  </button>
+                )}
             </div>
           )}
 
@@ -353,6 +398,18 @@ function HotelProfilePage() {
                   ) : null}
                 </div>
               ))}
+
+              {ratingsPagination &&
+                ratingsPagination.current_page < ratingsPagination.last_page && (
+                  <button
+                    type="button"
+                    disabled={ratingsQuery.isFetching}
+                    onClick={() => setRatingsPage((p) => p + 1)}
+                    className="h-12 rounded-2xl border border-pale bg-white text-sm font-bold text-navy disabled:opacity-60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+                  >
+                    {ratingsQuery.isFetching ? tr("common.loading") : tr("hotels.loadMore")}
+                  </button>
+                )}
             </div>
           )}
         </div>

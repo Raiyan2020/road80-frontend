@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { SpinnerIcon, BellIcon } from './Icons';
 import { useNotifications, useDeleteNotification, useDeleteAllNotifications, useUnreadNotifications } from '../features/notifications/hooks/use-notifications';
 import { getNotificationCopy } from '../shared/utils/notifications';
+import { resolveNotificationTarget } from '../shared/utils/notification-routing';
 import { useTranslation } from '../i18n';
 import type { Lang } from '../i18n';
 
@@ -182,8 +183,16 @@ const NotificationsPage: React.FC = () => {
           {notifications.map((notif: any) => {
             const isRead = notif.read_at !== null;
             const { title, body: message } = getNotificationCopy(notif);
-            const adId = getNotificationAdId(notif);
-            const canOpenTarget = Boolean(adId);
+            // Resolves ads *and* the hotel types (`new_message`,
+            // `hotel_content_hidden`) to a destination — see notification-routing.
+            const target = resolveNotificationTarget(notif);
+            const canOpenTarget = Boolean(target);
+            const openLabel =
+              target?.to === '/conversations/$id'
+                ? t('hotels.chat.title')
+                : target?.to === '/profile/hotel-contents'
+                  ? t('hotels.content.manageCta')
+                  : t('notifications.list.viewAd');
             const timeLabel = formatRelativeTime(
               notif.created_at,
               notif.created_at_diff,
@@ -210,17 +219,17 @@ const NotificationsPage: React.FC = () => {
               >
                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" /></svg>
               </button>
-              {canOpenTarget ? (
+              {canOpenTarget && target ? (
                 <Link
-                  to="/ad/$id"
-                  params={{ id: String(adId) }}
+                  to={target.to}
+                  {...('params' in target ? { params: target.params } : {})}
                   className="block pe-10"
                 >
                   <h4 className="font-bold text-navy dark:text-slate-200 text-sm mb-1 me-6">{title}</h4>
                   {!!message && <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mb-2 whitespace-pre-line">{message}</p>}
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <span className="inline-flex items-center justify-center rounded-lg bg-navy px-3 py-2 text-xs font-bold text-white transition active:scale-95 dark:bg-blue">
-                      {t('notifications.list.viewAd')}
+                      {openLabel}
                     </span>
                     <span className="text-[10px] text-gray-400 dark:text-slate-500">{timeLabel}</span>
                   </div>

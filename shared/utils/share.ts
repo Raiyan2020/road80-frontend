@@ -5,7 +5,12 @@ import { t } from "@/i18n";
  * Public web origin for shareable links. The app only configures an API host
  * (VITE_API_URL), so the front-facing origin lives here.
  */
-const SHARE_ORIGIN = "https://road-80.com";
+// Must match the backend's APP_URL, which is what `share_url` is built from
+// (`url("/hotels/{id}")`). If the two drift, links shared from the app and links
+// returned by the API point at different hosts and only one is registered for
+// deep linking. Overridable so both sides can be pointed at one origin per env.
+const SHARE_ORIGIN =
+  import.meta.env.VITE_PUBLIC_WEB_URL || "https://road-80.com";
 
 export const buildShareUrl = (path: string) =>
   `${SHARE_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;

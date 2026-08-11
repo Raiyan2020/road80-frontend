@@ -5,6 +5,18 @@ import { useTranslation } from "@/i18n";
 import type { ContentAttachment } from "../types";
 
 /**
+ * The backend validates `youtube_urls.*` with Laravel's `url` rule, which
+ * REQUIRES a scheme — `youtube.com/watch?v=…` is rejected with a 422 even
+ * though the accompanying regex allows the scheme to be optional. Users
+ * routinely paste a bare link, so add the scheme before sending.
+ */
+export function normalizeYoutubeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+/**
  * Extracts the YouTube video id from the URL forms the backend accepts.
  * Returns null for anything unrecognised so the caller can fall back to a link.
  */

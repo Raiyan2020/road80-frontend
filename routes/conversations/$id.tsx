@@ -135,6 +135,8 @@ function ChatPage() {
         <textarea
           rows={1}
           value={draft}
+          // Server rule: `body => ['required','string','min:1','max:5000']`.
+          maxLength={5000}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             // Enter sends; Shift+Enter inserts a newline.

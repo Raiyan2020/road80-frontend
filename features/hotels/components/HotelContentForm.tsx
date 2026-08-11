@@ -12,7 +12,7 @@ import {
   useCreateHotelContent,
   useUpdateHotelContent,
 } from "../hooks/useMyHotelContents";
-import { youtubeId } from "./MediaGallery";
+import { youtubeId, normalizeYoutubeUrl } from "./MediaGallery";
 import type { HotelContent } from "../types";
 
 interface HotelContentFormProps {
@@ -22,6 +22,9 @@ interface HotelContentFormProps {
 }
 
 const MAX_DESCRIPTION = 5000;
+
+/** Server rule: `images.* => max:8192` (kilobytes). */
+const MAX_SERVER_IMAGE_BYTES = 8 * 1024 * 1024;
 
 /**
  * Create or edit one content item (use case 1.3).
@@ -68,6 +71,13 @@ export function HotelContentForm({ existing, onDone }: HotelContentFormProps) {
           continue;
         }
         const { file: compressed } = await compressImage(file);
+        // compressImage deliberately returns the ORIGINAL if compression fails,
+        // so re-check against the server's `max:8192` (8 MB per image) here —
+        // otherwise a large photo that failed to compress 422s on upload.
+        if (compressed.size > MAX_SERVER_IMAGE_BYTES) {
+          toast.error(tr("validation.imageTooLarge"));
+          continue;
+        }
         accepted.push({ file: compressed, preview: URL.createObjectURL(compressed) });
       }
       setImages((prev) => [...prev, ...accepted]);
@@ -87,7 +97,8 @@ export function HotelContentForm({ existing, onDone }: HotelContentFormProps) {
       setError(tr("hotels.content.validation.youtubeInvalid"));
       return;
     }
-    setYoutubeUrls((prev) => [...prev, url]);
+    // Stored already-normalised so the payload always carries a scheme.
+    setYoutubeUrls((prev) => [...prev, normalizeYoutubeUrl(url)]);
     setYoutubeDraft("");
     setError(null);
   };

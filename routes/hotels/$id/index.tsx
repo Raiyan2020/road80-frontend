@@ -83,14 +83,11 @@ function HotelProfilePage() {
         navigate({ to: "/conversations/$id", params: { id: String(conversationId) } });
       }
     } catch (err) {
-      const message = (err as any)?.data?.message ?? "";
-      if (/hotel_not_available/.test(message)) {
-        toast.error(tr("hotels.chat.hotelNotAvailable"));
-      } else if (/hotel_cannot_start_chat/.test(message)) {
-        toast.error(tr("hotels.chat.hotelCannotStart"));
-      } else {
-        toast.error(message || tr("hotels.chat.startError"));
-      }
+      // `ConversationService` throws `__('api.hotel_cannot_start_chat')` — the
+      // message arrives already localized by the backend, so show it verbatim
+      // rather than matching key names (which never match) or re-translating.
+      const message = (err as any)?.data?.message;
+      toast.error(message || tr("hotels.chat.startError"));
     }
   };
 

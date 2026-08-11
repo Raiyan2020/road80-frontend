@@ -63,8 +63,11 @@ export interface HotelContent {
   id: number;
   description: string;
   status: ContentStatus;
-  /** Only returned to the owner, and only while `status` is `hidden`. */
-  hidden_reason: string | null;
+  /**
+   * Only present while `status` is `hidden`. The resource uses `$this->when(...)`,
+   * so for active content the key is **absent entirely** rather than null.
+   */
+  hidden_reason?: string | null;
   attachments: ContentAttachment[];
   share_url: string;
   created_at: string | null;

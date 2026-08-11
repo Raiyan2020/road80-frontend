@@ -51,16 +51,12 @@ export function RatingSheet({
       toast.success(tr("hotels.ratings.submitSuccess"));
       onClose();
     } catch (err) {
-      // The backend distinguishes these; surface the specific reason rather
-      // than a generic failure.
-      const message = (err as any)?.data?.message ?? "";
-      if (/cannot_rate_own_hotel/.test(message)) {
-        setError(tr("hotels.ratings.cannotRateOwn"));
-      } else if (/hotel_only_action|hotel/.test(message) && /rate/.test(message)) {
-        setError(tr("hotels.ratings.hotelCannotRate"));
-      } else {
-        setError(message || tr("hotels.ratings.submitError"));
-      }
+      // The backend throws `__('api.cannot_rate_own_hotel')`, i.e. the message
+      // is ALREADY TRANSLATED text — not the key. Matching on key names here
+      // never fires, and re-translating a localized message would be wrong.
+      // See the `laravel-api-contract` skill: render `message` as-is.
+      const message = (err as any)?.data?.message;
+      setError(message || tr("hotels.ratings.submitError"));
     }
   };
 

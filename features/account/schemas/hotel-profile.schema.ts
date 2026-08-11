@@ -23,9 +23,12 @@ export const hotelProfileSchema = z.object({
     .trim()
     .min(3, { error: () => t('validation.nameMin3') }),
 
+  // Server: `['sometimes','string','min:4','max:255']`. Without the min, a
+  // 1-3 character caption passed here and came back as a 422.
   caption: z
     .string()
     .trim()
+    .min(4, { error: () => t('validation.descriptionMin10') })
     .max(255, { error: () => t('validation.maxLength', { max: 255 }) })
     .optional()
     .or(z.literal('')),
@@ -45,17 +48,24 @@ export const hotelProfileSchema = z.object({
     .union([z.string(), z.number()])
     .refine((v) => !!v, { error: () => t('validation.selectGovernorate') }),
 
+  // Server: `['sometimes','numeric','digits_between:8,20']`.
   whatsapp_phone: z
     .string()
     .trim()
     .regex(/^\d*$/, { error: () => t('auth.validation.whatsappDigitsOnly') })
+    .refine((v) => !v || (v.length >= 8 && v.length <= 20), {
+      error: () => t('auth.validation.whatsappExactDigits', { digits: '8-20' }),
+    })
     .optional()
     .or(z.literal('')),
 
   // Hotel-only. Optional — the profile saves fine without it.
+  // Server: `['sometimes','nullable','url','max:500']`. The `url` rule requires
+  // a scheme, which `normalizeWebsite()` adds before sending.
   website: z
     .string()
     .trim()
+    .max(500, { error: () => t('validation.maxLength', { max: 500 }) })
     .refine((v) => !v || WEBSITE_PATTERN.test(v), {
       error: () => t('profile.hotel.validation.websiteInvalid'),
     })

@@ -63,6 +63,33 @@ export const auth = {
     successToast: 'Registration submitted — our team will review it shortly',
     errorToast: 'Something went wrong during registration',
     errorRetryLater: 'Something went wrong during registration, please try again later',
+
+    // Account type selector (company vs hotel) — use case 1.1
+    accountTypeLabel: 'Account type',
+    accountTypeHint: 'Choose the type of account you want to create',
+    accountTypeCompany: 'Company',
+    accountTypeCompanyHint: 'Real estate office or contracting company',
+    accountTypeHotel: 'Hotel',
+    accountTypeHotelHint: 'Hotel or hospitality venue',
+
+    // Hotel-specific labels — the rest of the form is shared with companies
+    titleHotel: 'Register a new hotel',
+    subtitleHotel: 'Join the 80road network and showcase your hotel to a wide audience',
+    logoLabelHotel: 'Hotel logo',
+    nameLabelHotel: 'Hotel name',
+    namePlaceholderHotel: 'Enter the hotel name',
+    captionLabelHotel: 'Hotel description',
+    captionPlaceholderHotel: 'Tell us a little about the hotel and its facilities...',
+  },
+
+  // Pending-approval screen shown after registration and on blocked login
+  pendingApproval: {
+    title: 'Your request is under review',
+    description: 'We received your registration. Our team will review it and let you know once the account is approved.',
+    rejectedTitle: 'Registration not approved',
+    rejectedDescription: 'Unfortunately your registration was not approved. Please contact support for more details.',
+    backToLogin: 'Back to login',
+    backToHome: 'Back to home',
   },
 
   // Auth-specific validation messages

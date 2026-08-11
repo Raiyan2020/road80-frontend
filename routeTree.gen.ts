@@ -26,6 +26,7 @@ import { Route as ExploreIndexRouteImport } from './routes/explore/index'
 import { Route as CompaniesIndexRouteImport } from './routes/companies/index'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthRegisterCompanyRouteImport } from './routes/auth.register-company'
+import { Route as AuthPendingApprovalRouteImport } from './routes/auth.pending-approval'
 import { Route as AdIdRouteImport } from './routes/ad/$id'
 
 const VerifyRoute = VerifyRouteImport.update({
@@ -113,6 +114,11 @@ const AuthRegisterCompanyRoute = AuthRegisterCompanyRouteImport.update({
   path: '/auth/register-company',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthPendingApprovalRoute = AuthPendingApprovalRouteImport.update({
+  id: '/auth/pending-approval',
+  path: '/auth/pending-approval',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdIdRoute = AdIdRouteImport.update({
   id: '/ad/$id',
   path: '/ad/$id',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/ad/$id': typeof AdIdRoute
+  '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
   '/auth/': typeof AuthIndexRoute
   '/companies/': typeof CompaniesIndexRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/ad/$id': typeof AdIdRoute
+  '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
   '/auth': typeof AuthIndexRoute
   '/companies': typeof CompaniesIndexRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/ad/$id': typeof AdIdRoute
+  '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
   '/auth/': typeof AuthIndexRoute
   '/companies/': typeof CompaniesIndexRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify'
     | '/ad/$id'
+    | '/auth/pending-approval'
     | '/auth/register-company'
     | '/auth/'
     | '/companies/'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify'
     | '/ad/$id'
+    | '/auth/pending-approval'
     | '/auth/register-company'
     | '/auth'
     | '/companies'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify'
     | '/ad/$id'
+    | '/auth/pending-approval'
     | '/auth/register-company'
     | '/auth/'
     | '/companies/'
@@ -256,6 +268,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VerifyRoute: typeof VerifyRoute
   AdIdRoute: typeof AdIdRoute
+  AuthPendingApprovalRoute: typeof AuthPendingApprovalRoute
   AuthRegisterCompanyRoute: typeof AuthRegisterCompanyRoute
   AuthIndexRoute: typeof AuthIndexRoute
   CompaniesIndexRoute: typeof CompaniesIndexRoute
@@ -385,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRegisterCompanyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/pending-approval': {
+      id: '/auth/pending-approval'
+      path: '/auth/pending-approval'
+      fullPath: '/auth/pending-approval'
+      preLoaderRoute: typeof AuthPendingApprovalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ad/$id': {
       id: '/ad/$id'
       path: '/ad/$id'
@@ -408,6 +428,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VerifyRoute: VerifyRoute,
   AdIdRoute: AdIdRoute,
+  AuthPendingApprovalRoute: AuthPendingApprovalRoute,
   AuthRegisterCompanyRoute: AuthRegisterCompanyRoute,
   AuthIndexRoute: AuthIndexRoute,
   CompaniesIndexRoute: CompaniesIndexRoute,

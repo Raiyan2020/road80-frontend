@@ -17,6 +17,7 @@ import { z } from "zod";
 import { LANG_LABELS, t, useTranslation, type TranslationKey } from "@/i18n";
 import { compressImage, AVATAR_OPTIONS } from "@/shared/utils/media-compression";
 import { isWithinImageSizeLimit } from "@/shared/utils/media-validation";
+import type { AccountType } from "@/shared/types/auth";
 
 const PHONE_DIGITS: Record<string, number> = {
   KW: 8,
@@ -39,7 +40,11 @@ const DEPARTMENT_KEYS: Record<number, TranslationKey> = {
   5: "nav.categories.materials",
 };
 
-const registerCompanySchema = (phoneDigits: number, whatsappDigits: number) =>
+const registerCompanySchema = (
+  phoneDigits: number,
+  whatsappDigits: number,
+  accountType: AccountType,
+) =>
   z.object({
     name: z.string().trim().min(3, { error: () => t("validation.nameMin3") }),
     // Required as of the backend's RegisterCompanyRequest — it was optional here,
@@ -55,9 +60,13 @@ const registerCompanySchema = (phoneDigits: number, whatsappDigits: number) =>
       .min(1, { error: () => t("auth.validation.captionRequired") })
       .min(10, { error: () => t("validation.descriptionMin10") })
       .max(255, { error: () => t("validation.maxLength", { max: 255 }) }),
+    // Required for companies only. The backend's RegisterCompanyRequest marks it
+    // `required_if:account_type,company`, so hotels must be able to submit without it.
     company_department_id: z
       .union([z.string(), z.number()])
-      .refine((val) => !!val, { error: () => t("validation.selectDepartment") }),
+      .refine((val) => accountType === "hotel" || !!val, {
+        error: () => t("validation.selectDepartment"),
+      }),
     country_id: z
       .union([z.string(), z.number()])
       .refine((val) => !!val, { error: () => t("validation.selectCountry") }),
@@ -129,6 +138,11 @@ function RegisterCompanyPage() {
   const departments =
     (departmentsResponse as any)?.data || departmentsResponse || [];
 
+  // Use case 1.1 — the hotel journey reuses this whole form; only the account
+  // type and the department field differ.
+  const [accountType, setAccountType] = useState<AccountType>("company");
+  const isHotel = accountType === "hotel";
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -164,7 +178,11 @@ function RegisterCompanyPage() {
         "KW"
     ] ?? DEFAULT_DIGITS;
 
-  const schema = registerCompanySchema(maxPhoneDigits, maxWhatsappDigits);
+  const schema = registerCompanySchema(
+    maxPhoneDigits,
+    maxWhatsappDigits,
+    accountType,
+  );
 
   const setFieldError = (field: keyof RegisterCompanyErrors, value?: string) => {
     setErrors((prev) => {
@@ -267,7 +285,12 @@ function RegisterCompanyPage() {
       phone_country_id: phoneCountryId,
       whatsapp_country_id: whatsappCountryId,
       image: imageFile,
-      company_department_id: formData.company_department_id,
+      account_type: accountType,
+      // `authService.registerCompany` skips undefined values, so a hotel sends no
+      // department key at all rather than an empty string the backend would reject.
+      company_department_id: isHotel
+        ? undefined
+        : formData.company_department_id,
     };
 
     registerMutation.mutate(payload, {
@@ -276,7 +299,9 @@ function RegisterCompanyPage() {
         // localized now, so matching on English text can never be right.
         if (response.status) {
           toast.success(tr("auth.registerCompany.successToast"), { closeButton: true });
-          navigate({ to: "/auth" });
+          // Use case 1.1 — the account cannot log in until an admin approves it,
+          // so land on the waiting screen rather than the login form.
+          navigate({ to: "/auth/pending-approval", search: { state: "pending" } });
         } else {
           toast.error(response.message || tr("auth.registerCompany.errorToast"));
         }
@@ -326,10 +351,18 @@ function RegisterCompanyPage() {
 
           <div className="space-y-1">
             <h1 className="text-2xl font-black text-navy dark:text-slate-100 tracking-tight">
-              {tr("auth.registerCompany.title")}
+              {tr(
+                isHotel
+                  ? "auth.registerCompany.titleHotel"
+                  : "auth.registerCompany.title",
+              )}
             </h1>
             <p className="text-gray-500 dark:text-slate-400 font-medium text-sm px-4">
-              {tr("auth.registerCompany.subtitle")}
+              {tr(
+                isHotel
+                  ? "auth.registerCompany.subtitleHotel"
+                  : "auth.registerCompany.subtitle",
+              )}
             </p>
           </div>
         </div>
@@ -337,10 +370,79 @@ function RegisterCompanyPage() {
         {/* Form */}
         <div className="bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-[32px] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
           <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {/* Account type — company vs hotel (use case 1.1). Chosen first
+                because it changes which fields the rest of the form requires. */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-bold text-navy dark:text-slate-200 px-1">
+                {tr("auth.registerCompany.accountTypeLabel")}
+              </label>
+              <div
+                role="radiogroup"
+                aria-label={tr("auth.registerCompany.accountTypeLabel")}
+                className="grid grid-cols-2 gap-3"
+              >
+                {(
+                  [
+                    {
+                      value: "company",
+                      label: "auth.registerCompany.accountTypeCompany",
+                      hint: "auth.registerCompany.accountTypeCompanyHint",
+                    },
+                    {
+                      value: "hotel",
+                      label: "auth.registerCompany.accountTypeHotel",
+                      hint: "auth.registerCompany.accountTypeHotelHint",
+                    },
+                  ] as const
+                ).map((option) => {
+                  const selected = accountType === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => {
+                        setAccountType(option.value);
+                        // Leaving the company branch clears a stale department
+                        // selection and its error, so switching back is clean.
+                        if (option.value === "hotel") {
+                          setFormData((prev) => ({
+                            ...prev,
+                            company_department_id: "",
+                          }));
+                          setFieldError("company_department_id");
+                        }
+                      }}
+                      className={`flex flex-col items-start gap-1 rounded-2xl border-2 p-4 text-start transition-all active:scale-95 ${
+                        selected
+                          ? "border-blue bg-blue/5 dark:bg-blue/10"
+                          : "border-pale dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50"
+                      }`}
+                    >
+                      <span className="text-sm font-black text-navy dark:text-slate-100">
+                        {tr(option.label)}
+                      </span>
+                      <span className="text-[11px] font-medium leading-tight text-gray-500 dark:text-slate-400">
+                        {tr(option.hint)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="px-1 text-[11px] font-medium text-gray-400 dark:text-slate-500">
+                {tr("auth.registerCompany.accountTypeHint")}
+              </p>
+            </div>
+
             {/* Image Uploader */}
             <div className="flex flex-col items-center gap-2">
               <span className="text-sm font-bold text-navy dark:text-slate-200">
-                {tr("auth.registerCompany.logoLabel")}
+                {tr(
+                  isHotel
+                    ? "auth.registerCompany.logoLabelHotel"
+                    : "auth.registerCompany.logoLabel",
+                )}
               </span>
               <div
                 className="w-28 h-28 rounded-3xl bg-gray-50 dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-slate-600 flex items-center justify-center overflow-hidden cursor-pointer relative active:scale-95 transition-all"
@@ -418,7 +520,11 @@ function RegisterCompanyPage() {
                 <input
                   type="text"
                   name="name"
-                  placeholder={tr("auth.registerCompany.namePlaceholder")}
+                  placeholder={tr(
+                    isHotel
+                      ? "auth.registerCompany.namePlaceholderHotel"
+                      : "auth.registerCompany.namePlaceholder",
+                  )}
                   value={formData.name}
                   onChange={handleChange}
                   onBlur={() => {
@@ -437,8 +543,9 @@ function RegisterCompanyPage() {
                 )}
               </div>
 
-              {/* Department Select */}
-              <div className="flex flex-col gap-2">
+              {/* Department Select — companies only. The backend marks it
+                  `required_if:account_type,company`, so hotels never see it. */}
+              <div className={`flex flex-col gap-2 ${isHotel ? "hidden" : ""}`}>
                 <label className="text-sm font-bold text-navy dark:text-slate-200 px-1">
                   {tr("auth.registerCompany.departmentLabel")}
                 </label>
@@ -716,11 +823,19 @@ function RegisterCompanyPage() {
               {/* Caption */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-navy dark:text-slate-200 px-1">
-                  {tr("auth.registerCompany.captionLabel")}
+                  {tr(
+                    isHotel
+                      ? "auth.registerCompany.captionLabelHotel"
+                      : "auth.registerCompany.captionLabel",
+                  )}
                 </label>
                 <textarea
                   name="caption"
-                  placeholder={tr("auth.registerCompany.captionPlaceholder")}
+                  placeholder={tr(
+                    isHotel
+                      ? "auth.registerCompany.captionPlaceholderHotel"
+                      : "auth.registerCompany.captionPlaceholder",
+                  )}
                   value={formData.caption}
                   onChange={handleChange}
                   onBlur={() => {

@@ -85,28 +85,67 @@ profile form or types.
 **Reuse:** profile service, socials editor, image upload — all of it.
 
 ### F-003 — Hotel content CRUD (UC 1.3)
-**Status:** `NOT_STARTED`
+**Status:** `IMPLEMENTED` (2026-08-11) — pending real-backend + device verification
+**Delivered:** `HotelContentForm` (multi-image, chunked video via the existing `/upload-chunk` +
+`/merge-chunks`, YouTube URLs with id validation), `routes/profile/hotel-contents.tsx` (owner list,
+create/edit/delete, hidden-item badge + reason), `hotel-contents.service.ts`, `useMyHotelContents`.
+The attachment-replacement caveat from §8.3 is surfaced in the UI before saving.
+
+**Original assessment below.**
+**Status (before):** `NOT_STARTED`
 **Evidence:** no `hotel-contents` usage anywhere.
 **Reuse:** `features/post-ad/hooks/useChunkedVideoUpload.ts` + `/upload-chunk` + `/merge-chunks`
 are the **same** mechanism §9 specifies. `shared/utils/video-compression.ts` applies unchanged.
 **New:** YouTube URL input + validation; multi-image picker; attachment replacement semantics.
 
 ### F-004 — Hotel list + profile view (UC 1.4)
-**Status:** `NOT_STARTED`
+**Status:** `IMPLEMENTED` (2026-08-11) — pending real-backend + device verification
+**Delivered:** `routes/hotels/index.tsx` (search + country/state/stars/rating filters in the URL,
+pagination, loading/error/empty states), `routes/hotels/$id/index.tsx` (cover, logo, stars, rating
+summary, contact actions, socials, Contents/Ratings tabs),
+`routes/hotels/$id/contents/$contentId.tsx`, plus `HotelCard`, `StarRating`, `MediaGallery`.
+Optional fields are omitted rather than rendered empty.
+
+**Original assessment below.**
+**Status (before):** `NOT_STARTED`
 **Evidence:** `features/` has no `hotels`; grep for "hotel" returns 1 incidental file.
 **Reuse:** `features/companies/` is the closest analog for list+filter+detail structure.
 
 ### F-005 — Sharing (UC 1.5)
-**Status:** `NOT_STARTED` — ⚠️ **BLOCKED**, see §2.
+**Status:** `IMPLEMENTED` (2026-08-11) — B-02 still open, see §2
+**Delivered:** share buttons on the hotel profile and content detail, wired to the backend's
+`share_url` (not reconstructed locally). Reuses the existing `shared/utils/share.ts`, which already
+falls back native sheet → Web Share API → clipboard, so no new Capacitor dependency was needed.
+**Caveat:** per §7 every `/hotels/*` endpoint still requires auth, so a signed-out recipient opening
+a shared link will 401. That is B-02 and needs the backend change you chose.
+
+**Original assessment below.**
+**Status (before):** `NOT_STARTED` — ⚠️ **BLOCKED**, see §2.
 **Evidence:** `share_url` is server-provided; no share affordance exists in the app.
 
 ### F-006 — Chat / conversations (UC 1.6)
-**Status:** `NOT_STARTED`
+**Status:** `IMPLEMENTED` (2026-08-11) — pending real-backend + device verification
+**Delivered:** `chat.service.ts`, `useChat` (30s/15s polling stands in for realtime — there is no
+socket), `routes/conversations/index.tsx`, `routes/conversations/$id.tsx` (day separators, own/other
+bubble alignment, Enter-to-send). Starting a chat is idempotent per §10.1. Sends are **not** retried
+(non-idempotent), the composer restores the text on failure, and `navigator.onLine === false` is
+used only as a negative check.
+
+**Original assessment below.**
+**Status (before):** `NOT_STARTED`
 **Evidence:** grep for `conversation` → **0 files**. This is the largest net-new surface.
 **New:** conversation list, chat screen, message send, unread state, `new_message` push handling.
 
 ### F-007 — Hotel ratings (UC 5.2)
-**Status:** `NOT_STARTED`
+**Status:** `IMPLEMENTED` (2026-08-11) — B-03 assumption below
+**Delivered:** `RatingSheet` (accessible star radiogroup, 1000-char comment), ratings tab on the
+hotel profile, `useRateHotel` invalidating both the hotel record and the list so `rate` /
+`ratings_count` refresh. Re-submitting updates the existing rating rather than creating a second.
+**Assumption (B-03 unresolved):** any authenticated non-hotel account may rate any hotel it does not
+own. If eligibility should be narrower, that is a one-line change in `canRate`.
+
+**Original assessment below.**
+**Status (before):** `NOT_STARTED`
 **Evidence:** grep for `rating` → 1 incidental file.
 
 ### F-008 — Free access, no payments (UC 4.1)

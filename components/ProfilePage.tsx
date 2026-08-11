@@ -16,6 +16,7 @@ import {
   ChevronRightIcon,
 } from "./Icons";
 import { useIsHotel } from "@/features/account/hooks/useHotelProfile";
+import type { TranslationKey } from "@/i18n";
 import { Listing } from "../types";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
@@ -312,19 +313,35 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
 
       <SocialLinksRow socials={socials} className="-mt-2 flex-wrap" />
 
-      {/* Hotel profile management (use case 1.2). Only the account owner sees
-          it, and only when the account is actually of type `hotel`. */}
-      {isMe && isHotel && (
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/profile/hotel" })}
-          className="flex w-full items-center justify-between rounded-2xl border border-pale bg-white px-4 py-4 text-start shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900"
-        >
-          <span className="text-sm font-bold text-navy dark:text-slate-100">
-            {t("profile.hotel.manageCta")}
-          </span>
-          <ChevronRightIcon className="h-5 w-5 text-gray-400 rtl:rotate-180 ltr:rotate-0" />
-        </button>
+      {/* Hotel feature entry points. Browsing and messaging are open to every
+          signed-in account; the two management screens are hotel-only. */}
+      {isMe && (
+        <div className="flex flex-col gap-2">
+          {[
+            { to: "/hotels", label: "hotels.title", show: true },
+            { to: "/conversations", label: "hotels.chat.title", show: true },
+            { to: "/profile/hotel", label: "profile.hotel.manageCta", show: isHotel },
+            {
+              to: "/profile/hotel-contents",
+              label: "hotels.content.manageCta",
+              show: isHotel,
+            },
+          ]
+            .filter((item) => item.show)
+            .map((item) => (
+              <button
+                key={item.to}
+                type="button"
+                onClick={() => navigate({ to: item.to as "/hotels" })}
+                className="flex w-full items-center justify-between rounded-2xl border border-pale bg-white px-4 py-4 text-start shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900"
+              >
+                <span className="text-sm font-bold text-navy dark:text-slate-100">
+                  {t(item.label as TranslationKey)}
+                </span>
+                <ChevronRightIcon className="h-5 w-5 text-gray-400 rtl:rotate-180 ltr:rotate-0" />
+              </button>
+            ))}
+        </div>
       )}
 
       <div className="flex justify-between items-center px-4 py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-pale dark:border-slate-800 transition-colors duration-300">

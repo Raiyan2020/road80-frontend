@@ -43,7 +43,13 @@ export interface MergeChunksResponse {
 export interface CreateAdResponse {
   status: boolean;
   message: string;
-  data: unknown[];
+  data: {
+    ad_id?: number;
+    published?: boolean;
+    session_id?: string;
+    transaction_id?: number;
+    encryption_key?: string;
+  };
   errors: unknown[];
 }
 

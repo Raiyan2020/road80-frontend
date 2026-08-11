@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.eightyroad.app",
+      "sha256_cert_fingerprints": [
+        "35:C8:07:26:AF:29:A5:38:15:D8:43:4D:3F:4B:8E:C7:76:12:AF:D1:D2:29:37:E3:DD:FE:68:DD:8A:84:99:F7"
+      ]
+    }
+  }
+]

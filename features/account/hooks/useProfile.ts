@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { profileService, ProfileResponse } from '../services/profile.service';
+import { profileService, ProfileResponse, type UpdateAdInput } from '../services/profile.service';
 import { normalizeSocials } from '@/shared/services/social-platforms.service';
 import { useUserStore } from '@/stores/user.store';
 import { useLangStore } from '@/i18n';
@@ -11,9 +11,10 @@ const selectProfile = (res: ProfileResponse) => ({
   socials: normalizeSocials(res.data?.socials),
 });
 
-export function useProfile() {
+export function useProfile(options: { enabled?: boolean } = {}) {
   const queryClient = useQueryClient();
-  const { user, login } = useUserStore();
+  const user = useUserStore((state) => state.user);
+  const login = useUserStore((state) => state.login);
 
   const profileQuery = useQuery({
     // Deliberately NOT keyed by language: this is the user's own name, avatar,
@@ -21,6 +22,7 @@ export function useProfile() {
     queryKey: ['profile'],
     queryFn: profileService.getProfile,
     select: selectProfile,
+    enabled: options.enabled ?? true,
   });
 
   const updateProfileMutation = useMutation({
@@ -98,6 +100,17 @@ export function useDeleteAd() {
     mutationFn: (adId: number) => profileService.deleteMyAd(adId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile', 'my-ads'] });
+    },
+  });
+}
+
+export function useUpdateAd() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateAdInput) => profileService.updateMyAd(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', 'my-ads'] });
+      queryClient.invalidateQueries({ queryKey: ['listings'] });
     },
   });
 }

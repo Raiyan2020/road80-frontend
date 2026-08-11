@@ -43,8 +43,27 @@ export interface RegisterCompanyPayload {
   phone_country_id?: number | string;
   whatsapp_country_id?: number | string;
   image: File | null;
-  company_department_id: number | string;
+  /**
+   * Required when `account_type` is `company`; the backend treats it as optional
+   * for hotels. Omit it entirely (rather than sending an empty string) for a
+   * hotel — `authService.registerCompany` skips undefined values.
+   */
+  company_department_id?: number | string;
+  /**
+   * `company` (the backend default when the field is absent) or `hotel`.
+   * See flutter-hotel-feature-api.md §5.1.
+   */
+  account_type?: AccountType;
 }
+
+/** Account type chosen at registration. */
+export type AccountType = 'company' | 'hotel';
+
+/** `user.type` after login — drives which experience the app shows. */
+export type UserType = 'user' | 'company' | 'hotel';
+
+/** Approval state for company/hotel accounts. */
+export type UserStatus = 'pending' | 'accept' | 'reject';
 
 export type LoginData = Record<string, never>; // Empty object
 

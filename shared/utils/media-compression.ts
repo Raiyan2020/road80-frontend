@@ -48,6 +48,17 @@ export const AVATAR_OPTIONS: CompressOptions = {
   targetBytes: 300 * 1024,
 };
 
+/**
+ * Hotel profile cover images (use case 1.2) render edge-to-edge behind the
+ * profile header, so they need far more resolution than a logo — but they are
+ * still fetched on every profile view over mobile data, so the budget stays
+ * well under a megabyte.
+ */
+export const COVER_OPTIONS: CompressOptions = {
+  maxDimension: 1600,
+  targetBytes: 700 * 1024,
+};
+
 export interface CompressionResult {
   file: File;
   originalSize: number;

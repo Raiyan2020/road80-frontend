@@ -10,7 +10,10 @@ import { Toaster } from 'sonner';
 import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
+import type { PluginListenerHandle } from '@capacitor/core';
 import { initializePushNotifications, registerCurrentDevice } from '../shared/utils/notifications';
+import { setAppNavigator, navigateToNotification } from '../shared/utils/notification-routing';
 import { initSwLangSync } from '../shared/utils/sw-lang';
 import { useLangStore } from '../i18n';
 import { useUserStore } from '../stores/user.store';
@@ -216,7 +219,8 @@ function RootComponent() {
   // Auth state is eagerly initialized above via lazy state initializer.
   // No need for a separate useEffect to check localStorage.
 
-  // Deep link handler — converts road80:// and https://80road.raiyansoft.net URLs to routes
+  // Deep link handler — supports road80:// plus both the current public origin
+  // (road-80.com) and the legacy 80road.raiyansoft.net App Link host.
   useEffect(() => {
     const handleDeepLink = (url: string) => {
       try {
@@ -230,10 +234,13 @@ function RootComponent() {
         const path = parsed.pathname;
         const search = parsed.search;
 
-        // Navigate to the matched path
+        // Navigate to the matched path. Any https host resolves here — only the
+        // pathname is used — so a corrected backend `share_url` origin
+        // (/hotels/:id, /hotels/:id/contents/:contentId) works without changes.
         navigateRef.current({ to: path + (search || '') as any, replace: true });
       } catch (e) {
-        // Handle deep link error
+        // Was silent: a malformed link just failed to navigate with no trace.
+        console.error('[deeplink] could not handle url', url, e);
       }
     };
 
@@ -246,6 +253,42 @@ function RootComponent() {
 
     return () => {
       listenerHandle?.remove();
+    };
+  }, []);
+
+  // Let push handlers (plain modules, outside React) drive the router.
+  useEffect(() => {
+    setAppNavigator((target) => {
+      navigateRef.current(target as never);
+    });
+    return () => setAppNavigator(null);
+  }, []);
+
+  // Tapping a native push notification must open what it refers to —
+  // «ويمكنه الدخول إلى المحادثة ومتابعتها» (UC 1.6). Without this listener the
+  // tap only foregrounded the app and landed the user wherever they left off.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let cancelled = false;
+    let handle: PluginListenerHandle | undefined;
+
+    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      // Capacitor nests the payload under notification.data.
+      navigateToNotification(action?.notification?.data ?? action?.notification);
+    })
+      .then((h) => {
+        // The promise can resolve after unmount; drop it rather than leak.
+        if (cancelled) void h.remove();
+        else handle = h;
+      })
+      .catch((error) => {
+        console.error('[push] failed to attach action listener', error);
+      });
+
+    return () => {
+      cancelled = true;
+      void handle?.remove();
     };
   }, []);
 
@@ -275,19 +318,35 @@ function RootComponent() {
   // Sub-pages that need a back button but use the shell header
   const isNotifications = routePath.startsWith('/notifications');
 
+  // Hotel browsing is publicly viewable: a `share_url` (use case 1.5) is sent to
+  // people who are usually signed out, and bouncing them to /auth loses the
+  // destination entirely. Read-only hotel routes only — the actions inside them
+  // (rate, chat) still check for a signed-in account before rendering.
+  const isPublicHotelRoute = routePath === '/hotels' || routePath.startsWith('/hotels/');
+
   // Route guard: redirect unauthenticated users to /auth,
   // and authenticated users away from auth pages to /home.
   // Uses navigateRef to avoid the infinite loop caused by unstable `navigate`.
   useEffect(() => {
     if (showSplash) return;
 
-    if (!isAuthenticated && !isAuthRoute && !isStandalonePage) {
-      navigateRef.current({ to: '/auth', replace: true });
+    if (!isAuthenticated && !isAuthRoute && !isStandalonePage && !isPublicHotelRoute) {
+      // Carry the intended destination so login can return the user to it
+      // instead of dropping them on /home — this is what makes a shared link
+      // still work if the recipient has to sign in first.
+      const intended =
+        routePath +
+        (typeof window !== 'undefined' ? window.location.search : '');
+      navigateRef.current({
+        to: '/auth',
+        search: intended && intended !== '/' ? { redirect: intended } : undefined,
+        replace: true,
+      } as never);
     } else if (isAuthenticated && isAuthRoute) {
       navigateRef.current({ to: '/home', replace: true });
     }
     // Only re-run when these values actually change — NOT navigate.
-  }, [showSplash, isAuthenticated, isAuthRoute, isStandalonePage, routePath]);
+  }, [showSplash, isAuthenticated, isAuthRoute, isStandalonePage, isPublicHotelRoute, routePath]);
 
   let activeTab = Tab.HOME;
   if (routePath.startsWith('/home')) activeTab = Tab.HOME;

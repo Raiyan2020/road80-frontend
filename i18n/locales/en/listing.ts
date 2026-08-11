@@ -9,6 +9,12 @@ export const listing = {
   views_one: '1 view',
   location: '{city}, {state}',
 
+  unavailable: {
+    title: 'Listing unavailable',
+    hint: 'This listing may have been hidden or deleted.',
+    back: 'Go back',
+  },
+
   // Sections
   propertyDetails: 'Property details',
   description: 'Description',

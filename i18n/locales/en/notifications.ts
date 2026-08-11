@@ -15,6 +15,7 @@ export const notifications = {
 
   // Bulk / row actions
   actions: {
+    open: 'Open',
     clearAll: 'Clear all',
     deleting: 'Deleting...',
     deleteNotification: 'Delete notification',

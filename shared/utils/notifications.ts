@@ -1,6 +1,10 @@
 import { toast } from 'sonner';
 import { getApps, initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import {
+  resolveNotificationTarget,
+  navigateToNotification,
+} from '@/shared/utils/notification-routing';
 import { firebaseConfig, VAPID_KEY } from '@/lib/firebase.config';
 import { API_BASE_URL } from '@/lib/api-base-url';
 import { getQueryClient } from '@/lib/query-client';
@@ -338,7 +342,20 @@ export const initializePushNotifications = async (): Promise<void> => {
       const copy = getNotificationCopy(payload);
       const title = copy.title || payload.notification?.title || t('notifications.push.defaultTitle');
       const body = copy.body || payload.notification?.body;
-      toast.info(title, { description: body, duration: 10000 });
+
+      // A foreground `new_message` / `hotel_content_hidden` toast is actionable:
+      // tapping it opens the conversation or the hidden-content screen.
+      const hasTarget = !!resolveNotificationTarget(payload);
+      toast.info(title, {
+        description: body,
+        duration: 10000,
+        ...(hasTarget && {
+          action: {
+            label: t('notifications.actions.open'),
+            onClick: () => navigateToNotification(payload),
+          },
+        }),
+      });
       const queryClient = getQueryClient();
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });

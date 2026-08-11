@@ -8,7 +8,17 @@ import { getLang } from '@/i18n';
 
 // Auth endpoints that should never trigger a force-logout on failure
 // (e.g. wrong OTP returns status:"needLogin" but user is not logged in yet)
-const AUTH_PATHS = ['/v1/auth/login', '/v1/auth/register', '/v1/auth/verify-otp', '/auth/logout'];
+// NOTE: these must match the paths the services actually call, which carry no
+// `/v1` prefix (see lib/api-base-url.ts — the base already ends in `/api`).
+// They previously read `/v1/auth/...`, so `isAuthPath()` never matched and a
+// failed login/OTP force-logged the user out instead of surfacing the error.
+const AUTH_PATHS = [
+  '/auth/login',
+  '/auth/register',      // also covers /auth/register-company
+  '/auth/verify-otp',
+  '/auth/resend-otp',
+  '/auth/logout',
+];
 
 const isAuthPath = (url: string) =>
   AUTH_PATHS.some((p) => url.includes(p));

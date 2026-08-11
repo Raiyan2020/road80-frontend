@@ -22,11 +22,19 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as PostAdIndexRouteImport } from './routes/post-ad/index'
+import { Route as HotelsIndexRouteImport } from './routes/hotels/index'
 import { Route as ExploreIndexRouteImport } from './routes/explore/index'
+import { Route as ConversationsIndexRouteImport } from './routes/conversations/index'
 import { Route as CompaniesIndexRouteImport } from './routes/companies/index'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as ProfileHotelContentsRouteImport } from './routes/profile/hotel-contents'
+import { Route as ProfileHotelRouteImport } from './routes/profile/hotel'
+import { Route as ConversationsIdRouteImport } from './routes/conversations/$id'
 import { Route as AuthRegisterCompanyRouteImport } from './routes/auth.register-company'
+import { Route as AuthPendingApprovalRouteImport } from './routes/auth.pending-approval'
 import { Route as AdIdRouteImport } from './routes/ad/$id'
+import { Route as HotelsIdIndexRouteImport } from './routes/hotels/$id/index'
+import { Route as HotelsIdContentsContentIdRouteImport } from './routes/hotels/$id/contents/$contentId'
 
 const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
@@ -93,9 +101,19 @@ const PostAdIndexRoute = PostAdIndexRouteImport.update({
   path: '/post-ad/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HotelsIndexRoute = HotelsIndexRouteImport.update({
+  id: '/hotels/',
+  path: '/hotels/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExploreIndexRoute = ExploreIndexRouteImport.update({
   id: '/explore/',
   path: '/explore/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConversationsIndexRoute = ConversationsIndexRouteImport.update({
+  id: '/conversations/',
+  path: '/conversations/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompaniesIndexRoute = CompaniesIndexRouteImport.update({
@@ -108,9 +126,29 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/auth/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileHotelContentsRoute = ProfileHotelContentsRouteImport.update({
+  id: '/profile/hotel-contents',
+  path: '/profile/hotel-contents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileHotelRoute = ProfileHotelRouteImport.update({
+  id: '/profile/hotel',
+  path: '/profile/hotel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConversationsIdRoute = ConversationsIdRouteImport.update({
+  id: '/conversations/$id',
+  path: '/conversations/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRegisterCompanyRoute = AuthRegisterCompanyRouteImport.update({
   id: '/auth/register-company',
   path: '/auth/register-company',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthPendingApprovalRoute = AuthPendingApprovalRouteImport.update({
+  id: '/auth/pending-approval',
+  path: '/auth/pending-approval',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdIdRoute = AdIdRouteImport.update({
@@ -118,6 +156,17 @@ const AdIdRoute = AdIdRouteImport.update({
   path: '/ad/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HotelsIdIndexRoute = HotelsIdIndexRouteImport.update({
+  id: '/hotels/$id/',
+  path: '/hotels/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HotelsIdContentsContentIdRoute =
+  HotelsIdContentsContentIdRouteImport.update({
+    id: '/hotels/$id/contents/$contentId',
+    path: '/hotels/$id/contents/$contentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -132,12 +181,20 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/ad/$id': typeof AdIdRoute
+  '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
+  '/conversations/$id': typeof ConversationsIdRoute
+  '/profile/hotel': typeof ProfileHotelRoute
+  '/profile/hotel-contents': typeof ProfileHotelContentsRoute
   '/auth/': typeof AuthIndexRoute
   '/companies/': typeof CompaniesIndexRoute
+  '/conversations/': typeof ConversationsIndexRoute
   '/explore/': typeof ExploreIndexRoute
+  '/hotels/': typeof HotelsIndexRoute
   '/post-ad/': typeof PostAdIndexRoute
   '/profile/': typeof ProfileIndexRoute
+  '/hotels/$id/': typeof HotelsIdIndexRoute
+  '/hotels/$id/contents/$contentId': typeof HotelsIdContentsContentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -152,12 +209,20 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/ad/$id': typeof AdIdRoute
+  '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
+  '/conversations/$id': typeof ConversationsIdRoute
+  '/profile/hotel': typeof ProfileHotelRoute
+  '/profile/hotel-contents': typeof ProfileHotelContentsRoute
   '/auth': typeof AuthIndexRoute
   '/companies': typeof CompaniesIndexRoute
+  '/conversations': typeof ConversationsIndexRoute
   '/explore': typeof ExploreIndexRoute
+  '/hotels': typeof HotelsIndexRoute
   '/post-ad': typeof PostAdIndexRoute
   '/profile': typeof ProfileIndexRoute
+  '/hotels/$id': typeof HotelsIdIndexRoute
+  '/hotels/$id/contents/$contentId': typeof HotelsIdContentsContentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -173,12 +238,20 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/verify': typeof VerifyRoute
   '/ad/$id': typeof AdIdRoute
+  '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
+  '/conversations/$id': typeof ConversationsIdRoute
+  '/profile/hotel': typeof ProfileHotelRoute
+  '/profile/hotel-contents': typeof ProfileHotelContentsRoute
   '/auth/': typeof AuthIndexRoute
   '/companies/': typeof CompaniesIndexRoute
+  '/conversations/': typeof ConversationsIndexRoute
   '/explore/': typeof ExploreIndexRoute
+  '/hotels/': typeof HotelsIndexRoute
   '/post-ad/': typeof PostAdIndexRoute
   '/profile/': typeof ProfileIndexRoute
+  '/hotels/$id/': typeof HotelsIdIndexRoute
+  '/hotels/$id/contents/$contentId': typeof HotelsIdContentsContentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -195,12 +268,20 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify'
     | '/ad/$id'
+    | '/auth/pending-approval'
     | '/auth/register-company'
+    | '/conversations/$id'
+    | '/profile/hotel'
+    | '/profile/hotel-contents'
     | '/auth/'
     | '/companies/'
+    | '/conversations/'
     | '/explore/'
+    | '/hotels/'
     | '/post-ad/'
     | '/profile/'
+    | '/hotels/$id/'
+    | '/hotels/$id/contents/$contentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -215,12 +296,20 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify'
     | '/ad/$id'
+    | '/auth/pending-approval'
     | '/auth/register-company'
+    | '/conversations/$id'
+    | '/profile/hotel'
+    | '/profile/hotel-contents'
     | '/auth'
     | '/companies'
+    | '/conversations'
     | '/explore'
+    | '/hotels'
     | '/post-ad'
     | '/profile'
+    | '/hotels/$id'
+    | '/hotels/$id/contents/$contentId'
   id:
     | '__root__'
     | '/'
@@ -235,12 +324,20 @@ export interface FileRouteTypes {
     | '/terms'
     | '/verify'
     | '/ad/$id'
+    | '/auth/pending-approval'
     | '/auth/register-company'
+    | '/conversations/$id'
+    | '/profile/hotel'
+    | '/profile/hotel-contents'
     | '/auth/'
     | '/companies/'
+    | '/conversations/'
     | '/explore/'
+    | '/hotels/'
     | '/post-ad/'
     | '/profile/'
+    | '/hotels/$id/'
+    | '/hotels/$id/contents/$contentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -256,12 +353,20 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VerifyRoute: typeof VerifyRoute
   AdIdRoute: typeof AdIdRoute
+  AuthPendingApprovalRoute: typeof AuthPendingApprovalRoute
   AuthRegisterCompanyRoute: typeof AuthRegisterCompanyRoute
+  ConversationsIdRoute: typeof ConversationsIdRoute
+  ProfileHotelRoute: typeof ProfileHotelRoute
+  ProfileHotelContentsRoute: typeof ProfileHotelContentsRoute
   AuthIndexRoute: typeof AuthIndexRoute
   CompaniesIndexRoute: typeof CompaniesIndexRoute
+  ConversationsIndexRoute: typeof ConversationsIndexRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
+  HotelsIndexRoute: typeof HotelsIndexRoute
   PostAdIndexRoute: typeof PostAdIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
+  HotelsIdIndexRoute: typeof HotelsIdIndexRoute
+  HotelsIdContentsContentIdRoute: typeof HotelsIdContentsContentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -357,11 +462,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostAdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hotels/': {
+      id: '/hotels/'
+      path: '/hotels'
+      fullPath: '/hotels/'
+      preLoaderRoute: typeof HotelsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/explore/': {
       id: '/explore/'
       path: '/explore'
       fullPath: '/explore/'
       preLoaderRoute: typeof ExploreIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conversations/': {
+      id: '/conversations/'
+      path: '/conversations'
+      fullPath: '/conversations/'
+      preLoaderRoute: typeof ConversationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/companies/': {
@@ -378,6 +497,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/hotel-contents': {
+      id: '/profile/hotel-contents'
+      path: '/profile/hotel-contents'
+      fullPath: '/profile/hotel-contents'
+      preLoaderRoute: typeof ProfileHotelContentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/hotel': {
+      id: '/profile/hotel'
+      path: '/profile/hotel'
+      fullPath: '/profile/hotel'
+      preLoaderRoute: typeof ProfileHotelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conversations/$id': {
+      id: '/conversations/$id'
+      path: '/conversations/$id'
+      fullPath: '/conversations/$id'
+      preLoaderRoute: typeof ConversationsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/register-company': {
       id: '/auth/register-company'
       path: '/auth/register-company'
@@ -385,11 +525,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRegisterCompanyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/pending-approval': {
+      id: '/auth/pending-approval'
+      path: '/auth/pending-approval'
+      fullPath: '/auth/pending-approval'
+      preLoaderRoute: typeof AuthPendingApprovalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ad/$id': {
       id: '/ad/$id'
       path: '/ad/$id'
       fullPath: '/ad/$id'
       preLoaderRoute: typeof AdIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hotels/$id/': {
+      id: '/hotels/$id/'
+      path: '/hotels/$id'
+      fullPath: '/hotels/$id/'
+      preLoaderRoute: typeof HotelsIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hotels/$id/contents/$contentId': {
+      id: '/hotels/$id/contents/$contentId'
+      path: '/hotels/$id/contents/$contentId'
+      fullPath: '/hotels/$id/contents/$contentId'
+      preLoaderRoute: typeof HotelsIdContentsContentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -408,12 +569,20 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VerifyRoute: VerifyRoute,
   AdIdRoute: AdIdRoute,
+  AuthPendingApprovalRoute: AuthPendingApprovalRoute,
   AuthRegisterCompanyRoute: AuthRegisterCompanyRoute,
+  ConversationsIdRoute: ConversationsIdRoute,
+  ProfileHotelRoute: ProfileHotelRoute,
+  ProfileHotelContentsRoute: ProfileHotelContentsRoute,
   AuthIndexRoute: AuthIndexRoute,
   CompaniesIndexRoute: CompaniesIndexRoute,
+  ConversationsIndexRoute: ConversationsIndexRoute,
   ExploreIndexRoute: ExploreIndexRoute,
+  HotelsIndexRoute: HotelsIndexRoute,
   PostAdIndexRoute: PostAdIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
+  HotelsIdIndexRoute: HotelsIdIndexRoute,
+  HotelsIdContentsContentIdRoute: HotelsIdContentsContentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

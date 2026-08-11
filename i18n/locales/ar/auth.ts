@@ -58,6 +58,33 @@ export const auth = {
     successToast: 'تم التسجيل بنجاح، في انتظار موافقة الإدارة',
     errorToast: 'حدث خطأ ما أثناء التسجيل',
     errorRetryLater: 'حدث خطأ ما أثناء التسجيل، يرجى المحاولة لاحقاً',
+
+    // Account type selector (company vs hotel) — use case 1.1
+    accountTypeLabel: 'نوع الحساب',
+    accountTypeHint: 'اختر نوع الحساب الذي تريد إنشاءه',
+    accountTypeCompany: 'شركة',
+    accountTypeCompanyHint: 'مكتب عقاري أو شركة مقاولات',
+    accountTypeHotel: 'فندق',
+    accountTypeHotelHint: 'فندق أو منشأة ضيافة',
+
+    // Hotel-specific labels — the rest of the form is shared with companies
+    titleHotel: 'تسجيل فندق جديد',
+    subtitleHotel: 'انضم إلى شبكة 80road واعرض فندقك ومحتواه لجمهور واسع',
+    logoLabelHotel: 'شعار الفندق',
+    nameLabelHotel: 'اسم الفندق',
+    namePlaceholderHotel: 'أدخل اسم الفندق',
+    captionLabelHotel: 'وصف الفندق',
+    captionPlaceholderHotel: 'تحدث قليلاً عن الفندق ومرافقه...',
+  },
+
+  // Pending-approval screen shown after registration and on blocked login
+  pendingApproval: {
+    title: 'طلبك قيد المراجعة',
+    description: 'تم استلام طلب التسجيل بنجاح. سيقوم فريق الإدارة بمراجعته وإبلاغك عند اعتماد الحساب.',
+    rejectedTitle: 'تم رفض طلب التسجيل',
+    rejectedDescription: 'للأسف لم تتم الموافقة على طلب التسجيل. يمكنك التواصل مع الدعم لمزيد من التفاصيل.',
+    backToLogin: 'العودة لتسجيل الدخول',
+    backToHome: 'العودة للرئيسية',
   },
 
   // Auth-specific validation messages

@@ -12,6 +12,7 @@ export interface ExploreFilters {
 export interface ExploreRawAd {
   id: number;
   title: string;
+  description?: string | null;
   price: string;
   is_liked: boolean;
   likes_count?: number;

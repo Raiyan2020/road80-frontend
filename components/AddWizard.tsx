@@ -112,6 +112,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     useState<VideoCompressionResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [publishedImmediately, setPublishedImmediately] = useState(false);
   const [showEmbedded, setShowEmbedded] = useState(false);
   const [sessionInfo, setSessionInfo] = useState<{
     id: string;
@@ -372,6 +373,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
     setVideoSavings(null);
     setIsProcessing(false);
     setPublished(false);
+    setPublishedImmediately(false);
     setShowEmbedded(false);
     setSessionInfo(null);
     setTransactionId(null);
@@ -684,6 +686,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       if (sessionId) {
         applySession(sessionId);
       } else if (res.status) {
+        setPublishedImmediately(Boolean(res.data?.published));
         setPublished(true);
         // We do not use setTimeout here anymore so the user can read the success message
       } else {
@@ -853,7 +856,11 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
             {t("postAd.success.goToMyAds")}
           </button>
           <p className="text-gray-400 text-sm text-center font-medium">
-            {t("postAd.success.reviewNote")}
+            {t(
+              publishedImmediately
+                ? "postAd.success.publishedNote"
+                : "postAd.success.reviewNote",
+            )}
           </p>
         </div>
       </div>

@@ -12,6 +12,13 @@ export const listing = {
   views_one: 'مشاهدة واحدة',
   location: '{city}، {state}',
 
+  // Hidden by an admin (`is_hidden`), deleted, or never existed — all 404.
+  unavailable: {
+    title: 'الإعلان غير متاح',
+    hint: 'قد يكون هذا الإعلان قد أُخفي أو حُذف.',
+    back: 'رجوع',
+  },
+
   // Sections
   propertyDetails: 'تفاصيل العقار',
   description: 'الوصف',

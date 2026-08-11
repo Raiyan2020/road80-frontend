@@ -11,6 +11,7 @@ export const postAd = {
     postAnother: 'Post another ad',
     goToMyAds: 'Go to my ads',
     reviewNote: 'Your ad goes live as soon as our team reviews and approves it.',
+    publishedNote: 'Your company content is now live and available without fees.',
   },
 
   // ── Dynamic category steps ────────────────────────────────────────────────

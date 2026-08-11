@@ -44,6 +44,10 @@ export const chatService = {
   startWithHotel: (hotelId: number | string) =>
     api.post<ApiEnvelope<Conversation>>(`/hotels/${hotelId}/conversations`),
 
+  /** Start or resume a conversation with a company profile. */
+  startWithCompany: (companyId: number | string) =>
+    api.post<ApiEnvelope<Conversation>>(`/companies/${companyId}/conversations`),
+
   /** A user sees their hotel threads; a hotel sees incoming user threads. */
   conversations: (page = 1) =>
     api.get<PaginatedEnvelope<Conversation[]>>('/conversations', {

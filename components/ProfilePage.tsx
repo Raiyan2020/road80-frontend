@@ -24,7 +24,9 @@ import {
   useUserFavorites,
   useProfile,
   useDeleteAd,
+  useUpdateAd,
 } from "../features/account/hooks/useProfile";
+import { useStartCompanyConversation } from "@/features/chat/hooks/useChat";
 import { UpdateProfileDialog } from "./UpdateProfileDialog";
 import { SocialLinksDialog } from "./SocialLinksDialog";
 import { SocialLinksRow } from "./SocialLinksRow";
@@ -38,6 +40,7 @@ import { PlayIcon } from "./Icons";
 import { APP_LOGO_URL } from "@/shared/constants/images";
 import { useTranslation } from "../i18n";
 import { buildShareUrl, shareContent } from "@/shared/utils/share";
+import { toast } from "sonner";
 
 interface ProfilePageProps {
   onListingClick?: (listing: Listing) => void;
@@ -58,9 +61,13 @@ const EditIcon = ({ className }: { className?: string }) => (
 const ListingCard: React.FC<{
   listing: Listing;
   onClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }> = ({
   listing,
   onClick,
+  onEdit,
+  onDelete,
 }) => {
   const { t } = useTranslation();
   const hasVideo = listingHasVideo(listing);
@@ -102,6 +109,34 @@ const ListingCard: React.FC<{
           </span>
           <div className="w-1 h-1 rounded-full bg-navy dark:bg-slate-500"></div>
         </div>
+        {(onEdit || onDelete) && (
+          <div className="mt-auto flex gap-2 pt-2">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onEdit();
+                }}
+                className="flex-1 rounded-lg bg-pale/60 px-2 py-2 text-xs font-bold text-navy dark:bg-slate-800 dark:text-slate-100"
+              >
+                {t("profile.page.editAd")}
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete();
+                }}
+                className="flex-1 rounded-lg bg-red-50 px-2 py-2 text-xs font-bold text-red-600 dark:bg-red-950/30 dark:text-red-300"
+              >
+                {t("profile.page.deleteAd")}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -122,7 +157,7 @@ const StatItem: React.FC<{ label: string; value: string }> = ({
 );
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
-  const { t } = useTranslation();
+  const { t, dir } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -146,6 +181,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isSocialLinksOpen, setIsSocialLinksOpen] = useState(false);
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
+  const [editingAd, setEditingAd] = useState<Listing | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+
+  const deleteAd = useDeleteAd();
+  const updateAd = useUpdateAd();
+  const { startCompanyConversation, isStartingCompanyConversation } =
+    useStartCompanyConversation();
 
   useEffect(() => {
     const p = getParams();
@@ -239,6 +283,65 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     });
   };
 
+  const openEditAd = (listing: Listing) => {
+    setEditingAd(listing);
+    setEditTitle(listing.title);
+    setEditDescription(listing.description ?? "");
+    setEditPrice(listing.price.replace(/[^\d.]/g, ""));
+  };
+
+  const handleDeleteAd = async (listing: Listing) => {
+    if (!window.confirm(t("profile.page.deleteAdConfirm"))) return;
+
+    try {
+      await deleteAd.mutateAsync(listing.id);
+      toast.success(t("profile.page.deleteAdSuccess"));
+    } catch {
+      toast.error(t("profile.page.deleteAdError"));
+    }
+  };
+
+  const handleUpdateAd = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingAd) return;
+
+    const numericPrice = Number(editPrice);
+    if (!editTitle.trim() || editDescription.trim().length < 5 || !Number.isFinite(numericPrice)) {
+      toast.error(t("profile.page.updateAdError"));
+      return;
+    }
+
+    try {
+      await updateAd.mutateAsync({
+        id: editingAd.id,
+        title: editTitle.trim(),
+        description: editDescription.trim(),
+        price: numericPrice,
+      });
+      setEditingAd(null);
+      toast.success(t("profile.page.updateAdSuccess"));
+    } catch {
+      toast.error(t("profile.page.updateAdError"));
+    }
+  };
+
+  const handleStartCompanyChat = async () => {
+    if (!viewedUserId) return;
+
+    try {
+      const response = await startCompanyConversation(viewedUserId);
+      const conversationId = (response as any)?.data?.id;
+      if (conversationId) {
+        navigate({
+          to: "/conversations/$id",
+          params: { id: String(conversationId) },
+        });
+      }
+    } catch (error: any) {
+      toast.error(error?.data?.message || t("hotels.chat.startError"));
+    }
+  };
+
   // A company that is hidden, suspended, or not yet accepted now 404s
   // (`visibleCompanies()` scope). Without this the shell rendered with a
   // placeholder name and zeroed stats, which reads as a real but empty profile.
@@ -328,6 +431,51 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
       </div>
 
       <SocialLinksRow socials={socials} className="-mt-2 flex-wrap" />
+
+      {!isMe && officeData && (officeData.phone || officeData.whatsapp) && (
+        <div className="flex gap-3">
+          {officeData.whatsapp && (
+            <a
+              href={`https://wa.me/${officeData.whatsapp.replace(/\D/g, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-2xl border border-navy/20 bg-white px-4 py-3 text-center text-sm font-bold text-navy dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            >
+              {t("profile.page.sendWhatsapp")}
+            </a>
+          )}
+          {officeData.phone && (
+            <a
+              href={`tel:${officeData.phone}`}
+              className="flex-1 rounded-2xl bg-navy px-4 py-3 text-center text-sm font-bold text-white dark:bg-blue"
+            >
+              {t("profile.page.call")}
+            </a>
+          )}
+        </div>
+      )}
+
+      {!isMe && officeData?.website && (
+        <a
+          href={officeData.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full rounded-2xl border border-pale bg-white px-4 py-3 text-center text-sm font-bold text-navy dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+        >
+          {t("profile.hotel.websiteLabel")}
+        </a>
+      )}
+
+      {!isMe && profile?.type === "user" && (
+        <button
+          type="button"
+          onClick={handleStartCompanyChat}
+          disabled={isStartingCompanyConversation}
+          className="w-full rounded-2xl bg-blue px-4 py-3.5 text-sm font-bold text-white shadow-sm disabled:opacity-60"
+        >
+          {t("profile.page.startChat")}
+        </button>
+      )}
 
       {/* Hotel feature entry points. Browsing and messaging are open to every
           signed-in account; the two management screens are hotel-only. */}
@@ -435,6 +583,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
                 key={`${item.id}-${idx}`}
                 listing={item}
                 onClick={() => onListingClick && onListingClick(item)}
+                onEdit={isMe && activeSubTab === "ads" ? () => openEditAd(item) : undefined}
+                onDelete={isMe && activeSubTab === "ads" ? () => handleDeleteAd(item) : undefined}
               />
             ))
           )}
@@ -493,6 +643,76 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
               {profileName}
             </div>
           </div>
+        </div>
+      )}
+
+      {editingAd && (
+        <div className="fixed inset-0 z-[270] flex items-center justify-center p-4" dir={dir}>
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+            onClick={() => setEditingAd(null)}
+            aria-label={t("common.close")}
+          />
+          <form
+            onSubmit={handleUpdateAd}
+            className="relative z-10 flex w-full max-w-md flex-col gap-4 rounded-[28px] bg-white p-5 shadow-2xl dark:bg-slate-900"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-black text-navy dark:text-slate-100">
+                {t("profile.page.editAdTitle")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setEditingAd(null)}
+                className="rounded-full p-2 text-gray-500"
+                aria-label={t("common.close")}
+              >
+                <CloseIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <label className="flex flex-col gap-1 text-sm font-bold text-navy dark:text-slate-200">
+              {t("profile.page.adTitleLabel")}
+              <input
+                value={editTitle}
+                onChange={(event) => setEditTitle(event.target.value)}
+                maxLength={255}
+                required
+                className="h-12 rounded-xl border border-pale bg-white px-3 outline-none focus:border-blue dark:border-slate-700 dark:bg-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-bold text-navy dark:text-slate-200">
+              {t("profile.page.adDescriptionLabel")}
+              <textarea
+                value={editDescription}
+                onChange={(event) => setEditDescription(event.target.value)}
+                minLength={5}
+                maxLength={400}
+                required
+                rows={5}
+                className="rounded-xl border border-pale bg-white p-3 outline-none focus:border-blue dark:border-slate-700 dark:bg-slate-800"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-bold text-navy dark:text-slate-200">
+              {t("profile.page.adPriceLabel")}
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={editPrice}
+                onChange={(event) => setEditPrice(event.target.value)}
+                required
+                className="h-12 rounded-xl border border-pale bg-white px-3 outline-none focus:border-blue dark:border-slate-700 dark:bg-slate-800"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={updateAd.isPending}
+              className="h-12 rounded-xl bg-blue font-bold text-white disabled:opacity-60"
+            >
+              {t("profile.saveChanges")}
+            </button>
+          </form>
         </div>
       )}
     </div>

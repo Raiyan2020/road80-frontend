@@ -122,7 +122,7 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
     listingType: listingType,
     propertyType: propertyType,
     description:
-      [
+      raw.description || [
         // Both sides are nullable now — interpolating them raw put a literal
         // "null: null" into the searchable description.
         raw.answers

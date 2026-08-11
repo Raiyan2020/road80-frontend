@@ -134,7 +134,7 @@ export const hotels = {
   chat: {
     title: 'Messages',
     empty: 'No conversations',
-    emptyHint: 'Start a chat from any hotel profile',
+    emptyHint: 'Start a chat from a hotel or company profile',
     loadError: 'Could not load conversations',
     messagePlaceholder: 'Write a message...',
     send: 'Send',
@@ -144,6 +144,8 @@ export const hotels = {
     startError: 'Could not start the conversation',
     hotelNotAvailable: 'This hotel is not available for chat right now',
     hotelCannotStart: 'Hotel accounts cannot start a new conversation',
+    businessNotAvailable: 'This business profile is not available for chat right now',
+    businessCannotStart: 'Business accounts cannot start a new conversation',
     noMessages: 'No messages yet — send the first one',
     today: 'Today',
     yesterday: 'Yesterday',

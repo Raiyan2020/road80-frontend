@@ -134,7 +134,7 @@ export const hotels = {
   chat: {
     title: 'المحادثات',
     empty: 'لا توجد محادثات',
-    emptyHint: 'ابدأ محادثة من بروفايل أي فندق',
+    emptyHint: 'ابدأ محادثة من بروفايل فندق أو شركة',
     loadError: 'تعذر تحميل المحادثات',
     messagePlaceholder: 'اكتب رسالتك...',
     send: 'إرسال',
@@ -144,6 +144,8 @@ export const hotels = {
     startError: 'تعذر بدء المحادثة',
     hotelNotAvailable: 'هذا الفندق غير متاح للمحادثة حالياً',
     hotelCannotStart: 'حسابات الفنادق لا يمكنها بدء محادثة جديدة',
+    businessNotAvailable: 'هذا البروفايل غير متاح للمحادثة حالياً',
+    businessCannotStart: 'حسابات الشركات والفنادق لا يمكنها بدء محادثة جديدة',
     noMessages: 'لا توجد رسائل بعد — أرسل أول رسالة',
     today: 'اليوم',
     yesterday: 'أمس',

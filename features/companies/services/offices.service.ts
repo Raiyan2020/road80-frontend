@@ -142,6 +142,9 @@ interface RawCompanyProfile {
   total_ads_watch?: number;
   total_ads_likes?: number;
   rate?: number;
+  phone?: string | null;
+  whatsapp_phone?: string | null;
+  website?: string | null;
   [key: string]: unknown;
 }
 
@@ -164,6 +167,9 @@ export async function fetchOfficeById(id: string | number): Promise<Office | nul
         totalViews: raw.total_ads_watch ?? 0,
         totalLikes: raw.total_ads_likes ?? 0,
         rating: raw.rate ?? 0,
+        phone: raw.phone ?? undefined,
+        whatsapp: raw.whatsapp_phone ?? undefined,
+        website: raw.website ?? undefined,
         socials: normalizeSocials(raw.socials),
         sampleListings: [],
       });
@@ -173,4 +179,3 @@ export async function fetchOfficeById(id: string | number): Promise<Office | nul
     return null;
   }
 }
-

@@ -17,6 +17,9 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
   
   const [name, setName] = useState(profileData?.name || '');
   const [bio, setBio] = useState(profileData?.caption || profileData?.bio || '');
+  const [email, setEmail] = useState(profileData?.email || '');
+  const [whatsapp, setWhatsapp] = useState(profileData?.whatsapp_phone || '');
+  const [website, setWebsite] = useState(profileData?.website || '');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState(profileData?.image || null);
   const [showErrors, setShowErrors] = useState(false);
@@ -43,6 +46,9 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
     if (!isOpen) return;
     setName(profileData?.name || '');
     setBio(profileData?.caption || profileData?.bio || '');
+    setEmail(profileData?.email || '');
+    setWhatsapp(profileData?.whatsapp_phone || '');
+    setWebsite(profileData?.website || '');
     setPreviewImage(profileData?.image || null);
     setImageFile(null);
     setShowErrors(false);
@@ -85,6 +91,11 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
     const formData = new FormData();
     formData.append('name', name);
     formData.append('caption', bio);
+    if (profileData?.type === 'company') {
+      formData.append('email', email);
+      formData.append('whatsapp_phone', whatsapp);
+      formData.append('website', website.trim());
+    }
     if (imageFile) {
       formData.append('image', imageFile);
     }
@@ -160,6 +171,47 @@ export const UpdateProfileDialog: React.FC<{ isOpen: boolean; onClose: () => voi
               placeholder={t('profile.editDialog.namePlaceholder')}
             />
           </div>
+
+          {profileData?.type === 'company' && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-navy dark:text-slate-200">
+                  {t('profile.hotel.emailLabel')}
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  className="h-12 px-4 rounded-xl border border-pale bg-gray-50 dark:border-slate-800 dark:bg-slate-800/50 text-navy dark:text-slate-200"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-navy dark:text-slate-200">
+                  {t('profile.hotel.whatsappLabel')}
+                </label>
+                <input
+                  type="tel"
+                  value={whatsapp}
+                  onChange={e => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                  required
+                  className="h-12 px-4 rounded-xl border border-pale bg-gray-50 dark:border-slate-800 dark:bg-slate-800/50 text-navy dark:text-slate-200"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-navy dark:text-slate-200">
+                  {t('profile.hotel.websiteLabel')}
+                </label>
+                <input
+                  type="url"
+                  value={website}
+                  onChange={e => setWebsite(e.target.value)}
+                  placeholder={t('profile.hotel.websitePlaceholder')}
+                  className="h-12 px-4 rounded-xl border border-pale bg-gray-50 dark:border-slate-800 dark:bg-slate-800/50 text-navy dark:text-slate-200"
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-bold text-navy dark:text-slate-200 flex items-center justify-between">

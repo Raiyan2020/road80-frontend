@@ -77,6 +77,13 @@ export interface ProfileListingsResponse {
   data: any[];
 }
 
+export interface UpdateAdInput {
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+}
+
 export const profileService = {
   getProfile: () => api.get<ProfileResponse>('/profile'),
   
@@ -149,7 +156,11 @@ export const profileService = {
    * Delete one of the authenticated user's ads by ID.
    */
   deleteMyAd: async (adId: number): Promise<{ status: boolean; message: string }> => {
-    return api.delete<{ status: boolean; message: string }>(`/profile/delete-ad/${adId}`);
+    return api.delete<{ status: boolean; message: string }>(`/profile/ads/${adId}`);
+  },
+
+  updateMyAd: async ({ id, ...input }: UpdateAdInput): Promise<{ status: boolean; message: string }> => {
+    return api.post<{ status: boolean; message: string }>(`/profile/ads/${id}`, input);
   },
 
   /**

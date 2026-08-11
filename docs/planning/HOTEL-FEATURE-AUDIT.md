@@ -6,6 +6,32 @@
 
 ---
 
+## Current full-business status
+
+The original audit below was scoped to the React application. A follow-up implementation pass
+covered the related Laravel API and Filament requirements as well. All use cases in
+`bussiness.md` are now implemented in the local frontend/backend workspaces.
+
+| Use case | Local status | Implementation summary |
+|---|---|---|
+| 1.1–1.6 | Implemented | Hotel registration, profile/content management, public pages, sharing and conversations |
+| 2.1 | Implemented | Hotel creation, editing and visibility/status management in Filament |
+| 2.2 | Implemented | Read-only media review, hide-with-reason notification and permanent deletion |
+| 3.1 | Implemented | Company creation/profile/status management, including website/contact fields |
+| 3.2 | Implemented | Company content description review, hide/delete moderation without admin editing |
+| 4.1 | Implemented | Company publishing and business contact/chat surfaces no longer require payment; hotel surfaces remain free |
+| 5.1 | Implemented | Country/state/city management, default filter participation, protected fixed categories and hotel star/rating filters |
+| 5.2 | Implemented | Create/update ratings, averages/counts, public filtering and admin hide/delete moderation |
+
+**Verification:** frontend type-check and production build pass; backend test suite passes with
+17 tests / 42 assertions; changed files pass whitespace and PHP syntax checks.
+
+**Operational checks still required:** deploy both applications, run the Laravel migrations, and
+verify Universal Links/App Links plus native sharing on real Android/iOS devices. These are release
+steps, not missing repository implementation.
+
+---
+
 ## 0. Scope — what is NOT frontend work
 
 The business document mixes app and admin-panel use cases. These are **Laravel/Filament
@@ -112,12 +138,13 @@ Optional fields are omitted rather than rendered empty.
 **Reuse:** `features/companies/` is the closest analog for list+filter+detail structure.
 
 ### F-005 — Sharing (UC 1.5)
-**Status:** `IMPLEMENTED` (2026-08-11) — B-02 still open, see §2
+**Status:** `IMPLEMENTED` (2026-08-11) — pending deployed-domain + device verification
 **Delivered:** share buttons on the hotel profile and content detail, wired to the backend's
 `share_url` (not reconstructed locally). Reuses the existing `shared/utils/share.ts`, which already
 falls back native sheet → Web Share API → clipboard, so no new Capacitor dependency was needed.
-**Caveat:** per §7 every `/hotels/*` endpoint still requires auth, so a signed-out recipient opening
-a shared link will 401. That is B-02 and needs the backend change you chose.
+Backend commit `24c05b9` resolved B-02 by making hotel reads public and building `share_url` from
+`PUBLIC_WEB_URL`. The frontend skips its protected `/profile` query for signed-out hotel visitors
+and registers `road-80.com` for Android App Links and iOS Universal Links.
 
 **Original assessment below.**
 **Status (before):** `NOT_STARTED` — ⚠️ **BLOCKED**, see §2.
@@ -149,11 +176,9 @@ own. If eligibility should be narrower, that is a one-line change in `canRate`.
 **Evidence:** grep for `rating` → 1 incidental file.
 
 ### F-008 — Free access, no payments (UC 4.1)
-**Status:** `NOT_STARTED` — it is a **constraint**, not a deliverable
-**Correction:** an earlier version of this file marked this `IMPLEMENTED` "by omission". That was
-wrong. UC 4.1 asserts that profile, content, chat, WhatsApp, call, website and social links are all
-free. None of those surfaces exist yet, so there is nothing to be free. It can only be marked done
-once F-002…F-007 ship and each has been checked for payment gating.
+**Status:** `IMPLEMENTED` — it is a **constraint**, not a separate screen
+F-002…F-007 are now implemented and were checked for payment gating. Hotel profile, content,
+ratings, chat, WhatsApp, call, website, socials and sharing contain no payment or subscription gate.
 **Note:** `payments/*` endpoints exist for ads. Keep them out of every hotel surface.
 
 ---
@@ -171,15 +196,11 @@ instead of showing the waiting/error message UC 1.1 requires.
 
 **Fix:** drop the `/v1` prefix from those three entries. Small, and required before F-001.
 
-### B-02 — Shared hotel links require auth, contradicting UC 1.5
-§7 states *every* `/hotels/*` endpoint requires a Bearer token. But UC 1.5 shares a public
-`share_url` (`https://domain.com/hotels/12`) via WhatsApp to arbitrary recipients.
-
-An unauthenticated recipient opening that link cannot load the hotel — they hit 401 and get
-force-logged-out into the auth screen.
-
-**Decision required:** are hotel read endpoints public, or does the deep link route through a
-login wall first? This changes the routing and guard design for F-004 and F-005.
+### B-02 — Shared hotel links require auth, contradicting UC 1.5 — RESOLVED
+Backend commit `24c05b9` moved the five read-only hotel endpoints outside `auth:user` and added
+`PUBLIC_WEB_URL` for canonical share links. Rating, chat, content management and conversations
+remain authenticated. The client treats `/hotels/*` as public and does not issue protected profile
+requests for signed-out visitors.
 
 ### B-03 — Rating eligibility undefined
 UC 5.2 says *«المستخدم المؤهل للتقييم»* (the *eligible* user) but never defines eligibility. The
@@ -255,10 +276,9 @@ The API doc's UI notes assume Flutter. Equivalents in this app:
 
 ## 6. Open business questions (do not invent answers)
 
-1. B-02 — are hotel endpoints public for shared links?
-2. B-03 — what makes a user "eligible" to rate?
-3. B-04 — should hotels set their own star rating?
-4. UC 1.3 — "technical limits only" on video: what are the actual max size/formats?
-5. UC 1.4 — a hidden/suspended hotel returns 404. What should the app show — a generic
+1. B-03 — what makes a user "eligible" to rate?
+2. B-04 — should hotels set their own star rating?
+3. UC 1.3 — "technical limits only" on video: what are the actual max size/formats?
+4. UC 1.4 — a hidden/suspended hotel returns 404. What should the app show — a generic
    not-found, or a specific "no longer available"?
-6. Does the hotel account get the ads/post-ad experience too, or hotel surfaces only?
+5. Does the hotel account get the ads/post-ad experience too, or hotel surfaces only?

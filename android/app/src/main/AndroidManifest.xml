@@ -29,11 +29,12 @@
                 <data android:scheme="road80" />
             </intent-filter>
 
-            <!-- HTTPS App Links: https://80road.raiyansoft.net/ad/123 -->
+            <!-- HTTPS App Links. Keep the legacy host for old shared links. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="road-80.com" />
                 <data android:scheme="https" android:host="80road.raiyansoft.net" />
             </intent-filter>
 
@@ -42,6 +43,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" android:host="road-80.com" />
                 <data android:scheme="http" android:host="80road.raiyansoft.net" />
             </intent-filter>
         </activity>

@@ -24,6 +24,7 @@ import { StarRating } from "@/features/hotels/components/StarRating";
 import { MediaGallery } from "@/features/hotels/components/MediaGallery";
 import { RatingSheet } from "@/features/hotels/components/RatingSheet";
 import type { Hotel, HotelContent, HotelRating } from "@/features/hotels/types";
+import { useUserStore } from "@/stores/user.store";
 
 type Tab = "contents" | "ratings";
 
@@ -53,7 +54,10 @@ function HotelProfilePage() {
   const hotelQuery = useHotel(id);
   const contentsQuery = useHotelContents(id, contentsPage);
   const ratingsQuery = useHotelRatings(id, ratingsPage);
-  const { profile } = useProfile();
+  const isAuthenticated = useUserStore((state) => state.isAuthenticated);
+  // Hotel reads are public. Do not call the protected /profile endpoint for a
+  // signed-out visitor who arrived through a share link.
+  const { profile } = useProfile({ enabled: isAuthenticated });
   const { startConversation, isStarting } = useStartConversation();
 
   const hotel: Hotel | undefined = (hotelQuery.data as any)?.data;
@@ -87,11 +91,11 @@ function HotelProfilePage() {
 
   // A hotel cannot rate itself, and hotel accounts cannot rate at all (§7.6).
   const isOwnHotel = profile?.id === hotel?.id;
-  const canRate = !!profile && profile.type !== "hotel" && !isOwnHotel;
+  const canRate = isAuthenticated && !!profile && profile.type !== "hotel" && !isOwnHotel;
   const myRating = ratings.find((r) => r.user?.id === profile?.id);
 
   // A hotel account cannot start a chat — it can only reply (§10.1).
-  const canChat = !!profile && profile.type !== "hotel" && !isOwnHotel;
+  const canChat = isAuthenticated && !!profile && profile.type !== "hotel" && !isOwnHotel;
 
   const setTab = (next: Tab) =>
     navigate({ to: "/hotels/$id", params: { id }, search: { tab: next }, replace: true });

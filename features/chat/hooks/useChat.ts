@@ -67,6 +67,22 @@ export function useStartConversation() {
   return { startConversation: mutation.mutateAsync, isStarting: mutation.isPending };
 }
 
+export function useStartCompanyConversation() {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (companyId: number | string) => chatService.startWithCompany(companyId),
+    meta: { hideToast: true },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+
+  return {
+    startCompanyConversation: mutation.mutateAsync,
+    isStartingCompanyConversation: mutation.isPending,
+  };
+}
+
 /** Groups a transcript by calendar day for date separators. */
 export function groupByDay(messages: Message[]) {
   const groups: { day: string; items: Message[] }[] = [];

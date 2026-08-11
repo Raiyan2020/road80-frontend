@@ -195,7 +195,8 @@ function RootComponent() {
   // Auth state is eagerly initialized above via lazy state initializer.
   // No need for a separate useEffect to check localStorage.
 
-  // Deep link handler — converts road80:// and https://80road.raiyansoft.net URLs to routes
+  // Deep link handler — supports road80:// plus both the current public origin
+  // (road-80.com) and the legacy 80road.raiyansoft.net App Link host.
   useEffect(() => {
     const handleDeepLink = (url: string) => {
       try {

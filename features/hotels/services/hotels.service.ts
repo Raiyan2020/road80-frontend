@@ -21,9 +21,9 @@ const cleanQuery = (filters: HotelListFilters): Record<string, string> => {
 /**
  * Public hotel browsing (use cases 1.4, 1.5, 5.2).
  *
- * Every endpoint here requires auth per flutter-hotel-feature-api.md §7 — a
- * shared `share_url` opened by a signed-out recipient will 401. The hotel route
- * forwards them through login and back; see routes/hotels/$id.tsx.
+ * These read-only endpoints are public per flutter-hotel-feature-api.md §7, so
+ * shared hotel/content links work for signed-out recipients. Rating and chat
+ * mutations remain authenticated.
  */
 export const hotelsService = {
   list: (filters: HotelListFilters = {}) =>

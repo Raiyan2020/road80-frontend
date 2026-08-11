@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["F993Q6PTZL.com.eightyroad.app"],
+        "components": [
+          { "/": "/hotels/*", "comment": "Hotel profiles and hotel content" },
+          { "/": "/ad/*", "comment": "Shared listings" },
+          { "/": "/profile", "comment": "Shared public profiles" }
+        ]
+      }
+    ]
+  }
+}

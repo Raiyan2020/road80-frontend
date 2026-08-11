@@ -25,6 +25,7 @@ import { Route as PostAdIndexRouteImport } from './routes/post-ad/index'
 import { Route as ExploreIndexRouteImport } from './routes/explore/index'
 import { Route as CompaniesIndexRouteImport } from './routes/companies/index'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as ProfileHotelRouteImport } from './routes/profile/hotel'
 import { Route as AuthRegisterCompanyRouteImport } from './routes/auth.register-company'
 import { Route as AuthPendingApprovalRouteImport } from './routes/auth.pending-approval'
 import { Route as AdIdRouteImport } from './routes/ad/$id'
@@ -109,6 +110,11 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/auth/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileHotelRoute = ProfileHotelRouteImport.update({
+  id: '/profile/hotel',
+  path: '/profile/hotel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRegisterCompanyRoute = AuthRegisterCompanyRouteImport.update({
   id: '/auth/register-company',
   path: '/auth/register-company',
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/ad/$id': typeof AdIdRoute
   '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
+  '/profile/hotel': typeof ProfileHotelRoute
   '/auth/': typeof AuthIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/explore/': typeof ExploreIndexRoute
@@ -161,6 +168,7 @@ export interface FileRoutesByTo {
   '/ad/$id': typeof AdIdRoute
   '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
+  '/profile/hotel': typeof ProfileHotelRoute
   '/auth': typeof AuthIndexRoute
   '/companies': typeof CompaniesIndexRoute
   '/explore': typeof ExploreIndexRoute
@@ -183,6 +191,7 @@ export interface FileRoutesById {
   '/ad/$id': typeof AdIdRoute
   '/auth/pending-approval': typeof AuthPendingApprovalRoute
   '/auth/register-company': typeof AuthRegisterCompanyRoute
+  '/profile/hotel': typeof ProfileHotelRoute
   '/auth/': typeof AuthIndexRoute
   '/companies/': typeof CompaniesIndexRoute
   '/explore/': typeof ExploreIndexRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/ad/$id'
     | '/auth/pending-approval'
     | '/auth/register-company'
+    | '/profile/hotel'
     | '/auth/'
     | '/companies/'
     | '/explore/'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/ad/$id'
     | '/auth/pending-approval'
     | '/auth/register-company'
+    | '/profile/hotel'
     | '/auth'
     | '/companies'
     | '/explore'
@@ -248,6 +259,7 @@ export interface FileRouteTypes {
     | '/ad/$id'
     | '/auth/pending-approval'
     | '/auth/register-company'
+    | '/profile/hotel'
     | '/auth/'
     | '/companies/'
     | '/explore/'
@@ -270,6 +282,7 @@ export interface RootRouteChildren {
   AdIdRoute: typeof AdIdRoute
   AuthPendingApprovalRoute: typeof AuthPendingApprovalRoute
   AuthRegisterCompanyRoute: typeof AuthRegisterCompanyRoute
+  ProfileHotelRoute: typeof ProfileHotelRoute
   AuthIndexRoute: typeof AuthIndexRoute
   CompaniesIndexRoute: typeof CompaniesIndexRoute
   ExploreIndexRoute: typeof ExploreIndexRoute
@@ -391,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/hotel': {
+      id: '/profile/hotel'
+      path: '/profile/hotel'
+      fullPath: '/profile/hotel'
+      preLoaderRoute: typeof ProfileHotelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/register-company': {
       id: '/auth/register-company'
       path: '/auth/register-company'
@@ -430,6 +450,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdIdRoute: AdIdRoute,
   AuthPendingApprovalRoute: AuthPendingApprovalRoute,
   AuthRegisterCompanyRoute: AuthRegisterCompanyRoute,
+  ProfileHotelRoute: ProfileHotelRoute,
   AuthIndexRoute: AuthIndexRoute,
   CompaniesIndexRoute: CompaniesIndexRoute,
   ExploreIndexRoute: ExploreIndexRoute,

@@ -13,7 +13,9 @@ import {
   PhoneIcon,
   CloseIcon,
   ShareIcon,
+  ChevronRightIcon,
 } from "./Icons";
+import { useIsHotel } from "@/features/account/hooks/useHotelProfile";
 import { Listing } from "../types";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
@@ -133,6 +135,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   const viewedUserId = rawUserId ? rawUserId.replace(/^"|"$/g, "") : null;
   const activeTabParam = params.get("tab");
   const isMe = !viewedUserId || viewedUserId === "current_user";
+  // Gates the hotel profile entry point (use case 1.2). Server truth, not the
+  // persisted store — see useIsHotel.
+  const { isHotel } = useIsHotel();
 
   const [activeSubTab, setActiveSubTab] = useState<"ads" | "favorites">(
     activeTabParam === "favorites" && isMe ? "favorites" : "ads",
@@ -306,6 +311,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
       </div>
 
       <SocialLinksRow socials={socials} className="-mt-2 flex-wrap" />
+
+      {/* Hotel profile management (use case 1.2). Only the account owner sees
+          it, and only when the account is actually of type `hotel`. */}
+      {isMe && isHotel && (
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/profile/hotel" })}
+          className="flex w-full items-center justify-between rounded-2xl border border-pale bg-white px-4 py-4 text-start shadow-sm transition-all active:scale-[0.99] dark:border-slate-800 dark:bg-slate-900"
+        >
+          <span className="text-sm font-bold text-navy dark:text-slate-100">
+            {t("profile.hotel.manageCta")}
+          </span>
+          <ChevronRightIcon className="h-5 w-5 text-gray-400 rtl:rotate-180 ltr:rotate-0" />
+        </button>
+      )}
 
       <div className="flex justify-between items-center px-4 py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-pale dark:border-slate-800 transition-colors duration-300">
         <StatItem label={t("profile.page.statAds")} value={stats.ads} />

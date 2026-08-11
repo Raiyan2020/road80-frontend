@@ -56,7 +56,26 @@ selector screen; no pending-approval screen.
 registration flow.
 
 ### F-002 — Hotel profile management (UC 1.2)
-**Status:** `PARTIAL`
+**Status:** `IMPLEMENTED` (2026-08-11) — pending real-backend + device verification
+**Delivered:**
+- `features/account/components/HotelProfileForm.tsx` — cover image, logo, name, caption,
+  star rating, website, country/state, email, WhatsApp
+- `features/account/schemas/hotel-profile.schema.ts` — Zod, incl. bare-domain website
+  normalisation and 1–5 star range
+- `features/account/hooks/useHotelProfile.ts` — `useIsHotel()` (server truth, not the
+  persisted store) and `useUpdateHotelProfile()`
+- `features/account/services/profile.service.ts` — `updateHotelProfile()` + hotel fields on
+  `ProfileData`; only supplied keys are sent so optional fields stay untouched
+- `routes/profile/hotel.tsx` — guarded route; `isLoading` handled separately from `!isHotel`
+- `components/ProfilePage.tsx` — entry point, shown only for `isMe && isHotel`
+- `shared/utils/media-compression.ts` — `COVER_OPTIONS` (1600px / 700 KB)
+**Verified:** build ✅, `tsc` ✅, form hydrates from a stubbed hotel profile ✅, validation
+blocks bad input and accepts a bare domain ✅, ar/RTL ✅ (website input forced LTR so URLs
+don't reverse), Arabic star grammar fixed to نجمة واحدة / نجمتان / N نجوم ✅.
+**Not verified:** real backend round-trip, device build.
+
+**Original assessment below.**
+**Status (before):** `PARTIAL`
 **Evidence:**
 - `features/account/hooks/useProfile.ts`, `features/account/services/profile.service.ts`
 - `updateSocials()` already posts `socials[slug]=link` — **exactly** the shape §6.2 expects

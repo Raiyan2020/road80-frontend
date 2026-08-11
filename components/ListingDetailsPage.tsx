@@ -132,8 +132,6 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
       } else {
         setIsUnlocked(isOwner);
       }
-    } else if (!loading) {
-      setTimeout(onBack, 100);
     }
   }, [listing, loading, onBack, mergeFavoriteIds]);
 
@@ -160,10 +158,35 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     };
   }, [isMediaFullscreen]);
 
-  if (loading || !listing) {
+  if (loading) {
     return (
       <div className="absolute inset-0 bg-bg dark:bg-slate-950 z-50 flex items-center justify-center transition-colors duration-300">
         <SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" />
+      </div>
+    );
+  }
+
+  // ── Not found / hidden / deleted ──────────────────────────────────────────
+  // An ad the admin hid (`is_hidden`) answers 404 for everyone but its owner,
+  // and the service maps that to null. This used to bounce the user back with
+  // no explanation, which reads as a broken link when they arrived from a share
+  // or a push notification — so say what happened instead.
+  if (!listing) {
+    return (
+      <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-bg p-6 text-center dark:bg-slate-950">
+        <p className="text-lg font-black text-navy dark:text-slate-100">
+          {t("listing.unavailable.title")}
+        </p>
+        <p className="text-sm font-medium text-gray-500 dark:text-slate-400">
+          {t("listing.unavailable.hint")}
+        </p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="h-12 rounded-2xl bg-blue px-6 text-sm font-bold text-white"
+        >
+          {t("listing.unavailable.back")}
+        </button>
       </div>
     );
   }

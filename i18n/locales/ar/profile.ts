@@ -5,6 +5,11 @@ export const profile = {
   page: {
     defaultUserName: 'مستخدم',
     defaultCompanyName: 'شركة',
+    // The company is hidden, suspended, or still awaiting approval — all 404.
+    unavailable: {
+      title: 'الملف الشخصي غير متاح',
+      hint: 'قد يكون هذا الحساب مخفياً أو تم إيقافه من قبل الإدارة.',
+    },
     newBadge: 'جديد',
 
     statAds: 'الإعلانات',

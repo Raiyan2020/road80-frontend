@@ -239,6 +239,22 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     });
   };
 
+  // A company that is hidden, suspended, or not yet accepted now 404s
+  // (`visibleCompanies()` scope). Without this the shell rendered with a
+  // placeholder name and zeroed stats, which reads as a real but empty profile.
+  if (!isMe && !officeLoading && !officeData) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 p-10 text-center animate-fade-in">
+        <p className="text-lg font-black text-navy dark:text-slate-100">
+          {t("profile.page.unavailable.title")}
+        </p>
+        <p className="text-sm font-medium text-gray-500 dark:text-slate-400">
+          {t("profile.page.unavailable.hint")}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col p-4 gap-6 animate-fade-in transition-colors duration-300">
       <div className="flex items-center gap-4">

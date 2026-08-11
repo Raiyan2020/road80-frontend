@@ -2,9 +2,13 @@
  * Maps a notification payload to an in-app destination, and provides the hook
  * push handlers use to navigate from outside React.
  *
- * The backend sends these hotel-related types (flutter-hotel-feature-api.md §12):
+ * Types the backend sends (app/Enums/NotificationType.php):
  *   new_message          → data: { conversation_id, subject }
  *   hotel_content_hidden → data: { reason, content_id }
+ *   ad_approved / ad_rejected / ad_hidden → data: { ad_id, ... }
+ *
+ * The ad types share one destination, so they fall through to the `ad_id`
+ * lookup below rather than each getting a branch.
  *
  * Payload shape varies by transport: the in-app list returns the notification
  * row itself, FCM web delivers `{ data: {...} }`, and the native bridge passes

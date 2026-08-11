@@ -5,6 +5,10 @@ export const profile = {
   page: {
     defaultUserName: 'User',
     defaultCompanyName: 'Company',
+    unavailable: {
+      title: 'Profile unavailable',
+      hint: 'This account may be hidden or suspended by the administrators.',
+    },
     newBadge: 'New',
 
     statAds: 'Ads',

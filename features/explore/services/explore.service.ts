@@ -7,6 +7,36 @@ import { t } from '@/i18n';
 import { isPropertyTypeCategory, isListingTypeCategory } from '@/shared/utils/category-match';
 
 /**
+ * Serialize filters the way the PHP backend expects: array values repeat the
+ * key with a `[]` suffix (`category_value_id[]=3&category_value_id[]=1`).
+ *
+ * ofetch's `query` option emits repeated *bare* keys instead
+ * (`category_value_id=3&category_value_id=1`), which PHP collapses to the LAST
+ * value — so a multi-select filter silently applied only one id. We build the
+ * string here and hand ofetch a finished URL, which also keeps the brackets
+ * literal; ofetch would percent-encode them to `%5B%5D`.
+ */
+function buildQueryString(params: Record<string, unknown>): string {
+  const parts: string[] = [];
+
+  const push = (key: string, value: unknown) => {
+    if (value === undefined || value === null || value === '') return;
+    parts.push(`${key}=${encodeURIComponent(String(value))}`);
+  };
+
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      // Empty array => no params at all, so an unset filter stays unset.
+      value.forEach((item) => push(`${encodeURIComponent(key)}[]`, item));
+    } else {
+      push(encodeURIComponent(key), value);
+    }
+  }
+
+  return parts.join('&');
+}
+
+/**
  * Fetch explore/search listings with filters and pagination.
  */
 export async function fetchExploreFeed(params?: ExploreFilters): Promise<ExploreResponse | null> {
@@ -18,9 +48,12 @@ export async function fetchExploreFeed(params?: ExploreFilters): Promise<Explore
             ([, v]) => v !== undefined && v !== '' && v !== null
           )
         )
-      : undefined;
+      : {};
 
-    const response = await api.get<ExploreResponse>('/explore', { query: cleanParams });
+    const queryString = buildQueryString(cleanParams);
+    const url = queryString ? `/explore?${queryString}` : '/explore';
+
+    const response = await api.get<ExploreResponse>(url);
     if (!response.status || !response.data) return null;
 
     return response;

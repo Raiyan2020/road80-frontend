@@ -30,6 +30,10 @@ export const postAd = {
   },
 
   // ── Video step ────────────────────────────────────────────────────────────
+  media: {
+    title: 'Photos & video',
+  },
+
   video: {
     title: 'Upload a video (optional)',
     choose: 'Choose a video',

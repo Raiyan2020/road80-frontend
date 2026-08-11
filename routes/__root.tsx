@@ -18,6 +18,7 @@ import { initSwLangSync } from '../shared/utils/sw-lang';
 import { useLangStore } from '../i18n';
 import { useUserStore } from '../stores/user.store';
 import { useSyncFavorites } from '../features/favorites/hooks/useSyncFavorites';
+import { prefetchHomeScreen } from '../features/home/utils/prefetch-home';
 import { useTranslation, type TranslationKey } from '../i18n';
 
 const queryClient = new QueryClient({
@@ -37,6 +38,29 @@ const CATEGORY_KEYS = ['real-estate', 'construction', 'contracting', 'decor', 'm
 
 function FavoritesBootstrap() {
   useSyncFavorites();
+  return null;
+}
+
+/**
+ * Fires the home screen's requests while the splash is still covering them.
+ *
+ * Mounted outside the `showSplash` branch on purpose — the route tree below
+ * `<Outlet />` does not exist yet at this point, so nothing else would start
+ * fetching until the splash unmounts.
+ *
+ * Guarded on auth: an unauthenticated user is redirected to /auth and never
+ * sees home, and worse, these endpoints would answer 401 — which the api client
+ * turns into a forceLogout. Runs once; the language can't change behind a
+ * splash the user cannot interact with.
+ */
+function HomePrefetch() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!useUserStore.getState().isAuthenticated) return;
+    prefetchHomeScreen(queryClient, useLangStore.getState().lang);
+  }, [queryClient]);
+
   return null;
 }
 
@@ -287,6 +311,10 @@ function RootComponent() {
 
   // Use regex to detect listing route: /ad/:id
   const isListingRoute = routePath.startsWith('/ad/');
+  // The post-ad wizard (/post-ad?step=…) owns the full screen: it has its own
+  // footer buttons, so the bottom nav would only overlap them.
+  const isPostAdWizard =
+    routePath.startsWith('/post-ad') && (location.search as any)?.step != null;
   // Sub-pages that need a back button but use the shell header
   const isNotifications = routePath.startsWith('/notifications');
 
@@ -408,6 +436,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <FavoritesBootstrap />
       <LanguageBootstrap />
+      <HomePrefetch />
       <AppContext.Provider value={{ theme, setTheme }}>
         <div
           className="relative w-full max-w-[991px] mx-auto bg-bg dark:bg-slate-950 sm:rounded-[40px] sm:shadow-2xl overflow-hidden shadow-2xl transition-colors duration-300"
@@ -429,14 +458,14 @@ function RootComponent() {
                 className="absolute left-0 right-0 overflow-hidden bg-bg dark:bg-slate-950 animate-fade-in transition-colors duration-300"
                 style={{
                   top: (isListingRoute || isQuickStart || isAuthRoute || isStandalonePage) ? '0' : 'calc(var(--header-h) + env(safe-area-inset-top))',
-                  bottom: (isListingRoute || isQuickStart || isAuthRoute) ? '0' : 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
+                  bottom: (isListingRoute || isQuickStart || isAuthRoute || isPostAdWizard) ? '0' : 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
                   zIndex: (isListingRoute || isQuickStart || isAuthRoute) ? 50 : 10
                 }}
               >
                 <Outlet />
               </main>
 
-              {!isListingRoute && !isQuickStart && !isAuthRoute && (
+              {!isListingRoute && !isQuickStart && !isAuthRoute && !isPostAdWizard && (
                 <BottomNavigation
                   activeTab={activeTab}
                   onTabChange={(tab) => navigate({ to: getRouteForTab(tab) as any, search: tab === Tab.COMPANIES ? ({ category: undefined } as any) : undefined })}

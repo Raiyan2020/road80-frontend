@@ -1,52 +1,93 @@
-import React, { useRef } from "react";
+import React from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useCategories } from "../hooks/useCategories";
-import { KeyIcon, TagIcon, BedIcon } from "../../../components/Icons";
 import { useTranslation } from "../../../i18n";
 import type { TranslationKey } from "../../../i18n";
+import { localizeCategoryValue } from "../../../shared/utils/category-localization";
 
-// Fallback static actions when API returns nothing.
-// Labels are translation keys — resolved at render time so they follow the language.
-const FALLBACK_ACTIONS: Array<{
-  id: number;
-  labelKey: TranslationKey;
-  icon: typeof KeyIcon;
-}> = [
-  { id: 3, labelKey: "home.quickActions.rent", icon: KeyIcon },
-  { id: 4, labelKey: "home.quickActions.sale", icon: TagIcon },
-  { id: 5, labelKey: "home.quickActions.hotels", icon: BedIcon },
+// Fallback actions when the API returns nothing. Labels are translation keys —
+// resolved at render time so they follow the language. No artwork here: icons
+// are owned by the backend (`values[].icon`), so a tile without one falls back
+// to the initial badge rather than to a bundled image.
+const FALLBACK_ACTIONS: Array<{ id: number; labelKey: TranslationKey }> = [
+  { id: 3, labelKey: "categories.values.rent" },
+  { id: 4, labelKey: "categories.values.sale" },
+  { id: 5, labelKey: "categories.values.hotels" },
 ];
 
-// Emoji icons for contract type values (matched by Arabic name)
-const CONTRACT_ICONS: Record<string, string> = {
-  إيجار: "🏠",
-  بيع: "🏷️",
-  فنادق: "🏨",
-  بيت: "🏡",
-  شقه: "🏢",
-  دور: "🏗️",
-  عمارة: "🏬",
+/** Soft blue tile: backend illustration on top, label underneath. */
+const ActionCard: React.FC<{
+  label: string;
+  icon?: string | null;
+  onClick: () => void;
+}> = ({ label, icon, onClick }) => {
+  // A broken/404 icon URL degrades to the initial badge instead of a torn image.
+  const [failed, setFailed] = React.useState(false);
+  const showIcon = Boolean(icon) && !failed;
+
+  React.useEffect(() => setFailed(false), [icon]);
+
+  return (
+    <button
+      onClick={onClick}
+      className="group flex flex-col items-center justify-start gap-1 rounded-[1.35rem] px-2 pt-3 pb-3 bg-gradient-to-b from-[#eef4fd] to-[#dce8f9] dark:from-slate-800 dark:to-slate-800/50 border border-white/80 dark:border-slate-700 shadow-sm shadow-navy/5 active:scale-95 transition-transform duration-200"
+    >
+      <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+        {showIcon ? (
+          <img
+            src={icon as string}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            onError={() => setFailed(true)}
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <span className="w-12 h-12 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center text-xl font-bold text-[#2166d9] dark:text-blue-300 shadow-sm">
+            {label.charAt(0)}
+          </span>
+        )}
+      </div>
+
+      <h3 className="text-sm font-bold text-[#2166d9] dark:text-blue-300 leading-tight text-center line-clamp-1 w-full px-1">
+        {label}
+      </h3>
+    </button>
+  );
 };
 
 /**
  * QuickActionsRow
  *
- * Fetches /categories, finds "نوع التعاقد" (contract type, id=2),
- * renders ALL its values as a horizontally-swipeable carousel.
- * Clicking any card navigates to /explore filtered by that value id.
+ * Fetches /categories and renders every value flagged `appear_in_home` as a
+ * soft blue icon tile in a 3-up grid card. The flag spans categories — the
+ * backend decides what belongs on home, so we no longer hardcode a category id.
+ * Clicking any tile navigates to /explore filtered by that value id.
  */
 export const QuickActionsRow: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const scrollRef = useRef<HTMLDivElement>(null);
   const { data: categories, isLoading } = useCategories();
 
-  // Find the "نوع التعاقد" category, fallback to first category with values
-  const contractCategory =
-    categories?.find((c) => c.id === 2) ||
-    categories?.find((c) => c.values.length > 0);
+  // Collect the home-flagged values from every category, in backend order.
+  // Value ids are unique across categories, but dedupe defensively so a
+  // repeated id can't produce duplicate React keys.
+  const actions = React.useMemo(() => {
+    const seen = new Set<number>();
+    const flagged = (categories ?? [])
+      .flatMap((c) => c.values ?? [])
+      .filter((v) => v.appear_in_home === true)
+      .filter((v) => (seen.has(v.id) ? false : (seen.add(v.id), true)));
 
-  const actions = contractCategory?.values ?? [];
+    if (flagged.length > 0) return flagged;
+
+    // Payload predates the flag: keep the old behaviour — "نوع التعاقد" (id=2),
+    // else the first category that has any values.
+    const contractCategory =
+      categories?.find((c) => c.id === 2) ||
+      categories?.find((c) => c.values.length > 0);
+    return contractCategory?.values ?? [];
+  }, [categories]);
 
   const handleClick = (valueId: number) => {
     navigate({
@@ -55,75 +96,55 @@ export const QuickActionsRow: React.FC = () => {
     });
   };
 
+  const cardClass =
+    "bg-white dark:bg-slate-900 rounded-[1.75rem] p-2.5 shadow-lg shadow-navy/5 dark:shadow-black/20 border border-navy/10 dark:border-slate-800";
+  const gridClass = "grid grid-cols-3 gap-2.5";
+
   // ── Skeleton ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="flex gap-3 overflow-x-auto no-scrollbar">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={`skeleton-${i}`}
-            className="flex-shrink-0 w-20 flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 py-5 rounded-2xl shadow-sm border border-pale dark:border-slate-800 animate-pulse"
-          >
-            <div className="w-12 h-12 rounded-full bg-pale/30 dark:bg-slate-800" />
-            <div className="h-4 w-12 bg-pale/30 dark:bg-slate-800 rounded" />
-          </div>
-        ))}
+      <div className={cardClass}>
+        <div className={gridClass}>
+          {[1, 2, 3].map((i) => (
+            <div
+              key={`skeleton-${i}`}
+              className="h-[7.5rem] sm:h-[9rem] rounded-[1.35rem] bg-pale/50 dark:bg-slate-800 animate-pulse"
+            />
+          ))}
+        </div>
       </div>
     );
   }
 
-  // ── API data ───────────────────────────────────────────────────────────────
-  if (actions.length > 0) {
-    return (
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 w-[calc(100%+2rem)]"
-        style={{ WebkitOverflowScrolling: "touch" }}
-      >
-        {actions.map((action) => (
-          <button
-            key={action.id}
-            onClick={() => handleClick(action.id)}
-            className="flex-1 flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white dark:bg-slate-900 py-4 px-3 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/30 dark:hover:border-slate-700 min-w-[90px]"
-          >
-            <div className="w-12 h-12 rounded-full bg-navy/5 dark:bg-slate-800 flex items-center justify-center group-hover:bg-navy dark:group-hover:bg-blue transition-colors duration-300">
-              {CONTRACT_ICONS[action.value] ? (
-                <span className="text-xl">{CONTRACT_ICONS[action.value]}</span>
-              ) : (
-                <span className="text-base font-bold text-navy dark:text-blue group-hover:text-white transition-colors">
-                  {action.value.charAt(0)}
-                </span>
-              )}
-            </div>
-            <span className="text-xs font-semibold text-navy dark:text-slate-200 group-hover:text-navy dark:group-hover:text-blue transition-colors text-center leading-tight whitespace-nowrap">
-              {action.value}
-            </span>
-          </button>
-        ))}
-      </div>
-    );
-  }
+  const items =
+    actions.length > 0
+      ? actions.map((action) => ({
+          key: action.id,
+          label: localizeCategoryValue(action.value, action.id),
+          icon: action.icon ?? null,
+          id: action.id,
+        }))
+      : FALLBACK_ACTIONS.map((action) => ({
+          key: action.id,
+          label: t(action.labelKey),
+          icon: null,
+          id: action.id,
+        }));
 
-  // ── Fallback static actions ────────────────────────────────────────────────
   return (
-    <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-4 px-4 w-[calc(100%+2rem)]">
-      {FALLBACK_ACTIONS.map((action) => (
-        <button
-          key={action.id}
-          onClick={() => handleClick(action.id)}
-          className="flex-1 flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-white dark:bg-slate-900 py-4 px-3 rounded-2xl shadow-sm border border-pale dark:border-slate-800 active:scale-95 transition-all duration-200 group hover:border-navy/30 dark:hover:border-slate-700 min-w-[90px]"
-        >
-          <div className="w-12 h-12 rounded-full bg-navy/5 dark:bg-slate-800 flex items-center justify-center group-hover:bg-navy dark:group-hover:bg-blue transition-colors duration-300">
-            <action.icon className="w-6 h-6 text-navy dark:text-blue group-hover:text-white transition-colors duration-300" />
-          </div>
-          <span className="text-xs font-semibold text-navy dark:text-slate-200 group-hover:text-navy dark:group-hover:text-blue transition-colors text-center">
-            {t(action.labelKey)}
-          </span>
-        </button>
-      ))}
+    <div className={cardClass}>
+      <div className={gridClass}>
+        {items.map((item) => (
+          <ActionCard
+            key={item.key}
+            label={item.label}
+            icon={item.icon}
+            onClick={() => handleClick(item.id)}
+          />
+        ))}
+      </div>
     </div>
   );
-
 };
 
 export default QuickActionsRow;

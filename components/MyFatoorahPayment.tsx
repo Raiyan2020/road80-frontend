@@ -3,12 +3,26 @@ import { SpinnerIcon } from './Icons';
 import { useSettings } from '../shared/hooks/useSettings';
 import { useTranslation, t as tStatic } from '../i18n';
 
+/**
+ * What the v3 SDK actually hands back on a completed payment. With
+ * `shouldHandlePaymentUrl: true` (the default) MyFatoorah owns the 3DS/OTP page
+ * and reports the outcome as an AES-encrypted `paymentData` blob — there is no
+ * top-level `paymentId`. Only the backend can read it, using the EncryptionKey
+ * from the session response.
+ */
+export interface MyFatoorahResult {
+  /** Encrypted status document — the authoritative result channel in v3. */
+  paymentData?: string;
+  /** Scraped out of `redirectionUrl`; kept as a fallback for the older shape. */
+  paymentId?: string;
+}
+
 interface MyFatoorahPaymentProps {
   sessionId: string;
   countryCode: string;
   encryptionKey?: string;
   // isLive is intentionally removed — environment (demo/live) is controlled server-side via settings.payment_live
-  onSuccess: (sessionId: string) => void;
+  onSuccess: (result: MyFatoorahResult) => void;
   onError: (error: any) => void;
   onRequestNewSession?: () => void; // called when session is rejected — parent should fetch a new one
 }
@@ -237,7 +251,10 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
         const config: Record<string, any> = {
           sessionId,
           containerId,
-          paymentOptions: ['Card'],
+          // Let MyFatoorah own the 3DS/OTP page and report back through `callback`.
+          // This is the SDK default, but it is stated explicitly because the whole
+          // verification path below depends on which mode is active.
+          shouldHandlePaymentUrl: true,
           // Renders MyFatoorah's own labels/validation in the active app language
           language: lang,
           callback: (response: any) => {
@@ -248,23 +265,27 @@ const MyFatoorahPayment: React.FC<MyFatoorahPaymentProps> = ({
             const isSuccess = response?.isSuccess === true;
             const paymentCompleted = response?.paymentCompleted === true;
             
-            // paymentId is the MF numeric ID needed for /payments/verify
-            const mfPaymentId = response?.paymentId;
-            
-            // Also try extracting from redirectionUrl as fallback
-            // e.g. https://demo.MyFatoorah.com/...?paymentId=07076389179322432673
-            let fallbackPaymentId = mfPaymentId;
+            // The encrypted status document. In v3 this is the ONLY channel that
+            // reliably carries the outcome — the backend decrypts it with the
+            // EncryptionKey it got from POST /v3/sessions.
+            const mfPaymentData = response?.paymentData;
+
+            // v3 does not put a paymentId at the top level, but `redirectionUrl`
+            // still embeds one (…/PayInvoice/Result?paymentId=0707…). Kept as a
+            // fallback so the older result shape still verifies.
+            let fallbackPaymentId = response?.paymentId;
             if (!fallbackPaymentId && response?.redirectionUrl) {
               const match = response.redirectionUrl.match(/[?&]paymentId=([^&]+)/);
               if (match) fallbackPaymentId = match[1];
             }
 
-
-            if (isSuccess && (paymentCompleted || fallbackPaymentId)) {
-              // Pass the MF paymentId to parent — backend needs this for /payments/verify
-              onSuccess(fallbackPaymentId || sessionId);
-            } else if (response?.Error || response?.error) {
-              const msg = String(response.Error || response.error || '');
+            if (isSuccess && paymentCompleted && (mfPaymentData || fallbackPaymentId)) {
+              // Hand both channels up; the backend prefers paymentData and falls
+              // back to paymentId. Never pass the sessionId — it is not a
+              // PaymentId and makes verification fail every time.
+              onSuccess({ paymentData: mfPaymentData, paymentId: fallbackPaymentId });
+            } else if (response?.isSuccess === false || response?.Error || response?.error) {
+              const msg = String(response?.Error || response?.error || response?.message || '');
 
               // The SDK's own error channel is the reliable place to catch a
               // rejected/expired session — prefer it over the iframe text

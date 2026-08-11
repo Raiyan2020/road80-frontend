@@ -13,6 +13,7 @@ import { quickStart } from './quickStart';
 import { pages } from './pages';
 import { payment } from './payment';
 import { hotels } from './hotels';
+import { categories } from './categories';
 
 export const ar = {
   common,
@@ -30,4 +31,5 @@ export const ar = {
   pages,
   payment,
   hotels,
+  categories,
 };

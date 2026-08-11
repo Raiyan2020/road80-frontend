@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Route } from '../routes/companies/index';
 import { useQuery } from '@tanstack/react-query';
@@ -62,6 +62,73 @@ async function fetchCompaniesByDept(deptId: string): Promise<Company[]> {
   }
 }
 
+// ── Card tints ────────────────────────────────────────────────────────────────
+
+/**
+ * The department image is the card background; this flat colour sits on top of
+ * it so the white label stays legible whatever the image looks like. Keyed by
+ * department id rather than array index, so a department keeps its colour if the
+ * API reorders them.
+ */
+const CARD_TINTS = [
+  'bg-[#2f3d7e]/80', // indigo
+  'bg-[#2c7d74]/80', // teal
+  'bg-[#d98230]/80', // amber
+  'bg-navy/80', // brand navy
+  'bg-[#6d4a9c]/80', // violet
+];
+
+const tintFor = (id: number) => CARD_TINTS[Math.abs(id) % CARD_TINTS.length];
+
+/** Shared by the carousel and its loading skeleton. */
+const CARD_SIZE = 'shrink-0 w-[150px] aspect-[4/5] rounded-2xl';
+
+// ── Scroll fade ───────────────────────────────────────────────────────────────
+
+/**
+ * True once the page has scrolled past `threshold`.
+ *
+ * The companies route scrolls inside an ancestor div (routes/companies/index.tsx
+ * :14), not the window, so the listener has to go on the nearest scrollable
+ * parent of the returned ref — `window.scrollY` never moves here.
+ */
+function useScrolledPast(threshold: number) {
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    let node = anchorRef.current?.parentElement ?? null;
+    while (node && node !== document.body) {
+      const { overflowY } = getComputedStyle(node);
+      if (overflowY === 'auto' || overflowY === 'scroll') break;
+      node = node.parentElement;
+    }
+
+    const target: HTMLElement | Window =
+      node && node !== document.body ? node : window;
+    const readTop = () =>
+      target === window ? window.scrollY : (target as HTMLElement).scrollTop;
+
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setScrolled(readTop() > threshold);
+      });
+    };
+
+    onScroll();
+    target.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      target.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [threshold]);
+
+  return { anchorRef, scrolled };
+}
+
 // ── Category Carousel ────────────────────────────────────────────────────────
 
 interface CategoryCarouselProps {
@@ -84,9 +151,11 @@ const CategoryCarousel: React.FC<CategoryCarouselProps> = ({ departments, active
   }, [activeId]);
 
   return (
+    // py-2 leaves room for the active card's ring and scale-up, which
+    // overflow-x-auto would otherwise clip vertically.
     <div
       ref={scrollRef}
-      className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4"
+      className="flex gap-3 overflow-x-auto no-scrollbar py-2 -mx-4 px-4"
       style={{ scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}
     >
       {departments.map((dept) => {
@@ -99,35 +168,51 @@ const CategoryCarousel: React.FC<CategoryCarouselProps> = ({ departments, active
             data-dept-id={dept.id}
             onClick={() => onSelect(dept.id)}
             style={{ scrollSnapAlign: 'start' }}
+            aria-pressed={isActive}
             className={`
-              shrink-0 flex flex-col items-center justify-center gap-2
-              w-[100px] h-[90px] rounded-2xl border-2 transition-all duration-200
+              relative overflow-hidden ${CARD_SIZE}
+              transition-all duration-200 active:scale-95
               ${isActive
-                ? 'bg-navy dark:bg-blue border-navy dark:border-blue shadow-lg shadow-navy/20 dark:shadow-blue/20 scale-[1.04]'
-                : 'bg-white dark:bg-slate-900 border-pale dark:border-slate-700 hover:border-navy/40 dark:hover:border-blue/40'
+                ? 'shadow-lg shadow-navy/25 dark:shadow-black/40 ring-2 ring-inset ring-white/70 scale-[1.03]'
+                : 'shadow-md shadow-navy/10 dark:shadow-black/30 saturate-50 opacity-75 hover:saturate-100 hover:opacity-100'
               }
             `}
           >
-            {/* Icon */}
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden
-              ${isActive ? 'bg-white/20' : 'bg-gray-100 dark:bg-slate-800'}`}>
-              {dept.icon ? (
-                <AppImage
-                  src={dept.icon}
-                  alt={label}
-                  className="w-6 h-6"
-                  coverClassName="object-contain"
-                />
-              ) : (
-                <span className="text-xl">🏢</span>
-              )}
-            </div>
+            {/*
+              Department image as the background. It is blurred and scaled up so
+              it reads as texture rather than a second, stretched copy of the
+              logo already shown crisp in the circle below.
+            */}
+            <AppImage
+              src={dept.icon}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full scale-110 blur-[3px]"
+              coverClassName="object-cover"
+              containOnFallback={false}
+            />
+            <div className={`absolute inset-0 ${tintFor(dept.id)}`} />
 
-            {/* Label */}
-            <span className={`text-[11px] font-bold leading-tight text-center px-1 line-clamp-2
-              ${isActive ? 'text-white' : 'text-navy dark:text-slate-200'}`}>
-              {label}
-            </span>
+            <div className="relative h-full flex flex-col items-center justify-center gap-2.5 px-3 text-center">
+              {/* Icon */}
+              <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center overflow-hidden">
+                {dept.icon ? (
+                  <AppImage
+                    src={dept.icon}
+                    alt={label}
+                    className="w-20 h-20"
+                    coverClassName="object-contain"
+                  />
+                ) : (
+                  <span className="text-xl">🏢</span>
+                )}
+              </div>
+
+              {/* Label */}
+              <span className="text-sm font-bold text-white leading-tight line-clamp-3">
+                {label}
+              </span>
+            </div>
           </button>
         );
       })}
@@ -182,26 +267,41 @@ const OfficesPage: React.FC = () => {
 
   const isLoading = loadingCompanies || isFetching;
 
+  // The carousel fades out once the page scrolls, so the company list gets the
+  // screen. It keeps its space rather than collapsing — animating the height
+  // would move the scroll position, which would then re-trigger this.
+  const { anchorRef, scrolled } = useScrolledPast(40);
+
   return (
-    <div className="w-full min-h-full bg-bg dark:bg-slate-950 p-4 flex flex-col gap-4">
+    <div
+      ref={anchorRef}
+      className="w-full min-h-full bg-bg dark:bg-slate-950 p-4 flex flex-col gap-4"
+    >
 
       {/* ── Category Carousel ── */}
-      {loadingDepts ? (
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="shrink-0 w-[100px] h-[90px] rounded-2xl bg-gray-200 dark:bg-slate-800 animate-pulse"
-            />
-          ))}
-        </div>
-      ) : departments.length > 0 && (
-        <CategoryCarousel
-          departments={departments}
-          activeId={category}
-          onSelect={(id) => navigate({ to: '/companies', search: { category: String(id) } })}
-        />
-      )}
+      <div
+        className={`transition-opacity duration-300 ${
+          scrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+        aria-hidden={scrolled}
+      >
+        {loadingDepts ? (
+          <div className="flex gap-3 overflow-x-auto no-scrollbar py-2 -mx-4 px-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className={`${CARD_SIZE} bg-gray-200 dark:bg-slate-800 animate-pulse`}
+              />
+            ))}
+          </div>
+        ) : departments.length > 0 && (
+          <CategoryCarousel
+            departments={departments}
+            activeId={category}
+            onSelect={(id) => navigate({ to: '/companies', search: { category: String(id) } })}
+          />
+        )}
+      </div>
 
       {/* ── Active category label ── */}
       {category && departments.length > 0 && (
@@ -233,15 +333,13 @@ const OfficesPage: React.FC = () => {
               onClick={() => handleCompanyClick(company.id)}
               className="bg-white dark:bg-slate-900 rounded-3xl border border-pale dark:border-slate-800 shadow-sm overflow-hidden flex flex-col active:scale-95 transition-transform duration-200 cursor-pointer"
             >
-              {/* Logo area */}
-              <div className="relative h-28 bg-gray-50 dark:bg-slate-800 flex items-center justify-center p-4">
-                <div className="w-[68px] h-[68px] rounded-full border-4 border-white dark:border-slate-700 shadow-md overflow-hidden bg-white dark:bg-slate-900">
-                  <AppImage
-                    src={company.image}
-                    alt={company.name}
-                    className="w-full h-full"
-                  />
-                </div>
+              {/* Logo area — full-bleed square at the top of the card */}
+              <div className="relative w-full aspect-square bg-gray-50 dark:bg-slate-800">
+                <AppImage
+                  src={company.image}
+                  alt={company.name}
+                  className="absolute inset-0 w-full h-full"
+                />
               </div>
 
               {/* Info area */}

@@ -13,6 +13,7 @@ import { quickStart } from './quickStart';
 import { pages } from './pages';
 import { payment } from './payment';
 import { hotels } from './hotels';
+import { categories } from './categories';
 
 import type { ar } from '../ar';
 
@@ -33,4 +34,5 @@ export const en: typeof ar = {
   pages,
   payment,
   hotels,
+  categories,
 };

@@ -39,6 +39,7 @@ interface Props {
   onApply: (filters: ExploreFilters) => void;
   onApplyHotel: (filters: ExploreHotelFilters) => void;
   initialFilters?: ExploreFilters;
+  initialHotelSelected?: boolean;
 }
 
 export const ExploreFilterDrawer: React.FC<Props> = ({
@@ -47,6 +48,7 @@ export const ExploreFilterDrawer: React.FC<Props> = ({
   onApply,
   onApplyHotel,
   initialFilters,
+  initialHotelSelected = false,
 }) => {
   const { t, dir, isRTL } = useTranslation();
   const { data: filterOptionsRes, isLoading: loadingFilters } = useFilterOptions();
@@ -71,9 +73,9 @@ export const ExploreFilterDrawer: React.FC<Props> = ({
       max_price: undefined,
       ...initialFilters,
     });
-    setHotelSelected(false);
+    setHotelSelected(initialHotelSelected);
     setHotelStars(undefined);
-  }, [initialFilters, isOpen]);
+  }, [initialFilters, initialHotelSelected, isOpen]);
 
   const { data: countriesRes } = useCountries();
   const countries = (countriesRes as any)?.data || countriesRes || [];

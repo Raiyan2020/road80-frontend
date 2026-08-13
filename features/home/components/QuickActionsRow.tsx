@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { BedIcon } from "../../../components/Icons";
 import { useCategories } from "../hooks/useCategories";
 import { useTranslation } from "../../../i18n";
 import type { TranslationKey } from "../../../i18n";
@@ -12,18 +13,18 @@ import {
 // resolved at render time so they follow the language. No artwork here: icons
 // are owned by the backend (`values[].icon`), so a tile without one falls back
 // to the initial badge rather than to a bundled image.
-const FALLBACK_ACTIONS: Array<{ id: number; labelKey: TranslationKey; destination?: string }> = [
+const FALLBACK_ACTIONS: Array<{ id: number; labelKey: TranslationKey }> = [
   { id: 3, labelKey: "categories.values.rent" },
   { id: 4, labelKey: "categories.values.sale" },
-  { id: 5, labelKey: "categories.values.hotels", destination: "/hotels" },
 ];
 
 /** Soft blue tile: backend illustration on top, label underneath. */
 const ActionCard: React.FC<{
   label: string;
   icon?: string | null;
+  fallbackIcon?: React.ReactNode;
   onClick: () => void;
-}> = ({ label, icon, onClick }) => {
+}> = ({ label, icon, fallbackIcon, onClick }) => {
   // A broken/404 icon URL degrades to the initial badge instead of a torn image.
   const [failed, setFailed] = React.useState(false);
   const showIcon = Boolean(icon) && !failed;
@@ -47,7 +48,7 @@ const ActionCard: React.FC<{
           />
         ) : (
           <span className="w-12 h-12 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center text-xl font-bold text-[#2166d9] dark:text-blue-300 shadow-sm">
-            {label.charAt(0)}
+            {fallbackIcon ?? label.charAt(0)}
           </span>
         )}
       </div>
@@ -162,7 +163,7 @@ export const QuickActionsRow: React.FC = () => {
     return (
       <div className={cardClass}>
         <div className={gridClass}>
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3].map((i) => (
             <div
               key={`skeleton-${i}`}
               className="h-[5.75rem] sm:h-[9rem] rounded-[1.35rem] bg-pale/50 dark:bg-slate-800 animate-pulse"
@@ -173,7 +174,7 @@ export const QuickActionsRow: React.FC = () => {
     );
   }
 
-  const items =
+  const apiItems =
     actions.length > 0
       ? actions
       : FALLBACK_ACTIONS.map((action) => ({
@@ -181,9 +182,19 @@ export const QuickActionsRow: React.FC = () => {
           label: t(action.labelKey),
           icon: null,
           id: action.id,
-          destination: action.destination ?? null,
-          entityType: action.destination ? "hotel" : null,
+          destination: null,
+          entityType: null,
+          semanticKey: null,
         }));
+
+  // Hotels is frontend-owned for now. Remove any stale API hotel tile, then
+  // append exactly one card with the Explore hotel-filter route.
+  const items = apiItems.filter(
+    (item) =>
+      item.semanticKey !== "categories.values.hotels" &&
+      item.entityType !== "hotel" &&
+      item.destination !== "/hotels",
+  );
 
   return (
     <div className={cardClass}>
@@ -196,6 +207,13 @@ export const QuickActionsRow: React.FC = () => {
             onClick={() => handleClick(item)}
           />
         ))}
+        <ActionCard
+          label={t("categories.values.hotels")}
+          fallbackIcon={<BedIcon className="w-7 h-7" />}
+          onClick={() =>
+            navigate({ to: "/explore", search: { hotel: "1" } as any })
+          }
+        />
       </div>
     </div>
   );

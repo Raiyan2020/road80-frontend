@@ -19,6 +19,12 @@ const ExplorePage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const hasHotelFilter = (search: any) => {
+    if (typeof search === 'string') {
+      return new URLSearchParams(search).get('hotel') === '1';
+    }
+    return String(search?.hotel ?? '') === '1';
+  };
   const getFiltersFromUrl = (search: any) => {
     let sp: URLSearchParams;
     if (typeof search === 'string') {
@@ -54,7 +60,7 @@ const ExplorePage: React.FC = () => {
   };
 
   const [filters, setFilters] = useState<ExploreFilters>(() => getFiltersFromUrl(location.search));
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(() => hasHotelFilter(location.search));
   const [searchText, setSearchText] = useState(filters.name || '');
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const { data: filterOptionsRes } = useFilterOptions();
@@ -298,6 +304,7 @@ const ExplorePage: React.FC = () => {
         onApply={applyFilters} 
         onApplyHotel={applyHotelFilters}
         initialFilters={filters}
+        initialHotelSelected={hasHotelFilter(location.search)}
       />
     </div>
   );

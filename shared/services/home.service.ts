@@ -31,6 +31,7 @@ export interface CategoryValue {
 export interface CategoryFilter {
   id: number;
   name: string;
+  slug?: string;
   type: string;
   values: CategoryValue[];
 }
@@ -98,7 +99,7 @@ export interface HomeDataResponse {
      */
     ads?: HomeAd[];
     /** Pre-joined summary string like "Apartment/Rent/Kuwait", or null. */
-    filter_histories?: string | null;
+    filter_histories?: string | string[] | null;
     filter_histories_details?: FilterHistoryDetails | null;
   };
   errors: unknown[];

@@ -15,6 +15,12 @@ import { HomeListingCard } from "./HomeListingCard";
 import { QuickActionsRow } from "./QuickActionsRow";
 import { useTranslation } from "../../../i18n";
 import { useCountries } from "../../../shared/hooks/useCountries";
+import { useCategoriesAppearInFilter } from "../../../shared/hooks/useHome";
+import { useExploreCities } from "../../explore/hooks/useExploreLocations";
+import {
+  isListingTypeCategory,
+  isPropertyTypeCategory,
+} from "../../../shared/utils/category-match";
 
 /**
  * `road80_preferences` is written by QuickWizard. It stores stable ids
@@ -57,6 +63,10 @@ const HomePage: React.FC<{
   const displayAds = homeListings.slice(0, 6);
   const firstSuggestedAd = homeListings[0];
   const { data: countries = [] } = useCountries();
+  const { data: preferenceFilters = [] } = useCategoriesAppearInFilter();
+  const { data: preferenceCities = [] } = useExploreCities(
+    homeData?.filter_histories_details?.state_id ?? null
+  );
 
   // Re-read on navigation (the wizard writes localStorage and routes back here).
   const storedCountry = useMemo(
@@ -97,7 +107,38 @@ const HomePage: React.FC<{
     lang,
   ]);
   const searchText = useMemo(() => {
-    if (homeData?.filter_histories) return homeData.filter_histories;
+    const details = homeData?.filter_histories_details;
+    if (details) {
+      const selectedIds = details.category_value_id ?? [];
+      const propertyFilter = preferenceFilters.find((filter) =>
+        isPropertyTypeCategory(filter.slug, filter.name)
+      );
+      const listingFilter = preferenceFilters.find((filter) =>
+        isListingTypeCategory(filter.slug, filter.name)
+      );
+      const propertyType = propertyFilter?.values.find((value) =>
+        selectedIds.includes(value.id)
+      )?.value;
+      const listingType = listingFilter?.values.find((value) =>
+        selectedIds.includes(value.id)
+      )?.value;
+      const city = preferenceCities.find(
+        (item) => item.id === details.city_id
+      )?.name;
+
+      const validatedSummary = [propertyType, listingType, city]
+        .filter(Boolean)
+        .join(" / ");
+      if (validatedSummary) return validatedSummary;
+    }
+
+    if (homeData?.filter_histories) {
+      const rawSummary = Array.isArray(homeData.filter_histories)
+        ? homeData.filter_histories.join("/")
+        : homeData.filter_histories;
+      const parts = rawSummary.split("/").map((part) => part.trim());
+      return [parts[0], parts[1], parts.at(-3)].filter(Boolean).join(" / ");
+    }
     if (!firstSuggestedAd) return "";
 
     return [
@@ -109,7 +150,13 @@ const HomePage: React.FC<{
     ]
       .filter(Boolean)
       .join(" / ");
-  }, [homeData?.filter_histories, firstSuggestedAd]);
+  }, [
+    homeData?.filter_histories,
+    homeData?.filter_histories_details,
+    preferenceFilters,
+    preferenceCities,
+    firstSuggestedAd,
+  ]);
 
   return (
     <div className="flex flex-col p-4 gap-6 animate-fade-in pt-2">

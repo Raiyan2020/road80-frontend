@@ -11,6 +11,7 @@ import { AppImage } from './AppImage';
 import { useTranslation } from '@/i18n';
 import { useHomeData } from '@/features/home/hooks/useHomeData';
 import { toast } from 'sonner';
+import { isListingTypeCategory, isPropertyTypeCategory } from '@/shared/utils/category-match';
 
 interface QuickWizardProps {
     onComplete: () => void;
@@ -70,6 +71,12 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     const { data: states = [], isLoading: loadingStates } = useExploreStates(data.countryId || undefined);
     const { data: cities = [], isLoading: loadingCities } = useExploreCities(data.governorateId || undefined);
     const { data: filters = [], isLoading: loadingFilters } = useCategoriesAppearInFilter();
+    const requiredFilters = React.useMemo(
+        () => filters.filter((filter) =>
+            isPropertyTypeCategory(filter.slug, filter.name) ||
+            isListingTypeCategory(filter.slug, filter.name)),
+        [filters],
+    );
 
     // The API is the source of truth. Local storage keeps the UI fast, but it
     // must not hide server-side preferences on a new browser/device.
@@ -89,7 +96,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
         }));
     }, [homeData, isHomeDataFetched]);
 
-    const totalSteps = Math.max(5, 4 + filters.length);
+    const totalSteps = Math.max(5, 4 + requiredFilters.length);
 
     const handleNext = () => {
         if (step < totalSteps) setStep(step + 1);
@@ -121,7 +128,22 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     };
 
     const saveAndComplete = async (finalData: typeof data) => {
-        if (!finalData.countryId || !finalData.governorateId || !finalData.areaId || isSaving) {
+        const allowedValueIds = new Set(
+            requiredFilters.flatMap((filter) => filter.values.map((value) => value.id)),
+        );
+        const requiredCategoryValues = (finalData.categoryValues || [])
+            .filter((id) => allowedValueIds.has(id));
+        const hasEveryRequiredChoice = requiredFilters.length === 2 && requiredFilters.every(
+            (filter) => filter.values.some((value) => requiredCategoryValues.includes(value.id)),
+        );
+
+        if (
+            !finalData.countryId ||
+            !finalData.governorateId ||
+            !finalData.areaId ||
+            !hasEveryRequiredChoice ||
+            isSaving
+        ) {
             toast.error(t('common.tryAgain'));
             return;
         }
@@ -141,14 +163,14 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
             stateName: finalData.governorateName || '',
             cityId: finalData.areaId || undefined,
             cityName: finalData.areaName || '',
-            categoryValues: finalData.categoryValues || [],
+            categoryValues: requiredCategoryValues,
             name: finalData.name,
         };
 
         try {
             const response = await homeService.saveFilterHistory({
                 name: finalData.name,
-                category_values_ids: finalData.categoryValues || [],
+                category_values_ids: requiredCategoryValues,
                 country_id: finalData.countryId,
                 state_id: finalData.governorateId,
                 city_id: finalData.areaId,
@@ -318,22 +340,22 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
 
                 {step >= 5 && step <= totalSteps && (
                     <div className="animate-fade-in">
-                        {renderHeader(filters[step - 5]?.name || t('quickStart.preferences.title'), t('quickStart.preferences.subtitle'))}
+                        {renderHeader(requiredFilters[step - 5]?.name || t('quickStart.preferences.title'), t('quickStart.preferences.subtitle'))}
                         {loadingFilters ? (
                             <div className="flex justify-center p-10"><SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" /></div>
                         ) : (
                             <div className="flex flex-col gap-6">
-                                {filters[step - 5] && (
+                                {requiredFilters[step - 5] && (
                                     <div className="flex flex-col gap-3">
                                         <div className="flex flex-col gap-3">
-                                            {filters[step - 5].values.map(v => {
+                                            {requiredFilters[step - 5].values.map(v => {
                                                 const isSelected = (data.categoryValues || []).includes(v.id);
                                                 return (
                                                     <button
                                                         key={v.id}
                                                         disabled={isSaving}
                                                         onClick={() => {
-                                                            const allIds = filters[step - 5].values.map(val => val.id);
+                                                            const allIds = requiredFilters[step - 5].values.map(val => val.id);
                                                             selectCategoryValue(allIds, v.id);
                                                         }}
                                                         className={`p-4 h-16 rounded-2xl border-2 transition-all font-bold flex items-center justify-between active:scale-95 ${isSelected

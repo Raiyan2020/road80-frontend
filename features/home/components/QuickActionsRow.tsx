@@ -101,12 +101,20 @@ export const QuickActionsRow: React.FC = () => {
         entityType: category.entity_type ?? null,
       }));
 
-    const nonEntityValues = flagged.filter(
-      (item) => !entityDestinations.some((entity) => entity.entityType && entity.entityType === item.entityType),
+    // Prefer the flagged value tile when it already represents an entity
+    // destination. It carries the backend artwork, while the category-level
+    // fallback only has a text initial and would otherwise duplicate it.
+    const missingEntityDestinations = entityDestinations.filter(
+      (entity) =>
+        !flagged.some(
+          (item) =>
+            (entity.destination && entity.destination === item.destination) ||
+            (entity.entityType && entity.entityType === item.entityType),
+        ),
     );
 
-    if (nonEntityValues.length > 0 || entityDestinations.length > 0) {
-      return [...nonEntityValues, ...entityDestinations];
+    if (flagged.length > 0 || missingEntityDestinations.length > 0) {
+      return [...flagged, ...missingEntityDestinations];
     }
 
     // Payload predates the flag: keep the old behaviour — "نوع التعاقد" (id=2),

@@ -62,6 +62,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
   const maxPhoneDigits =
     PHONE_DIGITS[selectedCountry?.country_code ?? "KW"] ?? DEFAULT_DIGITS;
 
+  const routeApprovalError = (payload: any): boolean => {
+    const key = payload?.key ?? payload?.data?.key;
+    if (key === "hotel_pending_approval" || key === "company_pending_approval") {
+      navigate({ to: "/auth/pending-approval", search: { state: "pending" } });
+      return true;
+    }
+    if (key === "hotel_rejected" || key === "company_rejected") {
+      navigate({ to: "/auth/pending-approval", search: { state: "reject" } });
+      return true;
+    }
+    return false;
+  };
+
   // Sync route with internal step on mount/route change
   useEffect(() => {
     const handleRoute = () => {
@@ -114,11 +127,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
             sessionStorage.setItem("temp_auth_country_id", String(countryId));
             navigate({ to: "/verify", replace: true });
           } else {
+            if (routeApprovalError(response)) return;
             setError(response.message || t("auth.login.sendCodeFailed"));
           }
         },
         onError: (err: any) => {
           setLoading(false);
+          if (routeApprovalError(err?.data)) return;
           setError(err?.data?.message || t("common.tryAgain"));
         },
       },
@@ -185,12 +200,20 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
         });
         onLoginSuccess(user);
       } else {
+        if (routeApprovalError(response)) {
+          setLoading(false);
+          return;
+        }
         setError(response.message || t("auth.verify.invalidCode"));
         setLoading(false);
         setOtp(["", "", "", ""]);
         inputs.current[0]?.focus();
       }
     } catch (err: any) {
+      if (routeApprovalError(err?.data)) {
+        setLoading(false);
+        return;
+      }
       setError(err?.data?.message || t("auth.verify.invalidCode"));
       setLoading(false);
       setOtp(["", "", "", ""]);

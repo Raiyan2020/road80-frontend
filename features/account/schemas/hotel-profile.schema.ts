@@ -40,6 +40,13 @@ export const hotelProfileSchema = z.object({
     .optional()
     .or(z.literal('')),
 
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\d+$/, { error: () => t('validation.phoneInvalid') })
+    .min(8, { error: () => t('validation.phoneRange') })
+    .max(15, { error: () => t('validation.phoneRange') }),
+
   country_id: z
     .union([z.string(), z.number()])
     .refine((v) => !!v, { error: () => t('validation.selectCountry') }),
@@ -48,13 +55,13 @@ export const hotelProfileSchema = z.object({
     .union([z.string(), z.number()])
     .refine((v) => !!v, { error: () => t('validation.selectGovernorate') }),
 
-  // Server: `['sometimes','numeric','digits_between:8,20']`.
+  // Server: `['sometimes','nullable','numeric','digits_between:8,15']`.
   whatsapp_phone: z
     .string()
     .trim()
     .regex(/^\d*$/, { error: () => t('auth.validation.whatsappDigitsOnly') })
-    .refine((v) => !v || (v.length >= 8 && v.length <= 20), {
-      error: () => t('auth.validation.whatsappExactDigits', { digits: '8-20' }),
+    .refine((v) => !v || (v.length >= 8 && v.length <= 15), {
+      error: () => t('auth.validation.whatsappExactDigits', { digits: '8-15' }),
     })
     .optional()
     .or(z.literal('')),

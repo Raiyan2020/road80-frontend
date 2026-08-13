@@ -19,7 +19,7 @@ export const validation = {
 
   // Phone
   phoneInvalid: 'أدخل رقم هاتف صحيح',
-  phoneRange: 'رقم الهاتف يجب أن يكون بين 9 و 15 رقماً',
+  phoneRange: 'رقم الهاتف يجب أن يكون بين 8 و 15 رقماً',
   whatsappRange: 'رقم الواتساب يجب أن يكون بين 9 و 15 رقماً',
 
   // OTP

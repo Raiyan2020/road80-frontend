@@ -18,6 +18,7 @@ export interface ProfileData {
 
   // ── Shared company/hotel fields ───────────────────────────────────────────
   email?: string | null;
+  phone?: string | null;
   whatsapp_phone?: string | null;
   country_id?: number | null;
   country_name?: string | null;
@@ -53,6 +54,7 @@ export interface HotelProfileInput {
   name?: string;
   caption?: string;
   email?: string;
+  phone?: string;
   whatsapp_phone?: string;
   country_id?: number | string;
   state_id?: number | string;
@@ -65,6 +67,7 @@ export interface HotelProfileInput {
 
 export interface ProfileResponse {
   status: boolean;
+  key: string | null;
   message: string;
   data: ProfileData;
   errors: Record<string, string[]> | unknown[];
@@ -72,9 +75,19 @@ export interface ProfileResponse {
 
 export interface ProfileListingsResponse {
   status: boolean;
+  key: string | null;
   message: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[];
+  errors: Record<string, string[]> | unknown[];
+}
+
+interface AdMutationResponse<T> {
+  status: boolean;
+  key: string | null;
+  message: string;
+  data: T;
+  errors: Record<string, string[]> | unknown[];
 }
 
 export interface UpdateAdInput {
@@ -110,7 +123,9 @@ export const profileService = {
     const formData = new FormData();
 
     Object.entries(input).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === '') return;
+      // Absent values preserve the server value. An explicit empty string is
+      // meaningful for nullable fields (for example, clearing `website`).
+      if (value === undefined || value === null) return;
       formData.append(key, value instanceof File ? value : String(value));
     });
 
@@ -155,20 +170,27 @@ export const profileService = {
   /**
    * Delete one of the authenticated user's ads by ID.
    */
-  deleteMyAd: async (adId: number): Promise<{ status: boolean; message: string }> => {
-    return api.delete<{ status: boolean; message: string }>(`/profile/ads/${adId}`);
+  deleteMyAd: async (adId: number): Promise<AdMutationResponse<{ id: number }>> => {
+    return api.delete<AdMutationResponse<{ id: number }>>(`/profile/ads/${adId}`);
   },
 
-  updateMyAd: async ({ id, ...input }: UpdateAdInput): Promise<{ status: boolean; message: string }> => {
-    return api.post<{ status: boolean; message: string }>(`/profile/ads/${id}`, input);
+  updateMyAd: async ({ id, ...input }: UpdateAdInput): Promise<AdMutationResponse<{ ad: unknown }>> => {
+    return api.post<AdMutationResponse<{ ad: unknown }>>(`/profile/ads/${id}`, input);
   },
 
   /**
    * Toggle activation status (active / inactive) for one of the user's ads.
    */
-  toggleAdStatus: async (adId: number): Promise<{ status: boolean; message: string }> => {
+  toggleAdStatus: async (adId: number): Promise<AdMutationResponse<{
+    id: number;
+    status: string;
+    ad: unknown;
+  }>> => {
     const formData = new FormData();
     formData.append('ad_id', String(adId));
-    return api.post<{ status: boolean; message: string }>('/profile/toggle-ad-status', formData);
+    return api.post<AdMutationResponse<{ id: number; status: string; ad: unknown }>>(
+      '/profile/toggle-ad-status',
+      formData,
+    );
   },
 };

@@ -93,6 +93,10 @@ function HotelProfilePage() {
   const isOwnHotel = profile?.id === hotel?.id;
   const canRate = isAuthenticated && !!profile && profile.type !== "hotel" && !isOwnHotel;
   const myRating = ratings.find((r) => r.user?.id === profile?.id);
+  // `my_rating` is returned by the hotel resource specifically so an existing
+  // rating is still detected when it is not present in the loaded ratings page.
+  const myRatingStars = myRating?.stars ?? hotel?.my_rating ?? undefined;
+  const hasMyRating = myRatingStars !== undefined && myRatingStars !== null;
 
   // A hotel account cannot start a chat — it can only reply (§10.1).
   const canChat = isAuthenticated && !!profile && profile.type !== "hotel" && !isOwnHotel;
@@ -362,7 +366,7 @@ function HotelProfilePage() {
                   onClick={() => setRatingOpen(true)}
                   className="h-12 rounded-2xl border-2 border-blue text-sm font-bold text-blue"
                 >
-                  {tr(myRating ? "hotels.ratings.editCta" : "hotels.ratings.rateCta")}
+                  {tr(hasMyRating ? "hotels.ratings.editCta" : "hotels.ratings.rateCta")}
                 </button>
               )}
 
@@ -422,8 +426,8 @@ function HotelProfilePage() {
       {ratingOpen && (
         <RatingSheet
           hotelId={hotel.id}
-          initialStars={myRating?.stars}
-          initialComment={myRating?.comment ?? undefined}
+          initialStars={myRatingStars}
+          initialComment={myRating?.comment ?? hotel.my_rating_comment ?? undefined}
           onClose={() => setRatingOpen(false)}
         />
       )}

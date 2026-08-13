@@ -4,8 +4,12 @@ import { toast } from "sonner";
 import { AppImage } from "@/components/AppImage";
 import { ChevronRightIcon } from "@/components/Icons";
 import { useTranslation } from "@/i18n";
-import { useProfile } from "@/features/account/hooks/useProfile";
-import { useMessages, useSendMessage, groupByDay } from "@/features/chat/hooks/useChat";
+import {
+  useInfiniteMessages,
+  useMarkConversationRead,
+  useSendMessage,
+  groupByDay,
+} from "@/features/chat/hooks/useChat";
 import type { Message } from "@/features/chat/services/chat.service";
 import { compressImage } from "@/shared/utils/media-compression";
 import { isWithinImageSizeLimit } from "@/shared/utils/media-validation";
@@ -22,7 +26,6 @@ function ChatPage() {
   const { t: tr, dir } = useTranslation();
   const navigate = useNavigate();
   const { id } = Route.useParams();
-  const { profile } = useProfile();
 
   const [draft, setDraft] = useState("");
   const [images, setImages] = useState<{ file: File; preview: string }[]>([]);
@@ -30,16 +33,35 @@ function ChatPage() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading } = useMessages(id);
+  const {
+    data,
+    isLoading,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteMessages(id);
   const { sendMessage, isSending } = useSendMessage(id);
+  const { markRead } = useMarkConversationRead(id);
 
-  const messages: Message[] = (data as any)?.data ?? [];
+  const messages: Message[] = Array.from(
+    new Map(
+      [...(data?.pages ?? [])]
+        .reverse()
+        .flatMap((page) => page.data ?? [])
+        .map((message) => [message.id, message]),
+    ).values(),
+  );
   const groups = groupByDay(messages);
 
   // Jump to the newest message whenever the transcript grows.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length]);
+  }, [messages.at(-1)?.id]);
+
+  const newestIncomingId = [...messages].reverse().find((message) => !message.is_mine)?.id;
+  useEffect(() => {
+    if (newestIncomingId) markRead();
+  }, [markRead, newestIncomingId]);
 
   const addImages = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -126,6 +148,16 @@ function ChatPage() {
 
       {/* Transcript */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar px-4 py-4">
+        {hasNextPage && (
+          <button
+            type="button"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="mb-3 h-10 w-full rounded-2xl border border-pale text-xs font-bold text-navy disabled:opacity-60 dark:border-slate-700 dark:text-slate-200"
+          >
+            {isFetchingNextPage ? tr("common.loading") : tr("hotels.chat.loadOlder")}
+          </button>
+        )}
         {isLoading && (
           <div className="flex flex-col gap-3" aria-busy="true">
             {[0, 1, 2].map((i) => (
@@ -151,7 +183,7 @@ function ChatPage() {
             ) : null}
 
             {group.items.map((m) => {
-              const isMine = m.sender?.id === profile?.id;
+              const isMine = m.is_mine;
               return (
                 <div
                   key={m.id}

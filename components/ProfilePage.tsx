@@ -173,7 +173,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   const isMe = !viewedUserId || viewedUserId === "current_user";
   // Gates the hotel profile entry point (use case 1.2). Server truth, not the
   // persisted store — see useIsHotel.
-  const { isHotel } = useIsHotel();
+  const { isHotel, isLoading: isAccountTypeLoading } = useIsHotel();
 
   const [activeSubTab, setActiveSubTab] = useState<"ads" | "favorites">(
     activeTabParam === "favorites" && isMe ? "favorites" : "ads",
@@ -204,7 +204,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     navigate({ to: location.pathname, search: { tab } as any, replace: true });
   };
 
-  const { data: myAdsData = [], isLoading: myAdsLoading } = useUserAds();
+  const { data: myAdsData = [], isLoading: myAdsLoading } = useUserAds({
+    enabled: isMe && !isAccountTypeLoading && !isHotel,
+  });
   const { data: myFavsData = [], isLoading: myFavsLoading } =
     useUserFavorites();
   const { profile, isLoading: profileLoading } = useProfile();
@@ -216,7 +218,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   const { data: officeAdsData = [], isLoading: officeAdsLoading } =
     useOfficeAds(viewedUserId || "");
   const isLoading = isMe
-    ? myAdsLoading || myFavsLoading || profileLoading
+    ? (!isHotel && myAdsLoading) || myFavsLoading || profileLoading || isAccountTypeLoading
     : officeLoading || officeAdsLoading;
 
   let profileName = t("profile.page.defaultUserName");
@@ -230,7 +232,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   if (isMe) {
     const myAds = myAdsData;
     const myFavs = myFavsData;
-    displayList = (activeSubTab === "ads" ? myAds : myFavs) as Listing[];
+    displayList = (isHotel ? myFavs : activeSubTab === "ads" ? myAds : myFavs) as Listing[];
     stats = {
       ads: myAds.length.toString(),
       likes: myFavs.length.toString() || "0",
@@ -306,7 +308,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     if (!editingAd) return;
 
     const numericPrice = Number(editPrice);
-    if (!editTitle.trim() || editDescription.trim().length < 5 || !Number.isFinite(numericPrice)) {
+    if (
+      !editTitle.trim() ||
+      editDescription.trim().length < 5 ||
+      editDescription.trim().length > 400 ||
+      !Number.isFinite(numericPrice) ||
+      numericPrice < 0 ||
+      numericPrice > 99_999_999_999.99
+    ) {
       toast.error(t("profile.page.updateAdError"));
       return;
     }
@@ -508,13 +517,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
         </div>
       )}
 
-      <div className="flex justify-between items-center px-4 py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-pale dark:border-slate-800 transition-colors duration-300">
+      {!isHotel && <div className="flex justify-between items-center px-4 py-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-pale dark:border-slate-800 transition-colors duration-300">
         <StatItem label={t("profile.page.statAds")} value={stats.ads} />
         <div className="w-px h-8 bg-gray-100 dark:bg-slate-800"></div>
         <StatItem label={t("profile.page.statLikes")} value={stats.likes} />
         <div className="w-px h-8 bg-gray-100 dark:bg-slate-800"></div>
         <StatItem label={t("profile.page.statViews")} value={stats.views} />
-      </div>
+      </div>}
 
       {/* <div className="flex gap-3">
         <a
@@ -552,11 +561,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
 
       <div className="flex flex-col gap-4 mt-2">
         <h3 className="text-lg font-bold text-navy dark:text-slate-200 font-sans px-1">
-          {isMe
+          {isMe && isHotel
+            ? t("profile.page.tabFavorites")
+            : isMe
             ? t("profile.page.myAdsHeading")
             : t("profile.page.userAdsHeading", { name: profileName })}
         </h3>
-        {isMe && (
+        {isMe && !isHotel && (
           <div className="flex p-1 bg-gray-100/80 dark:bg-slate-800 rounded-xl relative transition-colors duration-300">
             <button
               onClick={() => handleTabChange("ads")}
@@ -583,14 +594,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
                 key={`${item.id}-${idx}`}
                 listing={item}
                 onClick={() => onListingClick && onListingClick(item)}
-                onEdit={isMe && activeSubTab === "ads" ? () => openEditAd(item) : undefined}
-                onDelete={isMe && activeSubTab === "ads" ? () => handleDeleteAd(item) : undefined}
+                onEdit={isMe && !isHotel && activeSubTab === "ads" ? () => openEditAd(item) : undefined}
+                onDelete={isMe && !isHotel && activeSubTab === "ads" ? () => handleDeleteAd(item) : undefined}
               />
             ))
           )}
           {!isLoading && displayList.length === 0 && (
             <div className="col-span-2 py-10 text-center text-gray-400 dark:text-slate-600 text-sm font-medium">
-              {t("profile.page.emptyAds")}
+              {t(isMe && isHotel ? "profile.page.emptyFavorites" : "profile.page.emptyAds")}
             </div>
           )}
         </div>
@@ -698,6 +709,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
               <input
                 type="number"
                 min="0"
+                max="99999999999.99"
                 step="0.01"
                 value={editPrice}
                 onChange={(event) => setEditPrice(event.target.value)}

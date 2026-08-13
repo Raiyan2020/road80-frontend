@@ -13,9 +13,10 @@ export interface ChatParticipant {
 export interface Message {
   id: number;
   conversation_id: number;
-  body: string;
+  body: string | null;
   /** Attachment URLs. Empty array when the message is text-only. */
   images: string[];
+  is_mine: boolean;
   read_at: string | null;
   sender: ChatParticipant;
   created_at: string | null;
@@ -24,16 +25,18 @@ export interface Message {
 /** frontend hotel brief §6.7 */
 export interface Conversation {
   id: number;
-  hotel_id?: number;
-  user_id?: number;
-  /** The *other* party: the hotel for a user, the user for a hotel. */
+  hotel_id: number | null;
+  company_id: number | null;
+  user_id: number;
+  /** The other party: the business for a user, or the user for a business. */
   participant: ChatParticipant;
+  unread_count: number;
   latest_message: Message | null;
   updated_at: string | null;
 }
 
 /**
- * In-app messaging between a user and a hotel (use case 1.6).
+ * In-app messaging between a user and a hotel or company.
  *
  * External channels (phone, WhatsApp, website, socials) sit alongside this and
  * are not replaced by it — «تظل وسائل التواصل الخارجية ... خيارات مستقلة».
@@ -53,13 +56,13 @@ export const chatService = {
   startWithCompany: (companyId: number | string) =>
     api.post<ApiEnvelope<Conversation>>(`/companies/${companyId}/conversations`),
 
-  /** A user sees their hotel threads; a hotel sees incoming user threads. */
+  /** Users see business threads; hotels/companies see their incoming threads. */
   conversations: (page = 1) =>
     api.get<PaginatedEnvelope<Conversation[]>>('/conversations', {
       query: { page: String(page) },
     }),
 
-  /** Oldest first, so the transcript reads top-to-bottom. */
+  /** Page 1 is the newest window; each returned page is chronological. */
   messages: (conversationId: number | string, page = 1) =>
     api.get<PaginatedEnvelope<Message[]>>(
       `/conversations/${conversationId}/messages`,
@@ -84,4 +87,11 @@ export const chatService = {
       formData,
     );
   },
+
+  markRead: (conversationId: number | string) =>
+    api.post<ApiEnvelope<{
+      conversation_id: number;
+      marked_read_count: number;
+      read_at: string;
+    }>>(`/conversations/${conversationId}/read`),
 };

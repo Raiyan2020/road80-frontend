@@ -4,6 +4,7 @@ import { Tab, NavItem } from '../types';
 import { HomeIcon, BuildingIcon, PlusIcon, PlayIcon, UserIcon } from './Icons';
 import { useTranslation, type TranslationKey } from '../i18n';
 import { useKeyboardOpen } from '../shared/hooks/useKeyboardOpen';
+import { useIsHotel } from '../features/account/hooks/useHotelProfile';
 
 interface BottomNavigationProps {
   activeTab: Tab;
@@ -33,6 +34,10 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const isKeyboardOpen = useKeyboardOpen();
+  const { isHotel, isLoading: isAccountTypeLoading } = useIsHotel();
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => item.id !== Tab.ADD || (!isAccountTypeLoading && !isHotel),
+  );
 
   const handleAddClick = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -52,7 +57,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab }) => {
       }}
     >
       <div className="flex justify-between items-center h-full px-2">
-        {NAV_ITEMS.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = activeTab === item.id;
           const label = item.labelKey ? t(item.labelKey as TranslationKey) : undefined;
 

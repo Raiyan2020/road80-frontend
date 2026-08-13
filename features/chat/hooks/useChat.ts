@@ -1,11 +1,21 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatService, type Message } from '../services/chat.service';
 
 export const chatKeys = {
+  allConversations: ['conversations'] as const,
   conversations: (page: number) => ['conversations', page] as const,
+  infiniteConversations: ['conversations', 'infinite'] as const,
   messages: (id: number | string, page: number) =>
     ['conversation', String(id), 'messages', page] as const,
+  infiniteMessages: (id: number | string) =>
+    ['conversation', String(id), 'messages', 'infinite'] as const,
 };
+
+export interface ChatMessageCreatedEvent {
+  event_id: string;
+  conversation_id: number;
+  message: Omit<Message, 'is_mine'>;
+}
 
 export function useConversations(page = 1) {
   return useQuery({
@@ -28,6 +38,48 @@ export function useMessages(conversationId: number | string | undefined, page = 
     // drains battery and mobile data for a feature used in short bursts.
     refetchInterval: 15_000,
   });
+}
+
+const nextPage = <T extends { pagination?: { current_page: number; last_page: number } }>(lastPage: T) =>
+  lastPage.pagination && lastPage.pagination.current_page < lastPage.pagination.last_page
+    ? lastPage.pagination.current_page + 1
+    : undefined;
+
+export function useInfiniteConversations() {
+  return useInfiniteQuery({
+    queryKey: chatKeys.infiniteConversations,
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => chatService.conversations(pageParam),
+    getNextPageParam: nextPage,
+    staleTime: 0,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useInfiniteMessages(conversationId: number | string | undefined) {
+  return useInfiniteQuery({
+    queryKey: chatKeys.infiniteMessages(conversationId ?? ''),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => chatService.messages(conversationId!, pageParam),
+    getNextPageParam: nextPage,
+    enabled: !!conversationId,
+    staleTime: 0,
+    refetchInterval: 15_000,
+  });
+}
+
+export function useMarkConversationRead(conversationId: number | string | undefined) {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: () => chatService.markRead(conversationId!),
+    retry: false,
+    meta: { hideToast: true },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+
+  return { markRead: mutation.mutate, isMarkingRead: mutation.isPending };
 }
 
 export function useSendMessage(conversationId: number | string | undefined) {

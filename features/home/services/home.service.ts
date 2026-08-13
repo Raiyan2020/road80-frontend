@@ -10,12 +10,19 @@ export interface FilterOptionValue {
    * actions. Optional because older payloads (and the filter endpoint) omit it.
    */
   appear_in_home?: boolean;
+  slug?: string | null;
+  entity_type?: string | null;
+  destination?: string | null;
 }
 
 export interface FilterCategory {
   id: number;
   name: string;
   type: string;
+  slug?: string | null;
+  appear_in_filters?: boolean;
+  entity_type?: string | null;
+  destination?: string | null;
   values: FilterOptionValue[];
 }
 

@@ -1,6 +1,7 @@
 import { ofetch, type FetchOptions } from 'ofetch';
 import { forceLogout } from '@/shared/utils/notifications';
 import { API_BASE_URL } from '@/lib/api-base-url';
+import { getRealtimeSocketId } from '@/lib/realtime';
 // Always import i18n through the barrel. Mixing '@/i18n' and '@/i18n/store'
 // specifiers risks two module records, i.e. two independent language stores,
 // and the api client would then read a language nothing else updates.
@@ -25,11 +26,13 @@ const isAuthPath = (url: string) =>
 
 /** Force a logout when the body carries a terminal account state. */
 const checkForcedLogout = (body: unknown) => {
-  const status = (body as { status?: unknown } | null)?.status;
+  const response = body as { status?: unknown; key?: unknown } | null;
+  const status = response?.status;
+  const key = response?.key;
 
-  if (status === 'block') {
+  if (key === 'block' || status === 'block') {
     forceLogout('block');
-  } else if (status === 'needLogin') {
+  } else if (key === 'unauthenticated' || status === 'needLogin') {
     // Token is invalid/expired — treat the same as being kicked out
     forceLogout('session_expired');
   }
@@ -64,6 +67,16 @@ export const apiClient = ofetch.create({
         }
       }
 
+      // Laravel's `toOthers()` relies on this header to exclude the browser
+      // which originated a message while still broadcasting to the user's
+      // other devices.
+      const socketId = getRealtimeSocketId();
+      if (socketId) {
+        const headers = new Headers(options.headers);
+        headers.set('X-Socket-ID', socketId);
+        options.headers = headers;
+      }
+
       // If we are sending FormData, we MUST NOT set the Content-Type header manually.
       // The browser will automatically set it to multipart/form-data with the correct boundary.
       if (options.body instanceof FormData) {
@@ -79,10 +92,8 @@ export const apiClient = ofetch.create({
   },
 
   // ── Body-level status check ───────────────────────────────────────────────
-  // The backend signals these in the body rather than the HTTP status:
-  //   { status: "block" }     — account blocked by an admin
-  //   { status: "needLogin" } — token missing/expired
-  // `status` is a string here, not the usual boolean.
+  // The current contract uses `{ status: false, key: "..." }`. Legacy string
+  // statuses remain supported in `checkForcedLogout` during rollout.
   async onResponse({ request, response }) {
     // Skip auth endpoints — a failed login shouldn't trigger force-logout
     const url = typeof request === 'string' ? request : request.toString();

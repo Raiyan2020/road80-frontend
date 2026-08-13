@@ -42,8 +42,12 @@ export interface MergeChunksResponse {
 
 export interface CreateAdResponse {
   status: boolean;
+  key: string | null;
   message: string;
   data: {
+    ad?: { id: number };
+    requires_payment?: boolean;
+    payment_session?: null;
     ad_id?: number;
     published?: boolean;
     session_id?: string;

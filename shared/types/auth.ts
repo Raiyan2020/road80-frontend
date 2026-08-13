@@ -8,13 +8,22 @@ export interface User {
   total_ads_watch: number;
   total_active_ads: number;
   first_login: number;
+  type?: UserType;
+  status?: UserStatus;
+  is_active?: boolean;
 }
 
 export interface AuthResponse<T = unknown> {
   status: boolean;
+  key: string | null;
   message: string;
   data: T;
-  errors: string[];
+  errors: Record<string, string[]> | unknown[];
+}
+
+export interface ApprovalStateData {
+  account_type: AccountType;
+  approval_status: 'pending' | 'rejected';
 }
 
 export interface LoginPayload {

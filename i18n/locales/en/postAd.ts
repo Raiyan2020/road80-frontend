@@ -120,7 +120,7 @@ export const postAd = {
 
   // ── Footer actions ────────────────────────────────────────────────────────
   footer: {
-    payAndPublish: 'Pay & publish',
+    payAndPublish: 'Publish',
   },
 
   // ── Payment flow ──────────────────────────────────────────────────────────

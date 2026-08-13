@@ -1,5 +1,5 @@
 import api from '@/lib/api-client';
-import type { AuthResponse, LoginPayload, VerifyOtpPayload, VerifyOtpData, RegisterCompanyPayload } from '../types/auth';
+import type { ApprovalStateData, AuthResponse, LoginPayload, VerifyOtpPayload, VerifyOtpData, RegisterCompanyPayload } from '../types/auth';
 
 export const authService = {
   /**
@@ -52,7 +52,7 @@ export const authService = {
   /**
    * Register a new company
    */
-  registerCompany: async (payload: RegisterCompanyPayload): Promise<AuthResponse<[]>> => {
+  registerCompany: async (payload: RegisterCompanyPayload): Promise<AuthResponse<ApprovalStateData>> => {
     const formData = new FormData();
     Object.entries(payload).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
@@ -60,7 +60,7 @@ export const authService = {
       }
     });
 
-    return api.post<AuthResponse<[]>>('/auth/register-company', formData);
+    return api.post<AuthResponse<ApprovalStateData>>('/auth/register-company', formData);
   },
 };
 

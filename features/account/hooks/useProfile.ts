@@ -70,7 +70,7 @@ export function useUpdateSocials() {
   };
 }
 
-export function useUserAds() {
+export function useUserAds(options: { enabled?: boolean } = {}) {
     const lang = useLangStore((s) => s.lang);
     return useQuery({
         // The user's ads carry server-translated category/location labels.
@@ -78,6 +78,7 @@ export function useUserAds() {
         // useDeleteAd / useToggleAdStatus still match.
         queryKey: ['profile', 'my-ads', lang],
         queryFn: profileService.getMyAds,
+        enabled: options.enabled ?? true,
         staleTime: 5 * 60 * 1000,
     });
 }

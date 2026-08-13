@@ -5,7 +5,7 @@ import { ChevronRightIcon } from "@/components/Icons";
 import { useTranslation } from "@/i18n";
 import { useIsHotel } from "@/features/account/hooks/useHotelProfile";
 import {
-  useMyHotelContents,
+  useInfiniteMyHotelContents,
   useDeleteHotelContent,
 } from "@/features/hotels/hooks/useMyHotelContents";
 import { MediaGallery } from "@/features/hotels/components/MediaGallery";
@@ -27,13 +27,20 @@ function HotelContentsPage() {
   const navigate = useNavigate();
   const { isHotel, isLoading: loadingAccount } = useIsHotel();
 
-  const { data, isLoading } = useMyHotelContents();
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useInfiniteMyHotelContents();
   const { deleteContent } = useDeleteHotelContent();
 
   const [editing, setEditing] = useState<HotelContent | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const contents: HotelContent[] = (data as any)?.data ?? [];
+  const contents: HotelContent[] = Array.from(
+    new Map(
+      (data?.pages ?? [])
+        .flatMap((page) => page.data ?? [])
+        .map((item) => [item.id, item]),
+    ).values(),
+  );
 
   const handleDelete = async (item: HotelContent) => {
     if (!window.confirm(tr("hotels.content.deleteConfirm"))) return;
@@ -153,6 +160,17 @@ function HotelContentsPage() {
                   </div>
                 </div>
               ))}
+
+              {hasNextPage && (
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="h-12 rounded-2xl border border-pale text-sm font-bold text-navy disabled:opacity-60 dark:border-slate-700 dark:text-slate-200"
+                >
+                  {isFetchingNextPage ? tr("common.loading") : tr("hotels.loadMore")}
+                </button>
+              )}
             </div>
           )}
         </div>

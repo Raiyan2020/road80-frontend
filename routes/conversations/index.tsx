@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppImage } from "@/components/AppImage";
 import { useTranslation } from "@/i18n";
-import { useConversations } from "@/features/chat/hooks/useChat";
+import { useInfiniteConversations } from "@/features/chat/hooks/useChat";
 import type { Conversation } from "@/features/chat/services/chat.service";
 
 /**
@@ -18,9 +18,23 @@ export const Route = createFileRoute("/conversations/")({
 function ConversationsPage() {
   const { t: tr, dir } = useTranslation();
   const navigate = useNavigate();
-  const { data, isLoading, isError, refetch } = useConversations();
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteConversations();
 
-  const conversations: Conversation[] = (data as any)?.data ?? [];
+  const conversations: Conversation[] = Array.from(
+    new Map(
+      (data?.pages ?? [])
+        .flatMap((page) => page.data ?? [])
+        .map((conversation) => [conversation.id, conversation]),
+    ).values(),
+  );
 
   return (
     <div className="absolute inset-0 overflow-y-auto overflow-x-hidden bg-bg no-scrollbar dark:bg-slate-950" dir={dir}>
@@ -65,7 +79,7 @@ function ConversationsPage() {
 
         <div className="flex flex-col gap-2">
           {conversations.map((c) => {
-            const unread = c.latest_message && !c.latest_message.read_at;
+            const unread = c.unread_count > 0;
             return (
               <button
                 key={c.id}
@@ -81,7 +95,10 @@ function ConversationsPage() {
                     {c.participant?.name}
                   </p>
                   <p className={`truncate text-xs ${unread ? "font-bold text-navy dark:text-slate-200" : "font-medium text-gray-500 dark:text-slate-400"}`}>
-                    {c.latest_message?.body ?? tr("hotels.chat.noMessages")}
+                    {c.latest_message?.body ||
+                      (c.latest_message?.images?.length
+                        ? tr("hotels.chat.imageMessage")
+                        : tr("hotels.chat.noMessages"))}
                   </p>
                 </div>
                 {unread ? <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-blue" aria-label="unread" /> : null}
@@ -89,6 +106,18 @@ function ConversationsPage() {
             );
           })}
         </div>
+        {hasNextPage && (
+          <button
+            type="button"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="mt-4 h-11 w-full rounded-2xl border border-pale text-sm font-bold text-navy disabled:opacity-60 dark:border-slate-700 dark:text-slate-200"
+          >
+            {isFetchingNextPage
+              ? tr("common.loading")
+              : tr("hotels.chat.loadMoreConversations")}
+          </button>
+        )}
       </div>
     </div>
   );

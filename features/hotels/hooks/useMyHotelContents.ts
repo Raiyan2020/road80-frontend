@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   hotelContentsService,
   type HotelContentInput,
@@ -11,6 +11,20 @@ export function useMyHotelContents(page = 1) {
   return useQuery({
     queryKey: [...MY_CONTENTS, page],
     queryFn: () => hotelContentsService.mine(page),
+  });
+}
+
+export function useInfiniteMyHotelContents() {
+  return useInfiniteQuery({
+    queryKey: [...MY_CONTENTS, 'infinite'],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => hotelContentsService.mine(pageParam),
+    getNextPageParam: (lastPage) => {
+      const pagination = lastPage.pagination;
+      return pagination && pagination.current_page < pagination.last_page
+        ? pagination.current_page + 1
+        : undefined;
+    },
   });
 }
 

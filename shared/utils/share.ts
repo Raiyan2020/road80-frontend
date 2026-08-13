@@ -1,4 +1,6 @@
 import { toast } from "sonner";
+import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
 import { t } from "@/i18n";
 
 /**
@@ -43,15 +45,24 @@ const copyLink = async (url: string) => {
 };
 
 /**
- * Opens the platform's native share sheet via the Web Share API.
- *
- * iOS (WKWebView) and mobile browsers get the real native sheet. Android's
- * WebView does not implement navigator.share, so it falls back to copying the
- * link to the clipboard.
+ * Opens the native Capacitor share sheet in installed apps and uses the Web
+ * Share API in browsers. Copying is the final fallback.
  *
  * Must be called directly from a user gesture or the browser will reject it.
  */
 export async function shareContent({ title, text, url }: ShareContentOptions) {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const { value: canShare } = await Share.canShare();
+      if (canShare) {
+        await Share.share({ title, text, url, dialogTitle: title });
+        return;
+      }
+    } catch {
+      // Fall through to Web Share/copy for unusual WebView or plugin failures.
+    }
+  }
+
   if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
     try {
       await navigator.share({ title, text, url });

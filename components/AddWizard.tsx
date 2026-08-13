@@ -677,7 +677,10 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         (res as any).data?.transaction_id || (res as any).transaction_id;
       const returnedEncryptionKey =
         (res as any).data?.encryption_key || (res as any).encryption_key;
-      const returnedAdId = (res as any).data?.ad_id || (res as any).ad_id;
+      const returnedAdId =
+        (res as any).data?.ad?.id ||
+        (res as any).data?.ad_id ||
+        (res as any).ad_id;
 
       if (returnedTransactionId) setTransactionId(returnedTransactionId);
       if (returnedEncryptionKey) setEncryptionKey(returnedEncryptionKey);
@@ -686,7 +689,9 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       if (sessionId) {
         applySession(sessionId);
       } else if (res.status) {
-        setPublishedImmediately(Boolean(res.data?.published));
+        setPublishedImmediately(
+          res.data?.requires_payment === false || Boolean(res.data?.published),
+        );
         setPublished(true);
         // We do not use setTimeout here anymore so the user can read the success message
       } else {

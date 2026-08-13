@@ -9,8 +9,9 @@ export interface Pagination {
 }
 
 export interface ApiEnvelope<T> {
-  /** `true` | `false` | a string sentinel such as "block" / "needLogin". */
-  status: boolean | string;
+  status: boolean;
+  /** Stable, language-independent backend response key. */
+  key: string | null;
   message: string;
   data: T;
   errors: Record<string, string[]> | unknown[];
@@ -40,6 +41,10 @@ export interface Hotel {
   /** Average of user ratings. */
   rate: number;
   ratings_count: number;
+  /** The authenticated viewer's rating, when one exists. */
+  my_rating?: number | null;
+  /** Additive companion field used to prefill an existing rating edit form. */
+  my_rating_comment?: string | null;
   socials: UserSocials;
   share_url: string;
 }

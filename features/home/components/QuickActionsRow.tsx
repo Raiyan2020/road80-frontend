@@ -9,10 +9,10 @@ import { localizeCategoryValue } from "../../../shared/utils/category-localizati
 // resolved at render time so they follow the language. No artwork here: icons
 // are owned by the backend (`values[].icon`), so a tile without one falls back
 // to the initial badge rather than to a bundled image.
-const FALLBACK_ACTIONS: Array<{ id: number; labelKey: TranslationKey }> = [
+const FALLBACK_ACTIONS: Array<{ id: number; labelKey: TranslationKey; destination?: string }> = [
   { id: 3, labelKey: "categories.values.rent" },
   { id: 4, labelKey: "categories.values.sale" },
-  { id: 5, labelKey: "categories.values.hotels" },
+  { id: 5, labelKey: "categories.values.hotels", destination: "/hotels" },
 ];
 
 /** Soft blue tile: backend illustration on top, label underneath. */
@@ -69,30 +69,68 @@ export const QuickActionsRow: React.FC = () => {
   const navigate = useNavigate();
   const { data: categories, isLoading } = useCategories();
 
-  // Collect the home-flagged values from every category, in backend order.
-  // Value ids are unique across categories, but dedupe defensively so a
-  // repeated id can't produce duplicate React keys.
+  // Collect home values plus destination-backed entity categories. Hotels are
+  // a directory destination, not an ad filter value, so the category-level
+  // `/hotels` metadata becomes its own tile.
   const actions = React.useMemo(() => {
     const seen = new Set<number>();
     const flagged = (categories ?? [])
-      .flatMap((c) => c.values ?? [])
-      .filter((v) => v.appear_in_home === true)
-      .filter((v) => (seen.has(v.id) ? false : (seen.add(v.id), true)));
+      .flatMap((category) =>
+        (category.values ?? [])
+          .filter((value) => value.appear_in_home === true)
+          .map((value) => ({
+            key: `value-${value.id}`,
+            id: value.id,
+            label: localizeCategoryValue(value.value, value.id),
+            icon: value.icon ?? null,
+            destination: value.destination ?? category.destination ?? null,
+            entityType: value.entity_type ?? category.entity_type ?? null,
+          })),
+      )
+      .filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
 
-    if (flagged.length > 0) return flagged;
+    const entityDestinations = (categories ?? [])
+      .filter((category) => Boolean(category.destination))
+      .map((category) => ({
+        key: `category-${category.id}`,
+        id: category.id,
+        label: category.name,
+        icon: null,
+        destination: category.destination ?? null,
+        entityType: category.entity_type ?? null,
+      }));
+
+    const nonEntityValues = flagged.filter(
+      (item) => !entityDestinations.some((entity) => entity.entityType && entity.entityType === item.entityType),
+    );
+
+    if (nonEntityValues.length > 0 || entityDestinations.length > 0) {
+      return [...nonEntityValues, ...entityDestinations];
+    }
 
     // Payload predates the flag: keep the old behaviour — "نوع التعاقد" (id=2),
     // else the first category that has any values.
     const contractCategory =
       categories?.find((c) => c.id === 2) ||
       categories?.find((c) => c.values.length > 0);
-    return contractCategory?.values ?? [];
+    return (contractCategory?.values ?? []).map((value) => ({
+      key: `value-${value.id}`,
+      id: value.id,
+      label: localizeCategoryValue(value.value, value.id),
+      icon: value.icon ?? null,
+      destination: value.destination ?? null,
+      entityType: value.entity_type ?? null,
+    }));
   }, [categories]);
 
-  const handleClick = (valueId: number) => {
+  const handleClick = (item: { id: number; destination?: string | null }) => {
+    if (item.destination) {
+      navigate({ to: item.destination as "/hotels" });
+      return;
+    }
     navigate({
       to: "/explore",
-      search: { category_value_id: valueId } as any,
+      search: { category_value_id: item.id } as any,
     });
   };
 
@@ -118,17 +156,14 @@ export const QuickActionsRow: React.FC = () => {
 
   const items =
     actions.length > 0
-      ? actions.map((action) => ({
-          key: action.id,
-          label: localizeCategoryValue(action.value, action.id),
-          icon: action.icon ?? null,
-          id: action.id,
-        }))
+      ? actions
       : FALLBACK_ACTIONS.map((action) => ({
-          key: action.id,
+          key: `fallback-${action.id}`,
           label: t(action.labelKey),
           icon: null,
           id: action.id,
+          destination: action.destination ?? null,
+          entityType: action.destination ? "hotel" : null,
         }));
 
   return (
@@ -139,7 +174,7 @@ export const QuickActionsRow: React.FC = () => {
             key={item.key}
             label={item.label}
             icon={item.icon}
-            onClick={() => handleClick(item.id)}
+            onClick={() => handleClick(item)}
           />
         ))}
       </div>

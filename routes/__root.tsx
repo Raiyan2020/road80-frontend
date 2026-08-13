@@ -20,6 +20,7 @@ import { useUserStore } from '../stores/user.store';
 import { useSyncFavorites } from '../features/favorites/hooks/useSyncFavorites';
 import { prefetchHomeScreen } from '../features/home/utils/prefetch-home';
 import { useTranslation, type TranslationKey } from '../i18n';
+import { ChatRealtimeBootstrap } from '../features/chat/components/ChatRealtimeBootstrap';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -435,6 +436,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <FavoritesBootstrap />
+      <ChatRealtimeBootstrap />
       <LanguageBootstrap />
       <HomePrefetch />
       <AppContext.Provider value={{ theme, setTheme }}>

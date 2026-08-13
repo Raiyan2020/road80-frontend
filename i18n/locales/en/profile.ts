@@ -24,6 +24,7 @@ export const profile = {
     userAdsHeading: "{name}'s ads",
     tabMyAds: 'My ads',
     tabFavorites: 'My favorites',
+    emptyFavorites: 'No favorite ads yet',
     emptyAds: 'No ads yet',
     editAd: 'Edit ad',
     deleteAd: 'Delete ad',

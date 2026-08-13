@@ -20,7 +20,7 @@ export const validation = {
 
   // Phone
   phoneInvalid: 'Enter a valid phone number',
-  phoneRange: 'Phone number must be between 9 and 15 digits',
+  phoneRange: 'Phone number must be between 8 and 15 digits',
   whatsappRange: 'WhatsApp number must be between 9 and 15 digits',
 
   // OTP

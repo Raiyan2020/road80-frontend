@@ -25,6 +25,9 @@ const MAX_DESCRIPTION = 5000;
 
 /** Server rule: `images.* => max:8192` (kilobytes). */
 const MAX_SERVER_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_VIDEOS = 2;
+const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+const ALLOWED_VIDEO_EXTENSIONS = /\.(mp4|webm)$/i;
 
 /**
  * Create or edit one content item (use case 1.3).
@@ -97,6 +100,10 @@ export function HotelContentForm({ existing, onDone }: HotelContentFormProps) {
       setError(tr("hotels.content.validation.youtubeInvalid"));
       return;
     }
+    if (youtubeUrls.length + (videoFile ? 1 : 0) >= MAX_VIDEOS) {
+      setError(tr("hotels.content.validation.videosTooMany"));
+      return;
+    }
     // Stored already-normalised so the payload always carries a scheme.
     setYoutubeUrls((prev) => [...prev, normalizeYoutubeUrl(url)]);
     setYoutubeDraft("");
@@ -111,6 +118,8 @@ export function HotelContentForm({ existing, onDone }: HotelContentFormProps) {
     if (trimmed.length < 3) return setError(tr("hotels.content.validation.descriptionMin"));
     if (trimmed.length > MAX_DESCRIPTION)
       return setError(tr("hotels.content.validation.descriptionMax"));
+    if (youtubeUrls.length + (videoFile ? 1 : 0) > MAX_VIDEOS)
+      return setError(tr("hotels.content.validation.videosTooMany"));
 
     const hasNewAttachment = images.length > 0 || !!videoFile || youtubeUrls.length > 0;
     const keepsExisting = isEdit && (existing?.attachments.length ?? 0) > 0;
@@ -252,9 +261,25 @@ export function HotelContentForm({ existing, onDone }: HotelContentFormProps) {
         <input
           ref={videoInputRef}
           type="file"
-          accept="video/*"
+          accept=".mp4,.webm,video/mp4,video/webm"
           className="hidden"
-          onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            e.target.value = "";
+            if (!file) return;
+            const hasAllowedType = ALLOWED_VIDEO_TYPES.has(file.type);
+            const hasAllowedExtension = ALLOWED_VIDEO_EXTENSIONS.test(file.name);
+            if (!hasAllowedType && !hasAllowedExtension) {
+              setError(tr("hotels.content.validation.videoInvalidFormat"));
+              return;
+            }
+            if (youtubeUrls.length + 1 > MAX_VIDEOS) {
+              setError(tr("hotels.content.validation.videosTooMany"));
+              return;
+            }
+            setVideoFile(file);
+            setError(null);
+          }}
         />
 
         {uploadState.status === "uploading" && (

@@ -20,6 +20,7 @@ type FieldName =
   | "name"
   | "caption"
   | "email"
+  | "phone"
   | "whatsapp_phone"
   | "country_id"
   | "state_id"
@@ -55,6 +56,7 @@ export function HotelProfileForm() {
     name: "",
     caption: "",
     email: "",
+    phone: "",
     whatsapp_phone: "",
     country_id: "" as string | number,
     state_id: "" as string | number,
@@ -69,6 +71,7 @@ export function HotelProfileForm() {
       name: profile.name ?? "",
       caption: profile.caption ?? "",
       email: profile.email ?? "",
+      phone: profile.phone ?? "",
       whatsapp_phone: profile.whatsapp_phone ?? "",
       country_id: profile.country_id ?? "",
       state_id: profile.state_id ?? "",
@@ -160,6 +163,7 @@ export function HotelProfileForm() {
         name: form.name,
         caption: form.caption,
         email: form.email,
+        phone: form.phone,
         whatsapp_phone: form.whatsapp_phone,
         country_id: form.country_id,
         state_id: form.state_id,
@@ -412,6 +416,22 @@ export function HotelProfileForm() {
       </div>
 
       <div className="flex flex-col gap-2">
+        <label htmlFor="hotel-phone" className="px-1 text-sm font-bold text-navy dark:text-slate-200">
+          {tr("auth.registerCompany.phoneLabel")}
+        </label>
+        <input
+          id="hotel-phone"
+          name="phone"
+          inputMode="numeric"
+          dir="ltr"
+          value={form.phone}
+          onChange={(e) => setField("phone", e.target.value.replace(/\D/g, "").slice(0, 15))}
+          className={`${inputClass} text-start`}
+        />
+        {fieldError("phone")}
+      </div>
+
+      <div className="flex flex-col gap-2">
         <label htmlFor="hotel-whatsapp" className="px-1 text-sm font-bold text-navy dark:text-slate-200">
           {tr("profile.hotel.whatsappLabel")}
         </label>
@@ -421,7 +441,7 @@ export function HotelProfileForm() {
           inputMode="numeric"
           dir="ltr"
           value={form.whatsapp_phone}
-          onChange={(e) => setField("whatsapp_phone", e.target.value)}
+          onChange={(e) => setField("whatsapp_phone", e.target.value.replace(/\D/g, "").slice(0, 15))}
           className={`${inputClass} text-start`}
         />
         {fieldError("whatsapp_phone")}

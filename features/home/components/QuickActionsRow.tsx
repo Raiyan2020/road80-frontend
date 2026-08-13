@@ -1,6 +1,5 @@
 import React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { BedIcon } from "../../../components/Icons";
 import { useCategories } from "../hooks/useCategories";
 import { useTranslation } from "../../../i18n";
 import type { TranslationKey } from "../../../i18n";
@@ -22,9 +21,8 @@ const FALLBACK_ACTIONS: Array<{ id: number; labelKey: TranslationKey }> = [
 const ActionCard: React.FC<{
   label: string;
   icon?: string | null;
-  fallbackIcon?: React.ReactNode;
   onClick: () => void;
-}> = ({ label, icon, fallbackIcon, onClick }) => {
+}> = ({ label, icon, onClick }) => {
   // A broken/404 icon URL degrades to the initial badge instead of a torn image.
   const [failed, setFailed] = React.useState(false);
   const showIcon = Boolean(icon) && !failed;
@@ -48,7 +46,7 @@ const ActionCard: React.FC<{
           />
         ) : (
           <span className="w-12 h-12 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center text-xl font-bold text-[#2166d9] dark:text-blue-300 shadow-sm">
-            {fallbackIcon ?? label.charAt(0)}
+            {label.charAt(0)}
           </span>
         )}
       </div>
@@ -209,7 +207,7 @@ export const QuickActionsRow: React.FC = () => {
         ))}
         <ActionCard
           label={t("categories.values.hotels")}
-          fallbackIcon={<BedIcon className="w-7 h-7" />}
+          icon="/hotel.png"
           onClick={() =>
             navigate({ to: "/explore", search: { hotel: "1" } as any })
           }

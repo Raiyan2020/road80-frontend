@@ -3,7 +3,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCategories } from "../hooks/useCategories";
 import { useTranslation } from "../../../i18n";
 import type { TranslationKey } from "../../../i18n";
-import { localizeCategoryValue } from "../../../shared/utils/category-localization";
+import {
+  categoryValueKey,
+  localizeCategoryValue,
+} from "../../../shared/utils/category-localization";
 
 // Fallback actions when the API returns nothing. Labels are translation keys —
 // resolved at render time so they follow the language. No artwork here: icons
@@ -86,6 +89,7 @@ export const QuickActionsRow: React.FC = () => {
             icon: value.icon ?? null,
             destination: value.destination ?? category.destination ?? null,
             entityType: value.entity_type ?? category.entity_type ?? null,
+            semanticKey: categoryValueKey(value.value, value.id) ?? null,
           })),
       )
       .filter((item) => (seen.has(item.id) ? false : (seen.add(item.id), true)));
@@ -99,6 +103,10 @@ export const QuickActionsRow: React.FC = () => {
         icon: null,
         destination: category.destination ?? null,
         entityType: category.entity_type ?? null,
+        semanticKey:
+          category.entity_type === "hotel" || category.slug === "hotels"
+            ? "categories.values.hotels"
+            : null,
       }));
 
     // Prefer the flagged value tile when it already represents an entity
@@ -109,7 +117,8 @@ export const QuickActionsRow: React.FC = () => {
         !flagged.some(
           (item) =>
             (entity.destination && entity.destination === item.destination) ||
-            (entity.entityType && entity.entityType === item.entityType),
+            (entity.entityType && entity.entityType === item.entityType) ||
+            (entity.semanticKey && entity.semanticKey === item.semanticKey),
         ),
     );
 
@@ -129,6 +138,7 @@ export const QuickActionsRow: React.FC = () => {
       icon: value.icon ?? null,
       destination: value.destination ?? null,
       entityType: value.entity_type ?? null,
+      semanticKey: categoryValueKey(value.value, value.id) ?? null,
     }));
   }, [categories]);
 

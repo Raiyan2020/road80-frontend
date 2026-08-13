@@ -7,10 +7,16 @@ import { useTranslation } from "@/i18n";
 import { useProfile } from "@/features/account/hooks/useProfile";
 import { useMessages, useSendMessage, groupByDay } from "@/features/chat/hooks/useChat";
 import type { Message } from "@/features/chat/services/chat.service";
+import { compressImage } from "@/shared/utils/media-compression";
+import { isWithinImageSizeLimit } from "@/shared/utils/media-validation";
 
 export const Route = createFileRoute("/conversations/$id")({
   component: ChatPage,
 });
+
+/** Server rule: images.* => max:8192 (kilobytes), 1-10 files. */
+const MAX_SERVER_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_IMAGES = 10;
 
 function ChatPage() {
   const { t: tr, dir } = useTranslation();
@@ -19,6 +25,9 @@ function ChatPage() {
   const { profile } = useProfile();
 
   const [draft, setDraft] = useState("");
+  const [images, setImages] = useState<{ file: File; preview: string }[]>([]);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading } = useMessages(id);
@@ -32,10 +41,47 @@ function ChatPage() {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
+  const addImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    if (images.length + files.length > MAX_IMAGES) {
+      toast.error(tr("hotels.chat.imagesTooMany"));
+      return;
+    }
+    setIsOptimizing(true);
+    try {
+      const accepted: { file: File; preview: string }[] = [];
+      for (const file of Array.from(files)) {
+        if (!isWithinImageSizeLimit(file)) {
+          toast.error(tr("validation.imageTooLarge"));
+          continue;
+        }
+        const { file: compressed } = await compressImage(file);
+        // compressImage deliberately returns the ORIGINAL if compression fails,
+        // so re-check against the server's `max:8192` (8 MB per image) here —
+        // otherwise a large photo that failed to compress 422s on upload.
+        if (compressed.size > MAX_SERVER_IMAGE_BYTES) {
+          toast.error(tr("validation.imageTooLarge"));
+          continue;
+        }
+        accepted.push({ file: compressed, preview: URL.createObjectURL(compressed) });
+      }
+      setImages((prev) => [...prev, ...accepted]);
+    } catch (err) {
+      console.error("[chat] image processing failed", err);
+      toast.error(tr("hotels.chat.sendError"));
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = draft.trim();
-    if (!body || isSending) return;
+    if ((!body && images.length === 0) || isSending) return;
 
     // `navigator.onLine === false` is a reliable negative; `true` proves nothing
     // (see the `offline-connectivity` skill), so we still handle the failure.
@@ -44,13 +90,19 @@ function ChatPage() {
       return;
     }
 
-    // Clear optimistically so typing feels immediate, but keep the text so it
-    // can be restored — losing a typed message on a flaky link is unacceptable.
+    // Clear optimistically so typing feels immediate, but keep the text/images so
+    // they can be restored — losing a typed message on a flaky link is unacceptable.
     setDraft("");
+    const pendingImages = images;
+    setImages([]);
     try {
-      await sendMessage(body);
+      await sendMessage({
+        body: body || undefined,
+        images: pendingImages.length ? pendingImages.map((i) => i.file) : undefined,
+      });
     } catch (err) {
       setDraft(body);
+      setImages(pendingImages);
       toast.error((err as any)?.data?.message ?? tr("hotels.chat.sendError"));
     }
   };
@@ -111,13 +163,28 @@ function ChatPage() {
                     </div>
                   )}
                   <div
-                    className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm font-medium leading-relaxed ${
+                    className={`flex max-w-[75%] flex-col gap-1.5 rounded-2xl px-3.5 py-2.5 text-sm font-medium leading-relaxed ${
                       isMine
                         ? "bg-blue text-white"
                         : "bg-white text-navy dark:bg-slate-900 dark:text-slate-100"
                     }`}
                   >
-                    {m.body}
+                    {m.images && m.images.length > 0 && (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {m.images.map((src, i) => (
+                          <a
+                            key={i}
+                            href={src}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block h-28 w-full overflow-hidden rounded-xl"
+                          >
+                            <AppImage src={src} alt="" className="h-full w-full" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {m.body && <span>{m.body}</span>}
                   </div>
                 </div>
               );
@@ -130,32 +197,72 @@ function ChatPage() {
       {/* Composer */}
       <form
         onSubmit={handleSend}
-        className="flex shrink-0 items-end gap-2 border-t border-pale bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-slate-800 dark:bg-slate-900"
+        className="flex shrink-0 flex-col gap-2 border-t border-pale bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-slate-800 dark:bg-slate-900"
       >
-        <textarea
-          rows={1}
-          value={draft}
-          // Server rule: `body => ['required','string','min:1','max:5000']`.
-          maxLength={5000}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter sends; Shift+Enter inserts a newline.
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend(e as unknown as React.FormEvent);
-            }
-          }}
-          placeholder={tr("hotels.chat.messagePlaceholder")}
-          aria-label={tr("hotels.chat.messagePlaceholder")}
-          className="max-h-28 flex-1 resize-none rounded-2xl border border-pale bg-gray-50 px-4 py-3 text-sm font-medium text-navy outline-none focus:border-blue dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200"
-        />
-        <button
-          type="submit"
-          disabled={!draft.trim() || isSending}
-          className="h-12 shrink-0 rounded-2xl bg-blue px-5 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50"
-        >
-          {isSending ? tr("hotels.chat.sending") : tr("hotels.chat.send")}
-        </button>
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {images.map((img, i) => (
+              <div key={img.preview} className="relative h-16 w-16 overflow-hidden rounded-xl">
+                <AppImage src={img.preview} alt="" className="h-full w-full" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  aria-label={tr("hotels.chat.removeImage")}
+                  className="absolute top-1 rtl:left-1 ltr:right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs font-black text-white"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={isOptimizing || images.length >= MAX_IMAGES}
+            aria-label={tr("hotels.chat.attachImage")}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-pale text-lg font-bold text-navy disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
+          >
+            +
+          </button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              addImages(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <textarea
+            rows={1}
+            value={draft}
+            // Server rule: `body => ['required','string','min:1','max:5000']` when present.
+            maxLength={5000}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              // Enter sends; Shift+Enter inserts a newline.
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend(e as unknown as React.FormEvent);
+              }
+            }}
+            placeholder={tr("hotels.chat.messagePlaceholder")}
+            aria-label={tr("hotels.chat.messagePlaceholder")}
+            className="max-h-28 flex-1 resize-none rounded-2xl border border-pale bg-gray-50 px-4 py-3 text-sm font-medium text-navy outline-none focus:border-blue dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-200"
+          />
+          <button
+            type="submit"
+            disabled={(!draft.trim() && images.length === 0) || isSending || isOptimizing}
+            className="h-12 shrink-0 rounded-2xl bg-blue px-5 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50"
+          >
+            {isSending ? tr("hotels.chat.sending") : tr("hotels.chat.send")}
+          </button>
+        </div>
       </form>
     </div>
   );

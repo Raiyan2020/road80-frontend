@@ -9,18 +9,23 @@ export interface ChatParticipant {
   type?: 'user' | 'company' | 'hotel';
 }
 
-/** flutter-hotel-feature-api.md §4.8 */
+/** frontend hotel brief §6.7 */
 export interface Message {
   id: number;
+  conversation_id: number;
   body: string;
+  /** Attachment URLs. Empty array when the message is text-only. */
+  images: string[];
   read_at: string | null;
   sender: ChatParticipant;
   created_at: string | null;
 }
 
-/** flutter-hotel-feature-api.md §4.7 */
+/** frontend hotel brief §6.7 */
 export interface Conversation {
   id: number;
+  hotel_id?: number;
+  user_id?: number;
   /** The *other* party: the hotel for a user, the user for a hotel. */
   participant: ChatParticipant;
   latest_message: Message | null;
@@ -61,9 +66,22 @@ export const chatService = {
       { query: { page: String(page) } },
     ),
 
-  /** Triggers a `new_message` push to the other party. */
-  send: (conversationId: number | string, body: string) =>
-    api.post<ApiEnvelope<Message>>(`/conversations/${conversationId}/messages`, {
-      body,
-    }),
+  /**
+   * Send a message: text only, images only, or both — at least one is
+   * required (`message_content_required` if neither is present).
+   * `multipart/form-data` per §6.7; `images[]` is 1–10 files, 8MB max each.
+   * Triggers a `new_message` push to the other party.
+   */
+  send: (
+    conversationId: number | string,
+    input: { body?: string; images?: File[] },
+  ) => {
+    const formData = new FormData();
+    if (input.body) formData.append('body', input.body);
+    input.images?.forEach((file) => formData.append('images[]', file));
+    return api.post<ApiEnvelope<Message>>(
+      `/conversations/${conversationId}/messages`,
+      formData,
+    );
+  },
 };

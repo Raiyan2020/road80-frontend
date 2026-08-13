@@ -34,7 +34,8 @@ export function useSendMessage(conversationId: number | string | undefined) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (body: string) => chatService.send(conversationId!, body),
+    mutationFn: (input: { body?: string; images?: File[] }) =>
+      chatService.send(conversationId!, input),
     // Not retried: sending is NOT idempotent, and a retry after a timeout that
     // actually succeeded would post the message twice. See `offline-connectivity`.
     retry: false,

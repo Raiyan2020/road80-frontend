@@ -35,7 +35,7 @@ export interface Hotel {
   country_name: string | null;
   state_id: number | null;
   state_name: string | null;
-  /** Self-declared hotel classification, 1-5. */
+  /** Admin-set hotel classification, 1-5. Read-only. */
   star_rating: number | null;
   /** Average of user ratings. */
   rate: number;

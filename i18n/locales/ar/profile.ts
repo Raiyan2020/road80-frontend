@@ -87,8 +87,8 @@ export const profile = {
     websiteHint: 'اختياري',
 
     starRatingLabel: 'تصنيف النجوم',
-    starRatingPlaceholder: 'غير محدد',
-    starRatingHint: 'اختياري — تصنيف الفندق من 1 إلى 5 نجوم',
+    starRatingNotSet: 'لم يتم تصنيفه من الإدارة بعد',
+    starRatingHint: 'يتم تحديده من قبل إدارة المنصة',
     // Arabic marks singular / dual / plural separately — a single
     // '{count} نجوم' template renders "1 نجوم", which is wrong.
     starsOne: 'نجمة واحدة',
@@ -111,7 +111,6 @@ export const profile = {
 
     validation: {
       websiteInvalid: 'أدخل عنوان موقع إلكتروني صحيح',
-      starRatingRange: 'تصنيف النجوم يجب أن يكون بين 1 و 5',
     },
   },
 };

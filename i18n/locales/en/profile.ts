@@ -86,8 +86,8 @@ export const profile = {
     websiteHint: 'Optional',
 
     starRatingLabel: 'Star rating',
-    starRatingPlaceholder: 'Not specified',
-    starRatingHint: 'Optional — your hotel classification, 1 to 5 stars',
+    starRatingNotSet: 'Not yet rated by the platform',
+    starRatingHint: 'Set by the platform administrators',
     starsOne: '1 star',
     starsTwo: '2 stars',
     starsMany: '{count} stars',
@@ -108,7 +108,6 @@ export const profile = {
 
     validation: {
       websiteInvalid: 'Enter a valid website address',
-      starRatingRange: 'Star rating must be between 1 and 5',
     },
   },
 };

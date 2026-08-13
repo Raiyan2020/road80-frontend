@@ -31,7 +31,7 @@ export interface ProfileData {
   cover_image?: string | null;
   /** Hotel accounts only. */
   website?: string | null;
-  /** Self-declared hotel classification, 1-5. Hotel accounts only. */
+  /** Admin-set hotel classification, 1-5. Read-only from the app. Hotel accounts only. */
   star_rating?: number | null;
   /** Average of user ratings — read-only, computed by the backend. */
   rate?: number;
@@ -44,9 +44,10 @@ export interface ProfileData {
 /**
  * Fields a hotel may edit on its own profile.
  *
- * `cover_image`, `website` and `star_rating` are rejected by the backend for
- * `user` and `company` accounts — see flutter-hotel-feature-api.md §6.2.
- * `rate` and `ratings_count` are computed and are never sent.
+ * `cover_image` and `website` are rejected by the backend for `user` and
+ * `company` accounts — see the frontend hotel brief §6.2. `star_rating` is
+ * admin-only and must never be sent from the app (frozen rule D3); `rate`
+ * and `ratings_count` are computed and are never sent either.
  */
 export interface HotelProfileInput {
   name?: string;
@@ -56,7 +57,6 @@ export interface HotelProfileInput {
   country_id?: number | string;
   state_id?: number | string;
   website?: string;
-  star_rating?: number | string;
   /** New logo. Omit to keep the current one. */
   image?: File | null;
   /** New cover image. Omit to keep the current one. */

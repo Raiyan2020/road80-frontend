@@ -23,19 +23,18 @@ type FieldName =
   | "whatsapp_phone"
   | "country_id"
   | "state_id"
-  | "website"
-  | "star_rating";
+  | "website";
 
 type Errors = Partial<Record<FieldName, string>>;
-
-const STAR_CHOICES = [1, 2, 3, 4, 5] as const;
 
 /**
  * Hotel profile editor — use case 1.2.
  *
- * Reuses the shared profile endpoint; `cover_image`, `website` and `star_rating`
- * are the hotel-only additions. The backend rejects those three for `user` and
- * `company` accounts, so this form is only rendered behind an `isHotel` guard.
+ * Reuses the shared profile endpoint; `cover_image` and `website` are the
+ * hotel-only additions. The backend rejects those for `user` and `company`
+ * accounts, so this form is only rendered behind an `isHotel` guard.
+ * `star_rating` is admin-only (frozen rule D3) — displayed read-only, never
+ * sent from this form.
  */
 export function HotelProfileForm() {
   const { t: tr, isRTL } = useTranslation();
@@ -60,7 +59,6 @@ export function HotelProfileForm() {
     country_id: "" as string | number,
     state_id: "" as string | number,
     website: "",
-    star_rating: "" as string | number,
   });
 
   // Hydrate once the profile arrives. Keyed on `profile?.id` rather than the
@@ -75,7 +73,6 @@ export function HotelProfileForm() {
       country_id: profile.country_id ?? "",
       state_id: profile.state_id ?? "",
       website: profile.website ?? "",
-      star_rating: profile.star_rating ?? "",
     });
     setLogoPreview(profile.image ?? null);
     setCoverPreview(profile.cover_image ?? null);
@@ -168,7 +165,6 @@ export function HotelProfileForm() {
         state_id: form.state_id,
         // Bare domains are accepted in the field; the backend wants a real URL.
         website: form.website ? normalizeWebsite(form.website) : "",
-        star_rating: form.star_rating,
         image: logoFile,
         cover_image: coverFile,
       });
@@ -306,35 +302,25 @@ export function HotelProfileForm() {
         {fieldError("caption")}
       </div>
 
-      {/* Star rating — hotel only */}
+      {/* Star rating — admin-set (frozen rule D3), read-only in the app */}
       <div className="flex flex-col gap-2">
-        <label htmlFor="hotel-stars" className="px-1 text-sm font-bold text-navy dark:text-slate-200">
+        <label className="px-1 text-sm font-bold text-navy dark:text-slate-200">
           {tr("profile.hotel.starRatingLabel")}
         </label>
-        <select
-          id="hotel-stars"
-          name="star_rating"
-          value={String(form.star_rating ?? "")}
-          onChange={(e) => setField("star_rating", e.target.value)}
-          style={selectChevronStyle}
-          className={`${inputClass} appearance-none rtl:pr-10 ltr:pl-10`}
-        >
-          <option value="">{tr("profile.hotel.starRatingPlaceholder")}</option>
-          {STAR_CHOICES.map((n) => (
-            <option key={n} value={n}>
-              {/* Arabic needs singular/dual/plural, not one template */}
-              {n === 1
-                ? tr("profile.hotel.starsOne")
-                : n === 2
-                  ? tr("profile.hotel.starsTwo")
-                  : tr("profile.hotel.starsMany", { count: n })}
-            </option>
-          ))}
-        </select>
+        <div className={`${inputClass} flex items-center`}>
+          <span>
+            {profile?.star_rating === 1
+              ? tr("profile.hotel.starsOne")
+              : profile?.star_rating === 2
+                ? tr("profile.hotel.starsTwo")
+                : profile?.star_rating
+                  ? tr("profile.hotel.starsMany", { count: profile.star_rating })
+                  : tr("profile.hotel.starRatingNotSet")}
+          </span>
+        </div>
         <p className="px-1 text-[11px] font-medium text-gray-400 dark:text-slate-500">
           {tr("profile.hotel.starRatingHint")}
         </p>
-        {fieldError("star_rating")}
       </div>
 
       {/* Website — hotel only, optional */}

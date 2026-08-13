@@ -71,19 +71,6 @@ export const hotelProfileSchema = z.object({
     })
     .optional()
     .or(z.literal('')),
-
-  // Hotel-only. 1–5, or empty for "not declared".
-  star_rating: z
-    .union([z.string(), z.number()])
-    .refine(
-      (v) => {
-        if (v === '' || v === undefined || v === null) return true;
-        const n = Number(v);
-        return Number.isInteger(n) && n >= 1 && n <= 5;
-      },
-      { error: () => t('profile.hotel.validation.starRatingRange') },
-    )
-    .optional(),
 });
 
 export type HotelProfileFormValues = z.infer<typeof hotelProfileSchema>;

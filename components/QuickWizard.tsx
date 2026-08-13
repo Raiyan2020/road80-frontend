@@ -179,6 +179,18 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
 
     const handleFinish = () => saveAndComplete(data);
 
+    // Edit flows must wait for the account preference before showing location
+    // choices. Rendering immediately from localStorage can briefly show an old
+    // country's states; a fast click then submits an invalid country/state pair
+    // even though the user selected a valid visible option.
+    if (isEditMode && !isHomeDataFetched) {
+        return (
+            <div className="w-full h-full bg-white dark:bg-slate-950 flex items-center justify-center">
+                <SpinnerIcon className="w-8 h-8 text-navy dark:text-blue animate-spin" />
+            </div>
+        );
+    }
+
     const renderHeader = (title: string, subtitle?: string) => (
         <div className="mb-8 text-center animate-fade-in">
             <h2 className="text-2xl font-bold text-navy dark:text-slate-200 mb-2">{title}</h2>

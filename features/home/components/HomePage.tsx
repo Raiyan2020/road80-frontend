@@ -65,10 +65,16 @@ const HomePage: React.FC<{
   );
 
   const currentCountryName = useMemo(() => {
+    // The server preference is authoritative. A value cached in localStorage
+    // can belong to an older session/device choice and previously made the
+    // country pill disagree with the saved search summary returned by /home.
+    const preferredCountryId =
+      homeData?.filter_histories_details?.country_id ?? storedCountry.id;
+
     // Preferred: resolve the stable id against the localized countries payload
     // so the pill follows the current language.
-    if (storedCountry.id !== undefined) {
-      const match = countries.find((c) => c.id === storedCountry.id);
+    if (preferredCountryId !== undefined && preferredCountryId !== null) {
+      const match = countries.find((c) => c.id === preferredCountryId);
       if (match?.name) return match.name;
     }
     // Fallbacks, in order: the name persisted by the wizard (possibly stale, but
@@ -76,12 +82,20 @@ const HomePage: React.FC<{
     // thing available for payloads written before ids were stored), then the
     // first suggested ad, then the static default.
     return (
-      storedCountry.staleName ||
+      (homeData?.filter_histories_details?.country_id == null
+        ? storedCountry.staleName
+        : undefined) ||
       firstSuggestedAd?.country ||
       t("home.country.fallbackName")
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storedCountry, countries, firstSuggestedAd?.country, lang]);
+  }, [
+    homeData?.filter_histories_details?.country_id,
+    storedCountry,
+    countries,
+    firstSuggestedAd?.country,
+    lang,
+  ]);
   const searchText = useMemo(() => {
     if (homeData?.filter_histories) return homeData.filter_histories;
     if (!firstSuggestedAd) return "";

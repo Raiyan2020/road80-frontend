@@ -12,6 +12,7 @@ import {
   useCreateHotelContent,
   useUpdateHotelContent,
 } from "../hooks/useMyHotelContents";
+import { isHotelContentUploadActive } from "../utils/hotel-content-upload";
 import { youtubeId, normalizeYoutubeUrl } from "./MediaGallery";
 import type { HotelContent } from "../types";
 
@@ -54,7 +55,11 @@ export function HotelContentForm({ existing, onDone }: HotelContentFormProps) {
   const [isOptimizing, setIsOptimizing] = useState(false);
 
   const isEdit = !!existing;
-  const busy = isCreating || isUpdating || isOptimizing || uploadState.status === "uploading";
+  const busy =
+    isCreating ||
+    isUpdating ||
+    isOptimizing ||
+    isHotelContentUploadActive(uploadState);
 
   // Any new attachment replaces the whole existing set (§8.3), so the warning
   // only matters while editing something that already has attachments.
@@ -282,7 +287,7 @@ export function HotelContentForm({ existing, onDone }: HotelContentFormProps) {
           }}
         />
 
-        {uploadState.status === "uploading" && (
+        {uploadState?.status === "uploading" && (
           <div className="flex flex-col gap-1">
             <div className="h-2 w-full overflow-hidden rounded-full bg-pale dark:bg-slate-800">
               <div

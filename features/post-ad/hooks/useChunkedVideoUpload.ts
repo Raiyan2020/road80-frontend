@@ -9,6 +9,7 @@ import {
   isWithinVideoSizeLimit,
 } from '../../../shared/utils/media-validation';
 import { formatBytes } from '../../../shared/utils/media-compression';
+import { createIdleVideoUploadState } from '../utils/video-upload-state';
 
 /** Size of each chunk in bytes (2 MB) */
 const CHUNK_SIZE = 2 * 1024 * 1024;
@@ -35,7 +36,7 @@ export type ChunkedUploadStatus =
 
 export interface VideoUploadState {
   /** The local File selected by the user */
-  file: File;
+  file: File | null;
   /** Progress: 0-100 */
   progress: number;
   status: ChunkedUploadStatus;
@@ -108,7 +109,9 @@ const toUploadErrorMessage = (err: unknown): string => {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function useChunkedVideoUpload() {
-  const [uploadState, setUploadState] = useState<VideoUploadState | null>(null);
+  const [uploadState, setUploadState] = useState<VideoUploadState>(
+    createIdleVideoUploadState,
+  );
   /** Bumped on reset so a superseded upload stops writing state. */
   const runIdRef = useRef(0);
   /** Aborts active chunk/merge requests rather than only hiding their state. */
@@ -118,7 +121,7 @@ export function useChunkedVideoUpload() {
     runIdRef.current += 1;
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
-    setUploadState(null);
+    setUploadState(createIdleVideoUploadState());
   }, []);
 
   useEffect(

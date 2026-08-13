@@ -27,7 +27,7 @@ export const auth = {
 
   // Footer under the auth card
   footer: {
-    registerCompanyCta: 'Register your real estate agency',
+    registerCompanyCta: 'Create a real estate agency, company, or hotel account',
     consentPrefix: 'By logging in you agree to the',
     and: 'and the',
   },

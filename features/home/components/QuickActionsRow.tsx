@@ -30,9 +30,9 @@ const ActionCard: React.FC<{
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-center justify-start gap-1 rounded-[1.35rem] px-2 pt-3 pb-3 bg-gradient-to-b from-[#eef4fd] to-[#dce8f9] dark:from-slate-800 dark:to-slate-800/50 border border-white/80 dark:border-slate-700 shadow-sm shadow-navy/5 active:scale-95 transition-transform duration-200"
+      className="group min-w-0 flex flex-col items-center justify-start gap-1 rounded-[1.35rem] px-1.5 py-2.5 sm:px-2 sm:py-3 bg-gradient-to-b from-[#eef4fd] to-[#dce8f9] dark:from-slate-800 dark:to-slate-800/50 border border-white/80 dark:border-slate-700 shadow-sm shadow-navy/5 active:scale-95 transition-transform duration-200"
     >
-      <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+      <div className="w-12 h-12 sm:w-20 sm:h-20 flex items-center justify-center">
         {showIcon ? (
           <img
             src={icon as string}
@@ -49,7 +49,7 @@ const ActionCard: React.FC<{
         )}
       </div>
 
-      <h3 className="text-sm font-bold text-[#2166d9] dark:text-blue-300 leading-tight text-center line-clamp-1 w-full px-1">
+      <h3 className="text-xs sm:text-sm font-bold text-[#2166d9] dark:text-blue-300 leading-tight text-center line-clamp-1 w-full px-1">
         {label}
       </h3>
     </button>
@@ -60,9 +60,10 @@ const ActionCard: React.FC<{
  * QuickActionsRow
  *
  * Fetches /categories and renders every value flagged `appear_in_home` as a
- * soft blue icon tile in a 3-up grid card. The flag spans categories — the
+ * soft blue icon tile in a single-row grid card. The flag spans categories — the
  * backend decides what belongs on home, so we no longer hardcode a category id.
- * Clicking any tile navigates to /explore filtered by that value id.
+ * Ad-value tiles navigate to /explore; destination-backed tiles such as Hotels
+ * navigate to their dedicated directory and filter screen.
  */
 export const QuickActionsRow: React.FC = () => {
   const { t } = useTranslation();
@@ -136,17 +137,17 @@ export const QuickActionsRow: React.FC = () => {
 
   const cardClass =
     "bg-white dark:bg-slate-900 rounded-[1.75rem] p-2.5 shadow-lg shadow-navy/5 dark:shadow-black/20 border border-navy/10 dark:border-slate-800";
-  const gridClass = "grid grid-cols-3 gap-2.5";
+  const gridClass = "grid grid-flow-col auto-cols-fr gap-1.5 sm:gap-2.5";
 
   // ── Skeleton ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className={cardClass}>
         <div className={gridClass}>
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div
               key={`skeleton-${i}`}
-              className="h-[7.5rem] sm:h-[9rem] rounded-[1.35rem] bg-pale/50 dark:bg-slate-800 animate-pulse"
+              className="h-[5.75rem] sm:h-[9rem] rounded-[1.35rem] bg-pale/50 dark:bg-slate-800 animate-pulse"
             />
           ))}
         </div>

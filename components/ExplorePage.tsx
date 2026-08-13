@@ -4,7 +4,11 @@ import { useExploreListings } from '../features/explore/hooks/useExploreListings
 import { Listing } from '../types';
 import { SpinnerIcon, SlidersIcon, SearchIcon } from './Icons';
 import { useNavigate, useLocation } from '@tanstack/react-router';
-import { ExploreFilterDrawer, ExploreFilters } from './ExploreFilterDrawer';
+import {
+  ExploreFilterDrawer,
+  type ExploreFilters,
+  type ExploreHotelFilters,
+} from './ExploreFilterDrawer';
 import { AppImage } from './AppImage';
 import { resolveListingImageUrl } from '@/shared/utils/listing-image';
 import { useCountries, useStates, useCities } from '@/shared/hooks/useLocation';
@@ -173,6 +177,18 @@ const ExplorePage: React.FC = () => {
     navigate({ search: Object.fromEntries(params) as any });
   };
 
+  const applyHotelFilters = (hotelFilters: ExploreHotelFilters) => {
+    navigate({
+      to: '/hotels',
+      search: {
+        country_id: hotelFilters.country_id ? String(hotelFilters.country_id) : undefined,
+        state_id: hotelFilters.state_id ? String(hotelFilters.state_id) : undefined,
+        min_stars: hotelFilters.min_stars ? String(hotelFilters.min_stars) : undefined,
+        search: hotelFilters.search || undefined,
+      },
+    });
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchText !== (filters.name || '')) {
@@ -280,6 +296,7 @@ const ExplorePage: React.FC = () => {
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
         onApply={applyFilters} 
+        onApplyHotel={applyHotelFilters}
         initialFilters={filters}
       />
     </div>

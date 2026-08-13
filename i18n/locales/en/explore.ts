@@ -15,6 +15,7 @@ export const explore = {
     title: 'Filter results',
     clearAll: 'Clear all',
     apply: 'Apply filters',
+    propertyType: 'Property type',
 
     location: 'Location',
     allCountries: 'All countries',

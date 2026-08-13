@@ -64,7 +64,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
 
   const routeApprovalError = (payload: any): boolean => {
     const key = payload?.key ?? payload?.data?.key;
-    if (key === "hotel_pending_approval" || key === "company_pending_approval") {
+    if (
+      key === "hotel_pending_approval" ||
+      key === "company_pending_approval"
+    ) {
       navigate({ to: "/auth/pending-approval", search: { state: "pending" } });
       return true;
     }
@@ -252,7 +255,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
     pageDialog === "terms" ? isTermsLoading : isPrivacyLoading;
 
   return (
-    <div className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in p-6" dir={dir}>
+    <div
+      className="min-h-[100dvh] w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in p-6"
+      dir={dir}
+    >
       <button
         type="button"
         onClick={toggleLang}
@@ -282,7 +288,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           {/* Header Text */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-navy dark:text-white mb-2">
-              {step === "PHONE" ? t("auth.login.title") : t("auth.verify.title")}
+              {step === "PHONE"
+                ? t("auth.login.title")
+                : t("auth.verify.title")}
             </h1>
             <p className="text-gray-400 dark:text-slate-400 text-xs font-medium">
               {step === "PHONE"
@@ -449,7 +457,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess }) => {
           {/* Register Company Button/Link */}
           <button
             onClick={() => navigate({ to: "/auth/register-company" })}
-            className="text-sm font-bold text-navy dark:text-blue hover:text-blue dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-1.5 active:scale-95"
+            className="text-xs font-bold text-navy dark:text-blue hover:text-blue dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-1.5 active:scale-95"
           >
             {t("auth.footer.registerCompanyCta")}
             <ChevronRightIcon className="w-4 h-4 rtl:rotate-180 ltr:rotate-0" />

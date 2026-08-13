@@ -25,7 +25,7 @@ export const auth = {
 
   // Footer under the auth card
   footer: {
-    registerCompanyCta: 'إنشاء حساب مكتب عقاري / شركة',
+    registerCompanyCta: 'إنشاء حساب مكتب عقاري / شركة / فندق',
     consentPrefix: 'بتسجيل الدخول فإنك تقبل',
     and: 'و',
   },

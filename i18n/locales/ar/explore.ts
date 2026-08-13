@@ -15,6 +15,7 @@ export const explore = {
     title: 'تصفية البحث',
     clearAll: 'مسح الكل',
     apply: 'تطبيق الفلاتر',
+    propertyType: 'نوع العقار',
 
     location: 'الموقع',
     allCountries: 'كل الدول',

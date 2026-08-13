@@ -11,6 +11,7 @@ import { Listing } from '@/lib/types';
 export interface FilterHistoryPayload {
   name?: string;
   category_values_ids: number[];
+  country_id: number;
   state_id: number;
   city_id: number;
 }
@@ -18,7 +19,7 @@ export interface FilterHistoryPayload {
 export interface FilterHistoryResponse {
   status: boolean;
   message: string;
-  data: unknown[];
+  data: FilterHistoryDetails;
   errors: unknown[];
 }
 

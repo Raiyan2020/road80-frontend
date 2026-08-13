@@ -83,6 +83,7 @@ const HomePage: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storedCountry, countries, firstSuggestedAd?.country, lang]);
   const searchText = useMemo(() => {
+    if (homeData?.filter_histories) return homeData.filter_histories;
     if (!firstSuggestedAd) return "";
 
     return [
@@ -94,7 +95,7 @@ const HomePage: React.FC<{
     ]
       .filter(Boolean)
       .join(" / ");
-  }, [firstSuggestedAd]);
+  }, [homeData?.filter_histories, firstSuggestedAd]);
 
   return (
     <div className="flex flex-col p-4 gap-6 animate-fade-in pt-2">

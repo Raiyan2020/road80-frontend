@@ -9,6 +9,8 @@ import { QUERY_KEYS } from '@/lib/types';
 import { SpinnerIcon } from './Icons';
 import { AppImage } from './AppImage';
 import { useTranslation } from '@/i18n';
+import { useHomeData } from '@/features/home/hooks/useHomeData';
+import { toast } from 'sonner';
 
 interface QuickWizardProps {
     onComplete: () => void;
@@ -26,6 +28,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     const isEditMode = mode === 'edit' || isLocationMode;
 
     const [step, setStep] = useState(initialStep);
+    const [isSaving, setIsSaving] = useState(false);
     const [data, setData] = useState(() => {
         const defaultData = {
             name: '',
@@ -61,10 +64,30 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     });
 
     const queryClient = useQueryClient();
+    const didHydrateServerPreferences = React.useRef(false);
+    const { data: homeData, isFetched: isHomeDataFetched } = useHomeData();
     const { data: countries = [], isLoading: loadingCountries } = useCountries();
     const { data: states = [], isLoading: loadingStates } = useExploreStates(data.countryId || undefined);
     const { data: cities = [], isLoading: loadingCities } = useExploreCities(data.governorateId || undefined);
     const { data: filters = [], isLoading: loadingFilters } = useCategoriesAppearInFilter();
+
+    // The API is the source of truth. Local storage keeps the UI fast, but it
+    // must not hide server-side preferences on a new browser/device.
+    useEffect(() => {
+        if (didHydrateServerPreferences.current || !isHomeDataFetched) return;
+        didHydrateServerPreferences.current = true;
+
+        const saved = homeData?.filter_histories_details;
+        if (!saved) return;
+
+        setData((current) => ({
+            ...current,
+            countryId: saved.country_id ?? current.countryId,
+            governorateId: saved.state_id ?? current.governorateId,
+            areaId: saved.city_id ?? current.areaId,
+            categoryValues: saved.category_value_id ?? current.categoryValues,
+        }));
+    }, [homeData, isHomeDataFetched]);
 
     const totalSteps = Math.max(5, 4 + filters.length);
 
@@ -82,23 +105,28 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     };
 
     const selectCategoryValue = (valuesInGroup: number[], selectedId: number) => {
-        setData((prev) => {
-            let current = prev.categoryValues || [];
-            // Remove any values that belong to this group to enforce single selection
-            current = current.filter(id => !valuesInGroup.includes(id));
-            // Add the new selection
-            current.push(selectedId);
-            return { ...prev, categoryValues: current };
-        });
+        const categoryValues = (data.categoryValues || [])
+            .filter(id => !valuesInGroup.includes(id));
+        categoryValues.push(selectedId);
+        const updated = { ...data, categoryValues };
+        setData(updated);
 
         // Auto advance
         setTimeout(() => {
             if (step < totalSteps) setStep(step + 1);
-            else handleFinish();
+            // Pass the freshly computed state. Calling handleFinish() here used
+            // the previous render and silently dropped the final selection.
+            else saveAndComplete(updated);
         }, 150);
     };
 
     const saveAndComplete = async (finalData: typeof data) => {
+        if (!finalData.countryId || !finalData.governorateId || !finalData.areaId || isSaving) {
+            toast.error(t('common.tryAgain'));
+            return;
+        }
+
+        setIsSaving(true);
         // The *ids* are the source of truth here. The `*Name` fields are
         // server-localized display strings captured in whatever language was
         // active during onboarding, so consumers must resolve labels from the id
@@ -117,24 +145,36 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
             name: finalData.name,
         };
 
-        localStorage.setItem('road80_preferences', JSON.stringify(prefsPayload));
+        try {
+            const response = await homeService.saveFilterHistory({
+                name: finalData.name,
+                category_values_ids: finalData.categoryValues || [],
+                country_id: finalData.countryId,
+                state_id: finalData.governorateId,
+                city_id: finalData.areaId,
+            });
 
+            if (!response.status) throw new Error(response.message);
 
-        if (finalData.governorateId && finalData.areaId) {
-            try {
-                await homeService.saveFilterHistory({
-                    name: finalData.name,
-                    category_values_ids: finalData.categoryValues || [],
-                    state_id: finalData.governorateId,
-                    city_id: finalData.areaId
-                });
-                queryClient.invalidateQueries({ queryKey: QUERY_KEYS.listings.all });
-            } catch (e) {
-                // Failed to save filter history
-            }
+            localStorage.setItem('road80_preferences', JSON.stringify({
+                ...prefsPayload,
+                countryId: response.data.country_id ?? prefsPayload.countryId,
+                stateId: response.data.state_id ?? prefsPayload.stateId,
+                cityId: response.data.city_id ?? prefsPayload.cityId,
+                categoryValues: response.data.category_value_id ?? prefsPayload.categoryValues,
+            }));
+
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: QUERY_KEYS.listings.all }),
+                queryClient.invalidateQueries({ queryKey: ['home-data'] }),
+            ]);
+
+            onComplete();
+        } catch (error) {
+            toast.error((error as any)?.data?.message || t('common.tryAgain'));
+        } finally {
+            setIsSaving(false);
         }
-
-        onComplete();
     };
 
     const handleFinish = () => saveAndComplete(data);
@@ -185,10 +225,6 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                         onClick={() => {
                                             const updated = { ...data, countryId: c.id, countryName: c.name, governorateId: null, governorateName: '', areaId: null, areaName: '' };
                                             setData(updated);
-                                            if (isLocationMode) {
-                                                setTimeout(() => saveAndComplete(updated), 150);
-                                                return;
-                                            }
                                             setTimeout(() => setStep(3), 150);
                                         }}
                                         className={`p-5 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 active:scale-95 ${data.countryId === c.id 
@@ -246,10 +282,12 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                     <button
                                         key={c.id}
                                         onClick={() => {
-                                            setData({ ...data, areaId: c.id, areaName: c.name });
+                                            const updated = { ...data, areaId: c.id, areaName: c.name };
+                                            setData(updated);
                                             setTimeout(() => {
-                                                if (5 <= totalSteps) setStep(5);
-                                                else handleFinish();
+                                                if (isLocationMode) saveAndComplete(updated);
+                                                else if (5 <= totalSteps) setStep(5);
+                                                else saveAndComplete(updated);
                                             }, 150);
                                         }}
                                         className={`p-4 h-16 rounded-2xl border-2 transition-all font-bold flex items-center justify-between active:scale-95 ${data.areaId === c.id 
@@ -281,6 +319,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
                                                 return (
                                                     <button
                                                         key={v.id}
+                                                        disabled={isSaving}
                                                         onClick={() => {
                                                             const allIds = filters[step - 5].values.map(val => val.id);
                                                             selectCategoryValue(allIds, v.id);
@@ -318,6 +357,7 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
 
                 <button
                     onClick={handleBack}
+                    disabled={isSaving}
                     className="w-1/4 min-w-[80px] py-4 bg-white dark:bg-slate-900 border border-pale dark:border-slate-800 rounded-xl text-navy dark:text-slate-200 font-bold hover:bg-gray-50 dark:hover:bg-slate-800 transition-all active:scale-95"
                 >
                     {isEditMode && step === 2 ? t('common.cancel') : t('common.back')}

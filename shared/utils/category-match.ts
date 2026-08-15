@@ -33,6 +33,18 @@ export function matchesCategory(
   wantSlug: string,
   wantNames: string[],
 ): boolean {
+  const knownCoreNames = [...PROPERTY_TYPE_NAMES, ...LISTING_TYPE_NAMES];
+  const hasKnownCoreName = knownCoreNames.some(
+    (candidate) => normalize(candidate) === normalize(name),
+  );
+
+  // A recognized label is stronger evidence than the slug. Some production
+  // records historically had the two core slugs assigned to the opposite
+  // categories; trusting those slugs swaps property/contract throughout the UI.
+  if (hasKnownCoreName) {
+    return wantNames.some((candidate) => normalize(candidate) === normalize(name));
+  }
+
   if (slug) return normalize(slug) === wantSlug;
   return wantNames.some((candidate) => normalize(candidate) === normalize(name));
 }
@@ -46,3 +58,30 @@ export const isListingTypeCategory = (
   slug: string | null | undefined,
   name: string | null | undefined,
 ) => matchesCategory(slug, name, LISTING_TYPE_SLUG, LISTING_TYPE_NAMES);
+
+type CategoryIdentity = {
+  slug?: string | null;
+  name?: string | null;
+};
+
+/**
+ * Resolve the two core filters by their human label first. Production data has
+ * the `property-type` and `ad-type` slugs assigned to the opposite categories,
+ * so treating those slugs as authoritative swaps property and contract values.
+ * The slug remains a compatibility fallback for payloads without a known name.
+ */
+function findCategoryByNameThenSlug<T extends CategoryIdentity>(
+  categories: T[],
+  names: string[],
+  slug: string,
+): T | undefined {
+  return categories.find((category) =>
+    names.some((candidate) => normalize(candidate) === normalize(category.name)),
+  ) ?? categories.find((category) => normalize(category.slug) === slug);
+}
+
+export const findPropertyTypeCategory = <T extends CategoryIdentity>(categories: T[]) =>
+  findCategoryByNameThenSlug(categories, PROPERTY_TYPE_NAMES, PROPERTY_TYPE_SLUG);
+
+export const findListingTypeCategory = <T extends CategoryIdentity>(categories: T[]) =>
+  findCategoryByNameThenSlug(categories, LISTING_TYPE_NAMES, LISTING_TYPE_SLUG);

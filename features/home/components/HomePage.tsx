@@ -18,8 +18,8 @@ import { useCountries } from "../../../shared/hooks/useCountries";
 import { useCategoriesAppearInFilter } from "../../../shared/hooks/useHome";
 import { useExploreCities } from "../../explore/hooks/useExploreLocations";
 import {
-  isListingTypeCategory,
-  isPropertyTypeCategory,
+  findListingTypeCategory,
+  findPropertyTypeCategory,
 } from "../../../shared/utils/category-match";
 
 /**
@@ -110,12 +110,8 @@ const HomePage: React.FC<{
     const details = homeData?.filter_histories_details;
     if (details) {
       const selectedIds = details.category_value_id ?? [];
-      const propertyFilter = preferenceFilters.find((filter) =>
-        isPropertyTypeCategory(filter.slug, filter.name)
-      );
-      const listingFilter = preferenceFilters.find((filter) =>
-        isListingTypeCategory(filter.slug, filter.name)
-      );
+      const propertyFilter = findPropertyTypeCategory(preferenceFilters);
+      const listingFilter = findListingTypeCategory(preferenceFilters);
       const propertyType = propertyFilter?.values.find((value) =>
         selectedIds.includes(value.id)
       )?.value;

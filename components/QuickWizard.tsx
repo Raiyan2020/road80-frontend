@@ -11,7 +11,7 @@ import { AppImage } from './AppImage';
 import { useTranslation } from '@/i18n';
 import { useHomeData } from '@/features/home/hooks/useHomeData';
 import { toast } from 'sonner';
-import { isListingTypeCategory, isPropertyTypeCategory } from '@/shared/utils/category-match';
+import { findListingTypeCategory, findPropertyTypeCategory } from '@/shared/utils/category-match';
 
 interface QuickWizardProps {
     onComplete: () => void;
@@ -71,12 +71,17 @@ const QuickWizard: React.FC<QuickWizardProps> = ({ onComplete }) => {
     const { data: states = [], isLoading: loadingStates } = useExploreStates(data.countryId || undefined);
     const { data: cities = [], isLoading: loadingCities } = useExploreCities(data.governorateId || undefined);
     const { data: filters = [], isLoading: loadingFilters } = useCategoriesAppearInFilter();
-    const requiredFilters = React.useMemo(
-        () => filters.filter((filter) =>
-            isPropertyTypeCategory(filter.slug, filter.name) ||
-            isListingTypeCategory(filter.slug, filter.name)),
-        [filters],
-    );
+    const requiredFilters = React.useMemo(() => {
+        const propertyType = findPropertyTypeCategory(filters);
+        const listingType = findListingTypeCategory(filters);
+        const selected = [propertyType, listingType].filter(
+            (filter): filter is NonNullable<typeof propertyType> => filter !== undefined,
+        );
+
+        return selected.filter(
+            (filter, index) => selected.findIndex((item) => item.id === filter.id) === index,
+        );
+    }, [filters]);
 
     // The API is the source of truth. Local storage keeps the UI fast, but it
     // must not hide server-side preferences on a new browser/device.

@@ -5,6 +5,7 @@ export const chatKeys = {
   allConversations: ['conversations'] as const,
   conversations: (page: number) => ['conversations', page] as const,
   infiniteConversations: ['conversations', 'infinite'] as const,
+  conversation: (id: number | string) => ['conversation', String(id), 'detail'] as const,
   messages: (id: number | string, page: number) =>
     ['conversation', String(id), 'messages', page] as const,
   infiniteMessages: (id: number | string) =>
@@ -53,6 +54,14 @@ export function useInfiniteConversations() {
     getNextPageParam: nextPage,
     staleTime: 0,
     refetchInterval: 30_000,
+  });
+}
+
+export function useConversation(conversationId: number | string | undefined) {
+  return useQuery({
+    queryKey: chatKeys.conversation(conversationId ?? ''),
+    queryFn: () => chatService.conversation(conversationId!),
+    enabled: !!conversationId,
   });
 }
 
@@ -133,6 +142,22 @@ export function useStartCompanyConversation() {
   return {
     startCompanyConversation: mutation.mutateAsync,
     isStartingCompanyConversation: mutation.isPending,
+  };
+}
+
+export function useStartAdConversation() {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (adId: number | string) => chatService.startWithAd(adId),
+    meta: { hideToast: true },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+
+  return {
+    startAdConversation: mutation.mutateAsync,
+    isStartingAdConversation: mutation.isPending,
   };
 }
 

@@ -52,6 +52,8 @@ export const listing = {
   contact: {
     whatsapp: 'واتساب',
     call: 'اتصال',
+    chat: 'محادثة',
+    chatError: 'تعذر بدء محادثة العقار',
     available: 'بيانات التواصل متاحة',
     phoneLabel: 'الهاتف: {phone}',
     whatsappLabel: 'واتساب: {whatsapp}',

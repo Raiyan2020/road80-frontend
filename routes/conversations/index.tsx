@@ -80,6 +80,7 @@ function ConversationsPage() {
         <div className="flex flex-col gap-2">
           {conversations.map((c) => {
             const unread = c.unread_count > 0;
+            const rowImage = c.ad?.image || c.participant?.image;
             return (
               <button
                 key={c.id}
@@ -87,13 +88,18 @@ function ConversationsPage() {
                 onClick={() => navigate({ to: "/conversations/$id", params: { id: String(c.id) } })}
                 className="flex items-center gap-3 rounded-2xl border border-pale bg-white p-3 text-start dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-pale/40 dark:bg-slate-800">
-                  <AppImage src={c.participant?.image} alt={c.participant?.name ?? ""} className="h-full w-full" />
+                <div className={`h-12 w-12 shrink-0 overflow-hidden bg-pale/40 dark:bg-slate-800 ${c.ad ? "rounded-xl" : "rounded-full"}`}>
+                  <AppImage src={rowImage} alt={c.ad?.title || c.participant?.name || ""} className="h-full w-full" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-black text-navy dark:text-slate-100">
                     {c.participant?.name}
                   </p>
+                  {c.ad ? (
+                    <p className="truncate text-xs font-bold text-blue">
+                      {c.ad.title}
+                    </p>
+                  ) : null}
                   <p className={`truncate text-xs ${unread ? "font-bold text-navy dark:text-slate-200" : "font-medium text-gray-500 dark:text-slate-400"}`}>
                     {c.latest_message?.body ||
                       (c.latest_message?.images?.length

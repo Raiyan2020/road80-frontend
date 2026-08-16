@@ -6,6 +6,7 @@ import { ChevronRightIcon } from "@/components/Icons";
 import { useTranslation } from "@/i18n";
 import {
   useInfiniteMessages,
+  useConversation,
   useMarkConversationRead,
   useSendMessage,
   groupByDay,
@@ -26,6 +27,8 @@ function ChatPage() {
   const { t: tr, dir } = useTranslation();
   const navigate = useNavigate();
   const { id } = Route.useParams();
+  const { data: conversationResponse } = useConversation(id);
+  const conversation = conversationResponse?.data;
 
   const [draft, setDraft] = useState("");
   const [images, setImages] = useState<{ file: File; preview: string }[]>([]);
@@ -141,9 +144,16 @@ function ChatPage() {
         >
           <ChevronRightIcon className="h-5 w-5 rtl:rotate-0 ltr:rotate-180" />
         </button>
-        <h1 className="truncate text-sm font-black text-navy dark:text-slate-100">
-          {tr("hotels.chat.title")}
-        </h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-sm font-black text-navy dark:text-slate-100">
+            {conversation?.participant?.name || tr("hotels.chat.title")}
+          </h1>
+          {conversation?.ad ? (
+            <p className="truncate text-xs font-bold text-blue">
+              {conversation.ad.title}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {/* Transcript */}

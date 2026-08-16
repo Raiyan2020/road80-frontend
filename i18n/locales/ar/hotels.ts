@@ -139,7 +139,7 @@ export const hotels = {
   chat: {
     title: 'المحادثات',
     empty: 'لا توجد محادثات',
-    emptyHint: 'ابدأ محادثة من بروفايل فندق أو شركة',
+    emptyHint: 'ابدأ محادثة من عقار أو بروفايل فندق أو شركة',
     loadError: 'تعذر تحميل المحادثات',
     messagePlaceholder: 'اكتب رسالتك...',
     attachImage: 'إرفاق صورة',

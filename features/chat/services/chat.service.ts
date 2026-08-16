@@ -27,9 +27,17 @@ export interface Conversation {
   id: number;
   hotel_id: number | null;
   company_id: number | null;
+  ad_id: number | null;
   user_id: number;
   /** The other party: the business for a user, or the user for a business. */
   participant: ChatParticipant;
+  /** Property context. Present only for an ad-scoped thread. */
+  ad: {
+    id: number;
+    title: string | null;
+    price: string | number | null;
+    image: string | null;
+  } | null;
   unread_count: number;
   latest_message: Message | null;
   updated_at: string | null;
@@ -56,11 +64,21 @@ export const chatService = {
   startWithCompany: (companyId: number | string) =>
     api.post<ApiEnvelope<Conversation>>(`/companies/${companyId}/conversations`),
 
+  /**
+   * Start or resume the thread for this exact buyer + property combination.
+   * A second property from the same seller intentionally creates another thread.
+   */
+  startWithAd: (adId: number | string) =>
+    api.post<ApiEnvelope<Conversation>>(`/ads/${adId}/conversations`),
+
   /** Users see business threads; hotels/companies see their incoming threads. */
   conversations: (page = 1) =>
     api.get<PaginatedEnvelope<Conversation[]>>('/conversations', {
       query: { page: String(page) },
     }),
+
+  conversation: (conversationId: number | string) =>
+    api.get<ApiEnvelope<Conversation>>(`/conversations/${conversationId}`),
 
   /** Page 1 is the newest window; each returned page is chronological. */
   messages: (conversationId: number | string, page = 1) =>

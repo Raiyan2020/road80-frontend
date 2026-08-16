@@ -50,6 +50,8 @@ export const listing = {
   contact: {
     whatsapp: 'WhatsApp',
     call: 'Call',
+    chat: 'Chat',
+    chatError: 'Could not start the property conversation',
     available: 'Contact details are available',
     phoneLabel: 'Phone: {phone}',
     whatsappLabel: 'WhatsApp: {whatsapp}',

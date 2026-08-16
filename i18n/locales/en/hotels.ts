@@ -139,7 +139,7 @@ export const hotels = {
   chat: {
     title: 'Messages',
     empty: 'No conversations',
-    emptyHint: 'Start a chat from a hotel or company profile',
+    emptyHint: 'Start a chat from a property, hotel, or company profile',
     loadError: 'Could not load conversations',
     messagePlaceholder: 'Write a message...',
     attachImage: 'Attach image',

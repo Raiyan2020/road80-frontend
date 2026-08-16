@@ -4,11 +4,13 @@ import { toast } from "sonner";
 import { useFavoriteToggle } from "../features/favorites/hooks/useFavoriteToggle";
 import { useCallAd } from "../features/listing-detail/hooks/useCallAd";
 import { useListing } from "../features/listing-detail/hooks/useListing";
+import { useStartAdConversation } from "../features/chat/hooks/useChat";
 import { paymentService } from "../shared/services/payment.service";
 import { useFavoritesStore } from "../stores/favorites.store";
 import {
   AppleIcon,
   BuildingIcon,
+  ChatIcon,
   ChevronRightIcon,
   HeartIcon,
   LockIcon,
@@ -89,6 +91,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   const mergeFavoriteIds = useFavoritesStore((state) => state.mergeIds);
   const { mutate: toggleFavoriteMutation } = useFavoriteToggle();
   const callMutation = useCallAd();
+  const { startAdConversation, isStartingAdConversation } = useStartAdConversation();
 
   const toggleFavorite = () => {
     toggleFavoriteMutation(listingId);
@@ -513,6 +516,30 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     });
   };
 
+  const handleStartPropertyChat = async () => {
+    if (isStartingAdConversation || !listing) return;
+
+    try {
+      const response = await startAdConversation(listing.id);
+      const conversationId = response?.data?.id;
+
+      if (!conversationId) {
+        toast.error(t("listing.contact.chatError"));
+        return;
+      }
+
+      navigate({
+        to: "/conversations/$id",
+        params: { id: String(conversationId) },
+      });
+    } catch (error) {
+      toast.error(
+        (error as { data?: { message?: string } })?.data?.message ||
+          t("listing.contact.chatError"),
+      );
+    }
+  };
+
   const AttrBadge: React.FC<{
     label: string | null | undefined;
     value: string | number | null | undefined;
@@ -871,6 +898,24 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               <span>{t("listing.contact.whatsapp")}</span>
             </button>
           </div>
+
+          {!(listing as any).my_ad && (
+            <div className="flex-1 flex gap-1">
+              <button
+                type="button"
+                onClick={handleStartPropertyChat}
+                disabled={isStartingAdConversation}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-blue/30 bg-blue/10 text-blue dark:border-blue/40 dark:bg-blue/10 font-semibold text-sm active:scale-95 transition-all disabled:opacity-50"
+              >
+                {isStartingAdConversation ? (
+                  <SpinnerIcon className="w-5 h-5 animate-spin" />
+                ) : (
+                  <ChatIcon className="w-5 h-5" />
+                )}
+                <span>{t("listing.contact.chat")}</span>
+              </button>
+            </div>
+          )}
 
           <div className="flex-1 flex gap-1">
             <button

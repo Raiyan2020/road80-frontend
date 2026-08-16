@@ -191,12 +191,16 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     );
   }
 
+  const sourceInfo =
+    listing.source && typeof listing.source === "object" ? listing.source : null;
+  const propertyCategory = listing.property_category;
+
   const mediaItems: MediaItem[] = [];
 
   // Use attachments from API response
-  const attachments = (listing as any).attachments || [];
+  const attachments = listing.attachments || [];
   if (attachments.length > 0) {
-    attachments.forEach((att: any, idx: number) => {
+    attachments.forEach((att, idx) => {
       const isVideo =
         att.file.toLowerCase().endsWith(".mp4") ||
         att.file.toLowerCase().endsWith(".mov");
@@ -206,7 +210,16 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
         id: `att-${idx}`,
       });
     });
-  } else {
+  }
+
+  const sourceVideoUrls = Array.from(
+    new Set([...(listing.video_urls || []), listing.video_url].filter(Boolean)),
+  ) as string[];
+  sourceVideoUrls.forEach((videoUrl, idx) => {
+    mediaItems.push({ type: "video", src: videoUrl, id: `source-video-${idx}` });
+  });
+
+  if (attachments.length === 0) {
     const rawListing = listing as {
       images?: Array<string | File | Blob>;
       imageUrl?: string;
@@ -233,7 +246,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
         ? resolveMediaUrl(rawListing.image.file)
         : undefined);
 
-    if (videoSrc) {
+    if (videoSrc && !sourceVideoUrls.includes(videoSrc)) {
       mediaItems.push({ type: "video", src: videoSrc, id: "vid-main" });
     }
   }
@@ -308,7 +321,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
   const handlePublisherClick = () => {
     // Prefer raw API user.id, fall back to mapped publisherId
-    const rawId = (listing as any).user?.id ?? listing.publisherId;
+    const rawId = listing.user?.id ?? listing.publisherId;
     if (!rawId) return;
     // Strip any surrounding quotes from serialization bugs
     const cleanId = String(rawId).replace(/^\"|\"$/g, "");
@@ -444,9 +457,9 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
   const handleContactAction = (type: "WHATSAPP" | "CALL") => {
     if (paymentStatus !== "IDLE") return;
 
-    const isPaid = (listing as any).is_paid === 1;
-    const phone = (listing as any).owner_phone || (unlockedContact as any)?.phone;
-    const whatsapp = (listing as any).owner_whatsapp || (unlockedContact as any)?.whatsapp;
+    const isPaid = listing.is_paid === 1 || listing.is_paid === true;
+    const phone = listing.owner_phone || unlockedContact?.phone;
+    const whatsapp = listing.owner_whatsapp || unlockedContact?.whatsapp;
 
     if (isPaid || isUnlocked) {
       if (phone || whatsapp) {
@@ -702,36 +715,60 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               <BuildingIcon className="w-4 h-4" />
               <span className="font-medium">
                 {t("listing.location", {
-                  city: (listing as any).city_name || listing.area,
-                  state: (listing as any).state_name || listing.governorate,
+                  city: listing.city_name || listing.area || "",
+                  state: listing.state_name || listing.governorate || "",
                 })}
               </span>
             </div>
+            {(propertyCategory?.name || sourceInfo) && (
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-bold">
+                {propertyCategory?.name && (
+                  <span className="rounded-full bg-blue/10 px-3 py-1.5 text-blue dark:bg-blue/20">
+                    {propertyCategory.name}
+                  </span>
+                )}
+                {sourceInfo && (
+                  <span className="rounded-full bg-amber-50 px-3 py-1.5 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                    {t("listing.importedDemo")}
+                  </span>
+                )}
+                {sourceInfo?.url && (
+                  <a
+                    href={sourceInfo.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-gray-400 underline underline-offset-2 hover:text-blue"
+                  >
+                    {t("listing.viewSource")}
+                  </a>
+                )}
+              </div>
+            )}
             <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-slate-800 transition-colors duration-300">
               <div
-                className={`flex items-center gap-2 ${(listing as any).user?.id || listing.publisherId ? "cursor-pointer active:scale-95 transition-transform" : ""}`}
+                className={`flex items-center gap-2 ${listing.user?.id || listing.publisherId ? "cursor-pointer active:scale-95 transition-transform" : ""}`}
                 onClick={handlePublisherClick}
               >
                 <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-400 overflow-hidden shadow-sm border border-pale dark:border-slate-700">
                   <AppImage
                     src={
-                      (listing as any).user?.image || listing.publisherAvatar
+                      listing.user?.image || listing.publisherAvatar
                     }
                     className="w-full h-full"
-                    alt={(listing as any).user?.name || listing.publisherName}
+                    alt={listing.user?.name || listing.publisherName}
                   />
                 </div>
                 <div className="flex flex-col">
                   <span
                     className={`text-[13px] font-bold text-navy dark:text-slate-300`}
                   >
-                    {(listing as any).user?.name ||
+                    {listing.user?.name ||
                       listing.publisherName ||
                       t("listing.defaultPublisherName")}
                   </span>
-                  {(listing as any).user?.caption && (
+                  {listing.user?.caption && (
                     <span className="text-[10px] text-gray-400 truncate max-w-[120px]">
-                      {(listing as any).user.caption}
+                      {listing.user.caption}
                     </span>
                   )}
                 </div>
@@ -739,24 +776,24 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
               <div className="flex flex-col items-end gap-1">
                 <span className="text-[13px] text-gray-400 dark:text-slate-500 font-bold">
                   {t("listing.views", {
-                    count: (listing as any).watch_count || listing.views || 0,
+                    count: listing.watch_count || listing.views || 0,
                   })}
                 </span>
                 <span className="text-[11px] text-gray-300">
-                  {(listing as any).created_at}
+                  {listing.created_at}
                 </span>
               </div>
             </div>
           </div>
 
           {/* Dynamic Attributes Grid */}
-          {(listing as any).categories?.length > 0 && (
+          {(listing.categories?.length ?? 0) > 0 && (
             <div className="flex flex-col gap-3">
               <h3 className="text-lg font-bold text-navy dark:text-slate-200 mb-1 font-sans">
                 {t("listing.propertyDetails")}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {(listing as any).categories.map((cat: any, idx: number) => (
+                {listing.categories?.map((cat, idx) => (
                   <AttrBadge
                     key={idx}
                     label={cat.category_name}

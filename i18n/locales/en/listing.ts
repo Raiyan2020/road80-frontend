@@ -8,6 +8,8 @@ export const listing = {
   views: '{count} views',
   views_one: '1 view',
   location: '{city}, {state}',
+  importedDemo: 'Imported demo listing',
+  viewSource: 'View source',
 
   unavailable: {
     title: 'Listing unavailable',

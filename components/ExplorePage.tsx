@@ -41,6 +41,7 @@ const ExplorePage: React.FC = () => {
       sp = new URLSearchParams(record);
     }
     const categoryParam = sp.get('category_value_id') || '';
+    const pageParam = (sp.get('page') || '').replace(/^"|"$/g, '');
     const categoryIds = categoryParam
       ? categoryParam
           .split(',')
@@ -56,7 +57,7 @@ const ExplorePage: React.FC = () => {
       min_price: Number(sp.get('min_price')) || undefined,
       max_price: Number(sp.get('max_price')) || undefined,
       category_value_id: categoryIds,
-      page: Math.max(1, Number(sp.get('page')) || 1),
+      page: Math.max(1, Number(pageParam) || 1),
     };
   };
 
@@ -181,9 +182,10 @@ const ExplorePage: React.FC = () => {
     if (newFilters.category_value_id && newFilters.category_value_id.length > 0) {
       params.set('category_value_id', newFilters.category_value_id.map(String).join(','));
     }
-    if (newFilters.page && newFilters.page > 1) params.set('page', String(newFilters.page));
-    
-    navigate({ search: Object.fromEntries(params) as any });
+    const search = Object.fromEntries(params) as Record<string, string | number>;
+    if (newFilters.page && newFilters.page > 1) search.page = newFilters.page;
+
+    navigate({ search: search as any });
   };
 
   const applyFilters = (newFilters: ExploreFilters) => {

@@ -13,7 +13,7 @@ export interface ExploreRawAd {
   id: number;
   title: string;
   description?: string | null;
-  price: string;
+  price: string | number | null;
   is_liked: boolean;
   likes_count?: number;
   watch_count?: number;
@@ -31,7 +31,7 @@ export interface ExploreRawAd {
      * soft-deleted or missing category used to 500, and now serializes as null.
      */
     category_name: string | null;
-    category_value_name: string | null;
+    category_value_name: string | number | null;
     range: unknown;
   }>;
   categories: Array<{
@@ -39,15 +39,15 @@ export interface ExploreRawAd {
     slug?: string | null;
     category_slug?: string | null;
     name?: string | null;
-    value?: string | null;
+    value?: string | number | null;
     category_name?: string | null;
-    category_value_name?: string | null;
+    category_value_name?: string | number | null;
     range?: unknown;
   }>;
   image: {
     file: string;
     type: string;
-  };
+  } | null;
   status?: number;
 }
 

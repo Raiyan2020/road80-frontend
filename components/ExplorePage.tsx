@@ -55,7 +55,8 @@ const ExplorePage: React.FC = () => {
       city_id: sp.get('city_id') || '',
       min_price: Number(sp.get('min_price')) || undefined,
       max_price: Number(sp.get('max_price')) || undefined,
-      category_value_id: categoryIds
+      category_value_id: categoryIds,
+      page: Math.max(1, Number(sp.get('page')) || 1),
     };
   };
 
@@ -100,7 +101,9 @@ const ExplorePage: React.FC = () => {
     }
   }, []);
 
-  const { data: listings = [], isLoading: loading } = useExploreListings(filters);
+  const { data: exploreData, isLoading: loading } = useExploreListings(filters);
+  const listings = exploreData?.listings || [];
+  const pagination = exploreData?.pagination;
 
   const filteredListings = useMemo(() => {
     const countryId = String(filters.country_id || '').replace(/^"|"$/g, '');
@@ -165,10 +168,9 @@ const ExplorePage: React.FC = () => {
     }
   }, [loading, listings.length]);
 
-  const applyFilters = (newFilters: ExploreFilters) => {
+  const navigateToFilters = (newFilters: ExploreFilters) => {
     setFilters(newFilters);
     sessionStorage.setItem('explore-filters', JSON.stringify(newFilters));
-    // Sync to URL
     const params = new URLSearchParams();
     if (newFilters.name) params.set('name', newFilters.name);
     if (newFilters.country_id) params.set('country_id', String(newFilters.country_id));
@@ -179,8 +181,20 @@ const ExplorePage: React.FC = () => {
     if (newFilters.category_value_id && newFilters.category_value_id.length > 0) {
       params.set('category_value_id', newFilters.category_value_id.map(String).join(','));
     }
+    if (newFilters.page && newFilters.page > 1) params.set('page', String(newFilters.page));
     
     navigate({ search: Object.fromEntries(params) as any });
+  };
+
+  const applyFilters = (newFilters: ExploreFilters) => {
+    navigateToFilters({ ...newFilters, page: 1 });
+  };
+
+  const changePage = (page: number) => {
+    if (!pagination || page < 1 || page > pagination.last_page) return;
+    sessionStorage.setItem('explore-scroll', '0');
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToFilters({ ...filters, page });
   };
 
   const applyHotelFilters = (hotelFilters: ExploreHotelFilters) => {
@@ -286,7 +300,34 @@ const ExplorePage: React.FC = () => {
            </div>
          );
          })}
-      </div>
+             </div>
+
+             {pagination && pagination.last_page > 1 && (
+               <nav
+                 aria-label="Explore pagination"
+                 className="flex items-center justify-center gap-3 px-4 py-5 bg-white dark:bg-slate-900 border-t border-pale dark:border-slate-800"
+               >
+                 <button
+                   type="button"
+                   onClick={() => changePage(pagination.current_page - 1)}
+                   disabled={pagination.current_page <= 1 || loading}
+                   className="min-w-24 h-10 px-4 rounded-xl bg-gray-100 dark:bg-slate-800 text-navy dark:text-slate-100 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition"
+                 >
+                   {t('common.previous')}
+                 </button>
+                 <span className="min-w-24 text-center text-sm font-bold text-navy dark:text-slate-100" dir="ltr">
+                   {pagination.current_page} / {pagination.last_page}
+                 </span>
+                 <button
+                   type="button"
+                   onClick={() => changePage(pagination.current_page + 1)}
+                   disabled={pagination.current_page >= pagination.last_page || loading}
+                   className="min-w-24 h-10 px-4 rounded-xl bg-navy dark:bg-blue text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition"
+                 >
+                   {t('common.next')}
+                 </button>
+               </nav>
+             )}
 
       {filteredListings.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-slate-500">

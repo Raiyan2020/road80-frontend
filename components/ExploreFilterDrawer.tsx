@@ -24,6 +24,7 @@ export interface ExploreFilters {
   category_value_id?: (number | string)[];
   min_price?: number;
   max_price?: number;
+  page?: number;
 }
 
 export interface ExploreHotelFilters {

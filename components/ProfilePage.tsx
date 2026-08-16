@@ -475,7 +475,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
         </a>
       )}
 
-      {!isMe && profile?.type === "user" && (
+      {/* TEMPORARILY DISABLED: Hide chat entry points until the client
+          commercially approves and pays for the messaging feature. Keep the
+          implementation wired so it can be re-enabled safely later. */}
+      {false && !isMe && profile?.type === "user" && (
         <button
           type="button"
           onClick={handleStartCompanyChat}

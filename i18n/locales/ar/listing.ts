@@ -11,6 +11,8 @@ export const listing = {
   views: '{count} مشاهدة',
   views_one: 'مشاهدة واحدة',
   location: '{city}، {state}',
+  importedDemo: 'إعلان تجريبي مستورد',
+  viewSource: 'عرض المصدر',
 
   // Hidden by an admin (`is_hidden`), deleted, or never existed — all 404.
   unavailable: {

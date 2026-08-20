@@ -15,9 +15,12 @@ export function useExploreListings(filters?: ExploreFilters) {
     queryFn: async () => {
         const res = await fetchExploreFeed(filters);
         if (res && res.data) {
-           return res.data.map(mapRawExploreToListing);
+           return {
+             listings: res.data.map(mapRawExploreToListing),
+             pagination: res.pagination,
+           };
         }
-        return [];
+        return { listings: [], pagination: undefined };
     },
     staleTime: 0,
   });

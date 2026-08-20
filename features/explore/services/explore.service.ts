@@ -91,10 +91,12 @@ export function listingHasVideo(
 }
 
 export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
+  const textValue = (value: unknown) =>
+    value === undefined || value === null ? '' : String(value);
   const categoryName = (category: ExploreRawAd['categories'][number]) =>
-    category.name || category.category_name || '';
+    textValue(category.name ?? category.category_name);
   const categoryValue = (category: ExploreRawAd['categories'][number]) =>
-    category.value || category.category_value_name || '';
+    textValue(category.value ?? category.category_value_name);
   const categorySlug = (category: ExploreRawAd['categories'][number]) =>
     category.slug || category.category_slug;
 
@@ -114,13 +116,13 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
 
   // Broad search for property type in answers or categories
   const propertyType =
-    propertyAnswer?.category_value_name ||
+    textValue(propertyAnswer?.category_value_name) ||
     (propertyCategory ? categoryValue(propertyCategory) : '') ||
     (raw.categories?.[0] ? categoryValue(raw.categories[0]) : '') ||
     '';
 
   const listingType =
-    listingAnswer?.category_value_name ||
+    textValue(listingAnswer?.category_value_name) ||
     (listingCategory ? categoryValue(listingCategory) : '') ||
     '';
 
@@ -132,7 +134,7 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
   // Grouping stays a regex rather than Intl.NumberFormat on purpose:
   // Intl.NumberFormat('ar') yields Arabic-Indic digits (١٢٣), which would
   // change existing Arabic rendering. Kuwait uses Western digits.
-  const numericPriceStr = raw.price.toString().replace(/[^\d.]/g, '');
+  const numericPriceStr = textValue(raw.price).replace(/[^\d.]/g, '');
   const numericPrice = parseFloat(numericPriceStr) || 0;
   const formattedPrice =
     numericPrice.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ' + t('common.currency');

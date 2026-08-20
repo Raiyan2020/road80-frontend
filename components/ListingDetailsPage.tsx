@@ -936,10 +936,7 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
             </button>
           </div>
 
-          {/* TEMPORARILY DISABLED: Hide chat entry points until the client
-              commercially approves and pays for the messaging feature. Keep
-              the implementation wired so it can be re-enabled safely later. */}
-          {false && !(listing as any).my_ad && (
+          {!(listing as any).my_ad && (
             <div className="flex-1 flex gap-1">
               <button
                 type="button"

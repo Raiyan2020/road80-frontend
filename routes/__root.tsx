@@ -318,6 +318,7 @@ function RootComponent() {
     routePath.startsWith('/post-ad') && (location.search as any)?.step != null;
   // Sub-pages that need a back button but use the shell header
   const isNotifications = routePath.startsWith('/notifications');
+  const isConversationRoute = routePath.startsWith('/conversations');
 
   // Hotel browsing is publicly viewable: a `share_url` (use case 1.5) is sent to
   // people who are usually signed out, and bouncing them to /auth loses the
@@ -460,14 +461,14 @@ function RootComponent() {
                 className="absolute left-0 right-0 overflow-hidden bg-bg dark:bg-slate-950 animate-fade-in transition-colors duration-300"
                 style={{
                   top: (isListingRoute || isQuickStart || isAuthRoute || isStandalonePage) ? '0' : 'calc(var(--header-h) + env(safe-area-inset-top))',
-                  bottom: (isListingRoute || isQuickStart || isAuthRoute || isPostAdWizard) ? '0' : 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
+                  bottom: (isListingRoute || isQuickStart || isAuthRoute || isPostAdWizard || isConversationRoute) ? '0' : 'calc(var(--tab-h) + env(safe-area-inset-bottom))',
                   zIndex: (isListingRoute || isQuickStart || isAuthRoute) ? 50 : 10
                 }}
               >
                 <Outlet />
               </main>
 
-              {!isListingRoute && !isQuickStart && !isAuthRoute && !isPostAdWizard && (
+              {!isListingRoute && !isQuickStart && !isAuthRoute && !isPostAdWizard && !isConversationRoute && (
                 <BottomNavigation
                   activeTab={activeTab}
                   onTabChange={(tab) => navigate({ to: getRouteForTab(tab) as any, search: tab === Tab.COMPANIES ? ({ category: undefined } as any) : undefined })}

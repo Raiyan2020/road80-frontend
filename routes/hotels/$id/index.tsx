@@ -282,10 +282,7 @@ function HotelProfilePage() {
 
           <SocialLinksRow socials={hotel.socials} className="flex-wrap" />
 
-          {/* TEMPORARILY DISABLED: Hide chat entry points until the client
-              commercially approves and pays for the messaging feature. Keep
-              the implementation wired so it can be re-enabled safely later. */}
-          {false && canChat && (
+          {canChat && (
             <button
               type="button"
               onClick={handleChat}

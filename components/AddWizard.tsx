@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckIcon,
   AppleIcon,
@@ -65,9 +66,18 @@ const KNET_LOGO =
   "https://media.licdn.com/dms/image/v2/D4D0BAQFazp_I3lLeQg/company-logo_200_200/company-logo_200_200/0/1715599858189/the_shared_electronic_banking_services_co_knet_logo?e=2147483647&v=beta&t=FfjCLbNIUGrTCTi-tI5nXSNP9B4AcOJbWsFqV0bSWcM";
 
 const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const { t, dir } = useTranslation();
+
+  const invalidateAdQueries = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["profile", "my-ads"] });
+    queryClient.invalidateQueries({ queryKey: ["profile"] });
+    queryClient.invalidateQueries({ queryKey: ["listings"] });
+    queryClient.invalidateQueries({ queryKey: ["home-data"] });
+    queryClient.invalidateQueries({ queryKey: ["ads-by-history"] });
+  }, [queryClient]);
 
   // ── Backend Data ─────────────────────────────────────────────────────────
   const { data: categories = [], isLoading: catsLoading } = useCategories();
@@ -693,6 +703,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
         setPublishedImmediately(
           res.data?.requires_payment === false || Boolean(res.data?.published),
         );
+        invalidateAdQueries();
         setPublished(true);
         // We do not use setTimeout here anymore so the user can read the success message
       } else {
@@ -774,6 +785,7 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
       });
 
       if (res.status) {
+        invalidateAdQueries();
         setPublished(true);
         // We do not use setTimeout here anymore so the user can read the success message
       } else {

@@ -5,10 +5,12 @@ export const profile = {
   page: {
     defaultUserName: 'مستخدم',
     defaultCompanyName: 'شركة',
-    // The company is hidden, suspended, or still awaiting approval — all 404.
+    // The company is hidden, suspended, or a personal user profile — all 404.
     unavailable: {
-      title: 'الملف الشخصي غير متاح',
-      hint: 'قد يكون هذا الحساب مخفياً أو تم إيقافه من قبل الإدارة.',
+      title: 'الملف الشخصي غير متاح للعرض العام',
+      hint: 'الملفات الشخصية للحسابات الفردية مخصصة للاستخدام الخاص، أو قد يكون هذا الحساب غير متاح حالياً.',
+      exploreAction: 'استكشاف العقارات المتاحة',
+      myProfileAction: 'الذهاب إلى حسابي',
     },
     newBadge: 'جديد',
 

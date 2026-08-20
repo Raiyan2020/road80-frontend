@@ -170,7 +170,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   const rawUserId = params.get("user");
   const viewedUserId = rawUserId ? rawUserId.replace(/^"|"$/g, "") : null;
   const activeTabParam = params.get("tab");
-  const isMe = !viewedUserId || viewedUserId === "current_user";
+
+  const { profile, isLoading: profileLoading } = useProfile();
+  const isSelf = Boolean(
+    profile?.id && viewedUserId && String(profile.id) === String(viewedUserId),
+  );
+  const isMe = !viewedUserId || viewedUserId === "current_user" || isSelf;
+
   // Gates the hotel profile entry point (use case 1.2). Server truth, not the
   // persisted store — see useIsHotel.
   const { isHotel, isLoading: isAccountTypeLoading } = useIsHotel();
@@ -209,14 +215,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
   });
   const { data: myFavsData = [], isLoading: myFavsLoading } =
     useUserFavorites();
-  const { profile, isLoading: profileLoading } = useProfile();
-  console.log("profile", profile);
 
   const { data: officeData, isLoading: officeLoading } = useOffice(
-    viewedUserId || "",
+    !isMe && viewedUserId ? viewedUserId : "",
   );
   const { data: officeAdsData = [], isLoading: officeAdsLoading } =
-    useOfficeAds(viewedUserId || "");
+    useOfficeAds(!isMe && viewedUserId ? viewedUserId : "");
   const isLoading = isMe
     ? (!isHotel && myAdsLoading) || myFavsLoading || profileLoading || isAccountTypeLoading
     : officeLoading || officeAdsLoading;
@@ -351,18 +355,39 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onListingClick }) => {
     }
   };
 
-  // A company that is hidden, suspended, or not yet accepted now 404s
-  // (`visibleCompanies()` scope). Without this the shell rendered with a
-  // placeholder name and zeroed stats, which reads as a real but empty profile.
+  // A company that is hidden, suspended, or a private personal user profile (404)
   if (!isMe && !officeLoading && !officeData) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 p-10 text-center animate-fade-in">
-        <p className="text-lg font-black text-navy dark:text-slate-100">
-          {t("profile.page.unavailable.title")}
-        </p>
-        <p className="text-sm font-medium text-gray-500 dark:text-slate-400">
-          {t("profile.page.unavailable.hint")}
-        </p>
+      <div className="flex flex-col items-center justify-center gap-5 p-8 py-16 text-center animate-fade-in max-w-sm mx-auto min-h-[60vh]">
+        <div className="w-20 h-20 rounded-full bg-pale/50 dark:bg-slate-800/80 flex items-center justify-center text-navy/70 dark:text-slate-300 border border-navy/10 dark:border-slate-700 shadow-sm">
+          <UserIcon className="w-10 h-10 opacity-70" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-lg font-black text-navy dark:text-slate-100 font-sans">
+            {t("profile.page.unavailable.title")}
+          </h3>
+          <p className="text-sm font-medium text-gray-500 dark:text-slate-400 leading-relaxed font-sans">
+            {t("profile.page.unavailable.hint")}
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 w-full mt-3">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/explore" })}
+            className="w-full py-3 px-4 rounded-xl bg-navy text-white font-bold text-sm shadow-md hover:bg-navy/90 active:scale-98 transition-all"
+          >
+            {t("profile.page.unavailable.exploreAction")}
+          </button>
+          {profile && (
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/profile", search: {} as any })}
+              className="w-full py-3 px-4 rounded-xl bg-pale/50 dark:bg-slate-800 text-navy dark:text-slate-200 font-bold text-sm border border-navy/10 dark:border-slate-700 hover:bg-pale active:scale-98 transition-all"
+            >
+              {t("profile.page.unavailable.myProfileAction")}
+            </button>
+          )}
+        </div>
       </div>
     );
   }

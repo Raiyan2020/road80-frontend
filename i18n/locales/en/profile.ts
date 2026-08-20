@@ -6,8 +6,10 @@ export const profile = {
     defaultUserName: 'User',
     defaultCompanyName: 'Company',
     unavailable: {
-      title: 'Profile unavailable',
-      hint: 'This account may be hidden or suspended by the administrators.',
+      title: 'Profile unavailable for public view',
+      hint: 'Personal user accounts are private, or this account may currently be unavailable.',
+      exploreAction: 'Explore available properties',
+      myProfileAction: 'Go to my profile',
     },
     newBadge: 'New',
 

@@ -25,6 +25,7 @@ import MyFatoorahPayment, { type MyFatoorahResult } from "./MyFatoorahPayment";
 import { FALLBACK_LISTING_IMAGE } from "@/shared/constants/images";
 import { resolveMediaUrl } from "@/shared/utils/media-url";
 import { buildShareUrl, shareContent } from "@/shared/utils/share";
+import { formatPhoneNumber } from "@/shared/utils/phone";
 import { AppImage } from "./AppImage";
 import { useTranslation } from "../i18n";
 
@@ -416,10 +417,15 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
 
         // If user originally wanted to contact via whatsapp/call, do it now
         if (pendingContactType && contactData?.phone) {
-          const phone = contactData.phone.replace(/\D/g, "");
-          if (pendingContactType === "WHATSAPP")
-            window.open(`https://wa.me/${phone}`, "_blank");
-          else window.location.href = `tel:${phone}`;
+          const formatted = formatPhoneNumber(contactData.phone, listing.country_name);
+          const formattedWhatsapp = formatPhoneNumber(contactData.whatsapp || contactData.phone, listing.country_name);
+          if (pendingContactType === "WHATSAPP") {
+            const waTarget = formattedWhatsapp?.whatsapp || formatted?.whatsapp || contactData.phone.replace(/\D/g, "");
+            window.open(`https://wa.me/${waTarget}`, "_blank", "noopener,noreferrer");
+          } else {
+            const dialTarget = formatted?.dial || contactData.phone.replace(/\D/g, "");
+            window.location.href = `tel:${dialTarget}`;
+          }
         }
         // Close it immediately and show toast with copy action
         setTimeout(() => {
@@ -430,15 +436,17 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           setPaymentStatus("IDLE");
 
           if (contactData && contactData.phone) {
-            const fullPhone = `${contactData.phone_code || ""}${contactData.phone}`;
+            const formatted = formatPhoneNumber(contactData.phone, listing.country_name);
+            const displayPhone = formatted?.display || `${contactData.phone_code || ""}${contactData.phone}`;
+            const copyPhone = formatted?.dial || `${contactData.phone_code || ""}${contactData.phone}`;
             toast.success(t("listing.payment.success"), {
-              description: t("listing.contact.numberLabel", { phone: fullPhone }),
+              description: t("listing.contact.numberLabel", { phone: displayPhone }),
               duration: 10000,
               closeButton: true,
               action: {
                 label: t("listing.contact.copyNumber"),
                 onClick: () => {
-                  navigator.clipboard.writeText(fullPhone);
+                  navigator.clipboard.writeText(copyPhone);
                   toast.success(t("common.copiedToClipboard"), { closeButton: true });
                 },
               },
@@ -461,15 +469,27 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
     if (paymentStatus !== "IDLE") return;
 
     const isPaid = listing.is_paid === 1 || listing.is_paid === true;
-    const phone = listing.owner_phone || unlockedContact?.phone;
-    const whatsapp = listing.owner_whatsapp || unlockedContact?.whatsapp;
+    const rawPhone = listing.owner_phone || unlockedContact?.phone;
+    const rawWhatsapp = listing.owner_whatsapp || unlockedContact?.whatsapp;
 
     if (isPaid || isUnlocked) {
-      if (phone || whatsapp) {
+      if (rawPhone || rawWhatsapp) {
+        const formattedPhone = formatPhoneNumber(rawPhone, listing.country_name);
+        const formattedWhatsapp = formatPhoneNumber(rawWhatsapp || rawPhone, listing.country_name);
+
+        // Immediate direct action on click
+        if (type === "WHATSAPP" && formattedWhatsapp) {
+          window.open(`https://wa.me/${formattedWhatsapp.whatsapp}`, "_blank", "noopener,noreferrer");
+        } else if (type === "CALL" && formattedPhone) {
+          window.location.href = `tel:${formattedPhone.dial}`;
+        }
+
         const contactInfo: string[] = [];
-        if (phone) contactInfo.push(t("listing.contact.phoneLabel", { phone }));
-        if (whatsapp)
-          contactInfo.push(t("listing.contact.whatsappLabel", { whatsapp }));
+        if (formattedPhone) contactInfo.push(t("listing.contact.phoneLabel", { phone: formattedPhone.display }));
+        if (formattedWhatsapp)
+          contactInfo.push(t("listing.contact.whatsappLabel", { whatsapp: formattedWhatsapp.display }));
+
+        const copyTarget = (type === "WHATSAPP" ? formattedWhatsapp?.dial : formattedPhone?.dial) || formattedPhone?.dial || formattedWhatsapp?.dial || rawPhone || rawWhatsapp || "";
 
         toast.success(t("listing.contact.available"), {
           description: contactInfo.join(" | "),
@@ -478,9 +498,8 @@ const ListingDetailsPage: React.FC<ListingDetailsPageProps> = ({
           action: {
             label: t("listing.contact.copyNumber"),
             onClick: () => {
-              const toCopy = phone || whatsapp;
-              if (toCopy) {
-                navigator.clipboard.writeText(toCopy);
+              if (copyTarget) {
+                navigator.clipboard.writeText(copyTarget);
                 toast.success(t("listing.contact.numberCopied"), { closeButton: true });
               }
             },

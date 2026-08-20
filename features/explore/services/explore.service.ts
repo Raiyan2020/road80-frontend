@@ -39,27 +39,37 @@ function buildQueryString(params: Record<string, unknown>): string {
 /**
  * Fetch explore/search listings with filters and pagination.
  */
-export async function fetchExploreFeed(params?: ExploreFilters): Promise<ExploreResponse | null> {
-  try {
-    // Strip undefined/empty values so they don't appear in the query string
-    const cleanParams = params
-      ? Object.fromEntries(
-          Object.entries(params).filter(
-            ([, v]) => v !== undefined && v !== '' && v !== null
-          )
+/**
+ * Errors deliberately propagate to the caller.
+ *
+ * This used to `catch` everything and return `null`, which the query hook then
+ * turned into an empty list — so a 500, a dropped connection and a genuine
+ * "no ads here" all rendered the same "no results" panel and the real failure
+ * was invisible. The caller is responsible for surfacing the error state.
+ */
+export async function fetchExploreFeed(params?: ExploreFilters): Promise<ExploreResponse> {
+  // Strip undefined/empty values so they don't appear in the query string
+  const cleanParams = params
+    ? Object.fromEntries(
+        Object.entries(params).filter(
+          ([, v]) => v !== undefined && v !== '' && v !== null
         )
-      : {};
+      )
+    : {};
 
-    const queryString = buildQueryString(cleanParams);
-    const url = queryString ? `/explore?${queryString}` : '/explore';
+  const queryString = buildQueryString(cleanParams);
+  const url = queryString ? `/explore?${queryString}` : '/explore';
 
-    const response = await api.get<ExploreResponse>(url);
-    if (!response.status || !response.data) return null;
+  const response = await api.get<ExploreResponse>(url);
 
-    return response;
-  } catch (error) {
-    return null;
+  // A 200 can still carry `status: false` — this backend reports failure in the
+  // envelope, not the HTTP code. An empty `data` array is NOT a failure though;
+  // it is a legitimate zero-result page, so it must not be treated as an error.
+  if (!response?.status) {
+    throw new Error(response?.message || 'Explore request failed');
   }
+
+  return response;
 }
 
 /**
@@ -146,7 +156,11 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
 
   return ListingSchema.parse({
     id: raw.id,
-    title: raw.title,
+    // `ads.title` is nullable server-side and `localizedTitle()` returns
+    // `?string`, but `ListingSchema.title` is a required string. Passing the
+    // raw null threw and took the whole page down with it — an ad with no
+    // title should still be browsable.
+    title: textValue(raw.title),
     price: formattedPrice,
     country: raw.country_name,
     governorate: raw.state_name,

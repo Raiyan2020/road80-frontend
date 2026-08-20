@@ -7,6 +7,7 @@ import {
   SpinnerIcon,
   PlusIcon,
   PlayIcon,
+  CloseIcon,
 } from "./Icons";
 import { useCategories } from "../features/post-ad/hooks/useCategories";
 import {
@@ -1740,9 +1741,10 @@ const AddWizard: React.FC<AddWizardProps> = ({ onComplete }) => {
           </span>
           <button
             onClick={onComplete}
-            className="text-xs text-gray-400 font-bold hover:text-navy transition-colors"
+            aria-label={t("common.skip")}
+            className="w-7 h-7 -my-1 flex items-center justify-center rounded-full text-gray-400 hover:text-navy dark:hover:text-white hover:bg-pale/40 dark:hover:bg-slate-800 transition-all active:scale-95"
           >
-            {t("common.skip")}
+            <CloseIcon className="w-4 h-4" />
           </button>
         </div>
         <div className="w-full h-1.5 bg-pale dark:bg-slate-800 rounded-full overflow-hidden">

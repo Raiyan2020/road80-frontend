@@ -141,7 +141,7 @@ const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-bg dark:bg-slate-950 p-4 pb-24 animate-fade-in" dir={dir}>
+    <div className="w-full min-h-full bg-bg dark:bg-slate-950 p-4 pb-28 animate-fade-in" dir={dir}>
       {notifications.length > 0 && activeTab === 'all' && (
         <div className="flex justify-end mb-4">
           <button

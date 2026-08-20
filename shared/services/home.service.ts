@@ -45,9 +45,11 @@ export interface CategoryFilterResponse {
 
 export interface HomeHeader {
   id: number;
-  title: string;
-  caption: string;
+  title?: string;
+  caption?: string;
   image: string;
+  url?: string | null;
+  link?: string | null;
 }
 
 export interface HomeCategory {
@@ -58,11 +60,12 @@ export interface HomeCategory {
 
 export interface HomeFooter {
   id: number;
-  title: string;
-  button_action: string;
-  description: string;
+  title?: string;
+  button_action?: string;
+  description?: string;
   image: string;
-  url: string | null;
+  url?: string | null;
+  link?: string | null;
 }
 
 /** Lean ad shape returned inline on /home — not the full explore/detail payload. */

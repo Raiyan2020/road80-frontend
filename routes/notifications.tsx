@@ -7,5 +7,11 @@ export const Route = createFileRoute('/notifications')({
 });
 
 function NotificationsRoute() {
-  return <NotificationsPage />;
+  return (
+    <div className="absolute inset-0 block overflow-hidden">
+      <div id="notifications-scroll-container" className="h-full w-full overflow-y-auto overflow-x-hidden">
+        <NotificationsPage />
+      </div>
+    </div>
+  );
 }

@@ -96,6 +96,7 @@ const HomePage: React.FC<{
 
       {/* Top Banner (Slider) */}
       <BannerSlider
+        banners={homeData?.header || []}
         images={homeData?.header?.map((h) => h.image) || []}
         isLoading={isHomeDataLoading}
       />
@@ -218,6 +219,7 @@ const HomePage: React.FC<{
 
       {/* Bottom Banner (Static) */}
       <StaticBanner
+        banners={homeData?.footer || []}
         images={homeData?.footer?.map((h) => h.image) || []}
         isLoading={isHomeDataLoading}
       />

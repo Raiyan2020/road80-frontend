@@ -102,7 +102,13 @@ const ExplorePage: React.FC = () => {
     }
   }, []);
 
-  const { data: exploreData, isLoading: loading } = useExploreListings(filters);
+  const {
+    data: exploreData,
+    isLoading: loading,
+    isError,
+    refetch,
+    isFetching,
+  } = useExploreListings(filters);
   const listings = exploreData?.listings || [];
   const pagination = exploreData?.pagination;
 
@@ -331,7 +337,23 @@ const ExplorePage: React.FC = () => {
                </nav>
              )}
 
-      {filteredListings.length === 0 && (
+      {/* A failed request and a genuinely empty result are different things and
+          must not share a panel — reading "no ads match your search" when the
+          call actually errored sends you looking for a filter bug that is not
+          there. */}
+      {isError ? (
+          <div className="flex flex-col items-center justify-center h-64 px-8 text-center text-gray-400 dark:text-slate-500">
+             <p className="text-sm font-bold mb-3">{t('common.tryAgain')}</p>
+             <button
+               type="button"
+               onClick={() => refetch()}
+               disabled={isFetching}
+               className="min-w-24 h-10 px-4 rounded-xl bg-navy dark:bg-blue text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition"
+             >
+               {t('common.retry')}
+             </button>
+          </div>
+      ) : filteredListings.length === 0 && (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-slate-500">
              <SearchIcon className="w-12 h-12 mb-2 opacity-20" />
              <p className="text-sm font-bold">{t('explore.feed.noMatches')}</p>

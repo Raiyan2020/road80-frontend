@@ -39,27 +39,26 @@ function buildQueryString(params: Record<string, unknown>): string {
 /**
  * Fetch explore/search listings with filters and pagination.
  */
-export async function fetchExploreFeed(params?: ExploreFilters): Promise<ExploreResponse | null> {
-  try {
-    // Strip undefined/empty values so they don't appear in the query string
-    const cleanParams = params
-      ? Object.fromEntries(
-          Object.entries(params).filter(
-            ([, v]) => v !== undefined && v !== '' && v !== null
-          )
+export async function fetchExploreFeed(params?: ExploreFilters): Promise<ExploreResponse> {
+  // Strip undefined/empty values so they don't appear in the query string
+  const cleanParams = params
+    ? Object.fromEntries(
+        Object.entries(params).filter(
+          ([, v]) => v !== undefined && v !== '' && v !== null
         )
-      : {};
+      )
+    : {};
 
-    const queryString = buildQueryString(cleanParams);
-    const url = queryString ? `/explore?${queryString}` : '/explore';
+  const queryString = buildQueryString(cleanParams);
+  const url = queryString ? `/explore?${queryString}` : '/explore';
 
-    const response = await api.get<ExploreResponse>(url);
-    if (!response.status || !response.data) return null;
+  const response = await api.get<ExploreResponse>(url);
 
-    return response;
-  } catch (error) {
-    return null;
+  if (response.status !== true) {
+    throw new Error(response.message || 'Explore request failed');
   }
+
+  return response;
 }
 
 /**
@@ -146,7 +145,7 @@ export function mapRawExploreToListing(raw: ExploreRawAd): Listing {
 
   return ListingSchema.parse({
     id: raw.id,
-    title: raw.title,
+    title: textValue(raw.title),
     price: formattedPrice,
     country: raw.country_name,
     governorate: raw.state_name,

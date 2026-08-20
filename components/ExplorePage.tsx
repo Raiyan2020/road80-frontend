@@ -102,9 +102,19 @@ const ExplorePage: React.FC = () => {
     }
   }, []);
 
-  const { data: exploreData, isLoading: loading } = useExploreListings(filters);
+  const {
+    data: exploreData,
+    isLoading: loading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useExploreListings(filters);
   const listings = exploreData?.listings || [];
   const pagination = exploreData?.pagination;
+  const errorMessage =
+    (error as any)?.data?.message ||
+    (error instanceof Error ? error.message : t('common.genericError'));
 
   const filteredListings = useMemo(() => {
     const countryId = String(filters.country_id || '').replace(/^"|"$/g, '');
@@ -331,12 +341,24 @@ const ExplorePage: React.FC = () => {
                </nav>
              )}
 
-      {filteredListings.length === 0 && (
+      {isError ? (
+          <div className="flex flex-col items-center justify-center h-64 px-8 text-center text-gray-400 dark:text-slate-500">
+             <p className="text-sm font-bold mb-3">{errorMessage}</p>
+             <button
+               type="button"
+               onClick={() => refetch()}
+               disabled={isFetching}
+               className="min-w-24 h-10 px-4 rounded-xl bg-navy dark:bg-blue text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition"
+             >
+               {t('common.retry')}
+             </button>
+          </div>
+      ) : filteredListings.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-slate-500">
              <SearchIcon className="w-12 h-12 mb-2 opacity-20" />
              <p className="text-sm font-bold">{t('explore.feed.noMatches')}</p>
           </div>
-      )}
+      ) : null}
            </>
          )}
       </div>

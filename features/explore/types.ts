@@ -11,7 +11,7 @@ export interface ExploreFilters {
 
 export interface ExploreRawAd {
   id: number;
-  title: string;
+  title: string | null;
   description?: string | null;
   price: string | number | null;
   is_liked: boolean;
@@ -52,7 +52,7 @@ export interface ExploreRawAd {
 }
 
 export interface ExploreResponse {
-  status: boolean;
+  status: boolean | string;
   message: string;
   data: ExploreRawAd[];
   // snake_case to match ApiResponse::paginationResponse — it emits
